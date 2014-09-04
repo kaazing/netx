@@ -19,11 +19,11 @@
 
     <parent>
         <groupId>org.kaazing</groupId>
-        <artifactId>kaaz-net-parent</artifactId>
+        <artifactId>kaaz-net.parent</artifactId>
         <version>0.0.0.3-SNAPSHOT</version>
     </parent>
 
-    <artifactId>kaaz-net-data</artifactId>
+    <artifactId>kaaz-net.data</artifactId>
     <name>Kaazing Net Data</name>
     <description>Pulls in Data URLs</description>
     <version>0.0.0.3-SNAPSHOT</version>
@@ -31,7 +31,7 @@
     <dependencies>
         <dependency>
             <groupId>org.kaazing</groupId>
-            <artifactId>kaaz-net-api</artifactId>
+            <artifactId>kaaz-net.api</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

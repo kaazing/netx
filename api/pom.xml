@@ -19,11 +19,11 @@
 
     <parent>
         <groupId>org.kaazing</groupId>
-        <artifactId>kaaz-net-parent</artifactId>
+        <artifactId>kaaz-net.parent</artifactId>
         <version>0.0.0.3-SNAPSHOT</version>
     </parent>
 
-    <artifactId>kaaz-net-api</artifactId>
+    <artifactId>kaaz-net.api</artifactId>
     <name>Kaazing Net API</name>
     <version>0.0.0.3-SNAPSHOT</version>
 
