@@ -20,12 +20,12 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>kaaz-net.parent</artifactId>
-        <version>0.0.0.3-SNAPSHOT</version>
+        <version>0.0.0.3</version>
     </parent>
 
     <artifactId>kaaz-net.api</artifactId>
     <name>Kaazing Net API</name>
-    <version>0.0.0.3-SNAPSHOT</version>
+    <version>0.0.0.3</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
