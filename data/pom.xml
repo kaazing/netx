@@ -20,13 +20,13 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>net.parent</artifactId>
-        <version>1.1.0.1</version>
+        <version>1.1.0.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>net.data</artifactId>
     <name>Kaazing Net Data</name>
     <description>Pulls in Data URLs</description>
-    <version>1.1.0.1</version>
+    <version>1.1.0.2-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
