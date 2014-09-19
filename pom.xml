@@ -22,9 +22,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.kaazing</groupId>
-    <artifactId>kaaz-net.parent</artifactId>
+    <artifactId>net.parent</artifactId>
     <packaging>pom</packaging>
-    <version>0.0.0.4-SNAPSHOT</version>
+    <version>1.1.0.1-SNAPSHOT</version>
 
     <name>Kaazing Net Utilities</name>
     <url>https://github.com/kaazing/kaaz-net</url>
