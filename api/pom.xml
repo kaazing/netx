@@ -24,11 +24,10 @@
     </parent>
 
     <artifactId>net.api</artifactId>
-    <name>Kaazing Net API</name>
+    <name>Net API</name>
     <version>1.1.0.2-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <checkstyle.config.location>config/checkstyle/checkstyle.xml</checkstyle.config.location>
     </properties>
 </project>

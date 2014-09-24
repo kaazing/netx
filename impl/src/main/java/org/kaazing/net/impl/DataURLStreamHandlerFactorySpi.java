@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Kaazing Corporation, All rights reserved.
+ * Copyright 2014, Kaazing Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.net;
+package org.kaazing.net.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -24,6 +24,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.util.Collection;
+
+import org.kaazing.net.URLStreamHandlerFactorySpi;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singleton;
@@ -58,7 +60,7 @@ public final class DataURLStreamHandlerFactorySpi extends URLStreamHandlerFactor
             return new DataURLConnection(url, dataAsBytes);
         }
 
-        private static class DataURLConnection extends URLConnection {
+        private static final class DataURLConnection extends URLConnection {
 
             private final byte[] dataAsBytes;
 
