@@ -23,7 +23,7 @@
     <groupId>org.kaazing</groupId>
     <artifactId>net.parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.1.0.3</version>
+    <version>1.1.0.4-SNAPSHOT</version>
 
     <name>Net Utilities</name>
     <url>https://github.com/kaazing/net.api</url>
