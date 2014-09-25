@@ -56,7 +56,8 @@
 
     <modules>
         <module>api</module>
-        <module>impl</module>
+        <module>data</module>
+        <module>tcp</module>
     </modules>
 
     <distributionManagement>
