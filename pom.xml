@@ -58,6 +58,7 @@
         <module>api</module>
         <module>data</module>
         <module>tcp</module>
+        <module>bbosh</module>
     </modules>
 
     <distributionManagement>
