@@ -20,13 +20,13 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>net.parent</artifactId>
-        <version>1.1.0.4-SNAPSHOT</version>
+        <version>1.1.0.8-SNAPSHOT</version>
     </parent>
 
-    <artifactId>net.data</artifactId>
+    <artifactId>net.impl</artifactId>
     <name>Net Data Implementation</name>
     <description>Support for Data URLs</description>
-    <version>1.1.0.4-SNAPSHOT</version>
+    <version>1.1.0.8-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
