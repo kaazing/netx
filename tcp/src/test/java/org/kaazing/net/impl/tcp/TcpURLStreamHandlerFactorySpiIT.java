@@ -17,8 +17,10 @@
 package org.kaazing.net.impl.tcp;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 
+import java.io.Closeable;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
@@ -26,6 +28,9 @@ import java.net.URLConnection;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.DisableOnDebug;
+import org.junit.rules.TestRule;
+import org.junit.rules.Timeout;
 import org.kaazing.net.URLFactory;
 import org.kaazing.robot.junit.annotation.Robotic;
 import org.kaazing.robot.junit.rules.RobotRule;
@@ -35,22 +40,27 @@ public class TcpURLStreamHandlerFactorySpiIT {
     @Rule
     public RobotRule robot = new RobotRule();
 
+    @Rule
+    public final TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
+
+    @Test
     @Robotic(script = "echo.then.closed")
-    @Test(timeout = 1000)
     public void shouldEcho() throws Exception {
         URL location = URLFactory.createURL("tcp://localhost:61234");
 
         URLConnection connection = location.openConnection();
         connection.connect();
-        OutputStream out = connection.getOutputStream();
-        InputStream in = connection.getInputStream();
 
+        OutputStream out = connection.getOutputStream();
         out.write("Hello, world".getBytes(UTF_8));
+        out.close();
+
+        InputStream in = connection.getInputStream();
         byte[] buf = new byte[32];
         int len = in.read(buf);
-
-        out.close();
         in.close();
+
+        ((Closeable) connection).close();
 
         robot.join();
 
