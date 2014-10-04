@@ -26,7 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class BBoshStrategy {
-    
+
     public static enum Kind {
         POLLING,
         LONG_POLLING
@@ -65,10 +65,10 @@ public abstract class BBoshStrategy {
         throw new IllegalArgumentException(strategy);
     }
 
-    private static final <T> T unlessNonNull(T maybeNull, T defaultValue) {
+    private static <T> T unlessNonNull(T maybeNull, T defaultValue) {
         return (maybeNull != null) ? maybeNull : defaultValue;
     }
-    
+
     public static final class Polling extends BBoshStrategy {
 
         private static final Pattern PATTERN = Pattern.compile("polling;interval=([0-9]+)(s)");

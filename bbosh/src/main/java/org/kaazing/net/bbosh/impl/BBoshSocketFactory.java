@@ -24,26 +24,25 @@ import java.util.List;
 
 import org.kaazing.net.bbosh.BBoshStrategy;
 
-final class BBoshConnectionFactory {
+final class BBoshSocketFactory {
 
     private final URL factoryURL;
     private final int initialSequenceNo;
 
-    BBoshConnectionFactory(
-        URL factoryURL) throws IOException
-    {
+    BBoshSocketFactory(URL factoryURL) throws IOException {
         this(factoryURL, 0);
     }
 
-    BBoshConnectionFactory(
+    BBoshSocketFactory(
         URL factoryURL,
-        int initialSequenceNo) throws IOException
-    {
+        int initialSequenceNo) throws IOException {
+
         this.factoryURL = factoryURL;
         this.initialSequenceNo = initialSequenceNo;
     }
 
-    public BBoshConnection createConnection(List<BBoshStrategy> strategies, int timeout) throws IOException {
+    BBoshSocket createSocket(List<BBoshStrategy> strategies, int timeout) throws IOException {
+
         HttpURLConnection connection = (HttpURLConnection) factoryURL.openConnection();
         connection.setConnectTimeout(timeout);
         connection.setRequestMethod("POST");
@@ -53,7 +52,7 @@ final class BBoshConnectionFactory {
 
         if (!strategies.isEmpty()) {
             StringBuilder acceptStrategy = new StringBuilder();
-            for (Iterator<BBoshStrategy> i$ = strategies.iterator(); i$.hasNext(); ) {
+            for (Iterator<BBoshStrategy> i$ = strategies.iterator(); i$.hasNext();) {
                 BBoshStrategy supportedStrategy = i$.next();
                 acceptStrategy.append(supportedStrategy);
                 if (i$.hasNext()) {
@@ -76,7 +75,7 @@ final class BBoshConnectionFactory {
                 URL instanceURL = new URL(factoryURL, location);
                 String strategy = connection.getHeaderField("X-Strategy");
                 BBoshStrategy negotiatedStrategy = BBoshStrategy.valueOf(strategy);
-                return new BBoshConnection(instanceURL, initialSequenceNo, negotiatedStrategy);
+                return new BBoshSocket(instanceURL, initialSequenceNo, negotiatedStrategy);
             }
             catch (IllegalArgumentException e) {
                 throw new IOException("Connection failed", e);

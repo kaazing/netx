@@ -25,7 +25,7 @@ import java.net.URL;
 
 import org.kaazing.net.bbosh.BBoshStrategy;
 
-final class BBoshConnection implements Closeable {
+final class BBoshSocket implements Closeable {
 
     private final Object lock;
     private final URL location;
@@ -34,7 +34,7 @@ final class BBoshConnection implements Closeable {
     private final OutputStream output;
     private int sequenceNo;
 
-    BBoshConnection(URL location, int initialSequenceNo, BBoshStrategy strategy) {
+    BBoshSocket(URL location, int initialSequenceNo, BBoshStrategy strategy) {
         this.location = location;
         this.connections = new HttpURLConnection[strategy.getRequests()];
         this.lock = new Object();
@@ -43,11 +43,11 @@ final class BBoshConnection implements Closeable {
         this.output = new BBoshOutputStream();
     }
 
-    public InputStream getInputStream() {
+    InputStream getInputStream() {
         return input;
     }
 
-    public OutputStream getOutputStream() {
+    OutputStream getOutputStream() {
         return output;
     }
 
