@@ -26,7 +26,6 @@
     <artifactId>net.impl</artifactId>
     <name>Net Data Implementation</name>
     <description>Support for Data URLs</description>
-    <version>1.1.0.8-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
@@ -38,7 +37,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

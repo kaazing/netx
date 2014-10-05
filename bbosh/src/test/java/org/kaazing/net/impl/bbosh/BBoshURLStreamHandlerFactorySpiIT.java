@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package org.kaazing.net.impl.tcp;
+package org.kaazing.net.impl.bbosh;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 
-import java.io.Closeable;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -35,32 +35,31 @@ import org.kaazing.net.URLFactory;
 import org.kaazing.robot.junit.annotation.Robotic;
 import org.kaazing.robot.junit.rules.RobotRule;
 
-public class TcpURLStreamHandlerFactorySpiIT {
+public class BBoshURLStreamHandlerFactorySpiIT {
 
     @Rule
     public RobotRule robot = new RobotRule();
 
     @Rule
-    public final TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
+    public TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
 
+    @Ignore("Requires Robot support for multiple HTTP requests with same request URI")
     @Test
-    @Robotic(script = "echo.then.closed")
+    @Robotic(script = "polling/echo.then.closed")
     public void shouldEcho() throws Exception {
-        URL location = URLFactory.createURL("tcp://localhost:61234");
+        URL location = URLFactory.createURL("bbosh://localhost:8000/connection");
 
         URLConnection connection = location.openConnection();
         connection.connect();
-
         OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
         out.write("Hello, world".getBytes(UTF_8));
         out.close();
 
-        InputStream in = connection.getInputStream();
         byte[] buf = new byte[32];
         int len = in.read(buf);
         in.close();
-
-        ((Closeable) connection).close();
 
         robot.join();
 

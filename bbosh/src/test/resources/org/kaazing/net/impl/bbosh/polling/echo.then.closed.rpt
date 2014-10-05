@@ -1,0 +1,51 @@
+accept http://localhost:8000/connection
+
+accepted
+connected
+
+read method "POST"
+read header "Accept" "application/octet-stream"
+read header "Content-Length" "0"
+read header "X-Protocol" "bbosh/1.0"
+read header "X-Accept-Strategy" "polling;interval=5s, long-polling;interval=30s;requests=5"
+close request
+
+write status "201" "Created"
+write header "Cache-Control" "no-cache"
+write header "Content-Type" "application/octet-stream"
+write content-length
+write header "Location" "/connection/ac32fb3844fe11e4a183164230d1df67"
+write header "X-Strategy" "polling;interval=5s"
+close response
+
+accept http://localhost:8000/connection/ac32fb3844fe11e4a183164230d1df67
+
+accepted
+connected
+
+read method "PUT"
+read header "Accept" "application/octet-stream"
+read header "Content-Type" "application/octet-stream"
+read header "Content-Length" "12"
+read header "X-Sequence-No" "1"
+read "Hello, world"
+close request
+
+write status "200" "OK"
+write header "Cache-Control" "no-cache"
+write header "Content-Type" "application/octet-stream"
+write content-length
+write "Hello, world"
+close response
+
+accepted
+connected
+
+read method "GET"
+read header "Accept" "application/octet-stream"
+read header "X-Sequence-No" "2"
+close request
+
+write status "404" "Closed"
+write content-length
+close response
