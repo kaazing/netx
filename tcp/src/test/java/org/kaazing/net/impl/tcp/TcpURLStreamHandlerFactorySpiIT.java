@@ -28,6 +28,7 @@ import java.net.URLConnection;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
+import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.net.URLFactory;
@@ -36,11 +37,12 @@ import org.kaazing.robot.junit.rules.RobotRule;
 
 public class TcpURLStreamHandlerFactorySpiIT {
 
-    @Rule
-    public RobotRule robot = new RobotRule();
+    private final RobotRule robot = new RobotRule();
+
+    private final TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
 
     @Rule
-    public final TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
+    public final TestRule chain = RuleChain.outerRule(robot).around(timeout);
 
     @Test
     @Robotic(script = "echo.then.closed")
