@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -40,10 +41,11 @@ public class BBoshURLStreamHandlerFactorySpiIT {
     public TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
 
     @Rule
-    public RobotRule robot = new RobotRule();
+    public RobotRule robot = new RobotRule().setScriptRoot("org/kaazing/robotic/bbosh");
 
     @Test
-    @Robotic("polling/accept.echo.then.close")
+    @Ignore ("Requires Robot 2.0 for script syntax")
+    @Robotic(script = "polling/accept.echo.then.close")
     public void shouldConnectEchoThenClosedViaPolling() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
@@ -66,7 +68,8 @@ public class BBoshURLStreamHandlerFactorySpiIT {
     }
 
     @Test
-    @Robotic("polling/accept.echo.then.closed")
+    @Ignore ("Requires Robot 2.0 for script syntax")
+    @Robotic(script = "polling/accept.echo.then.closed")
     public void shouldConnectEchoThenCloseViaPolling() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
