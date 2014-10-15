@@ -171,7 +171,12 @@ public final class TcpURLStreamHandlerFactorySpi extends URLStreamHandlerFactory
 
                 @Override
                 public void close() throws IOException {
-                    socket.shutdownInput();
+                    if (socket.isOutputShutdown()) {
+                        socket.close();
+                    }
+                    else {
+                        socket.shutdownInput();
+                    }
                 }
 
                 @Override
@@ -220,7 +225,12 @@ public final class TcpURLStreamHandlerFactorySpi extends URLStreamHandlerFactory
 
                 @Override
                 public void close() throws IOException {
-                    socket.shutdownOutput();
+                    if (socket.isInputShutdown()) {
+                        socket.close();
+                    }
+                    else {
+                        socket.shutdownOutput();
+                    }
                 }
 
             }

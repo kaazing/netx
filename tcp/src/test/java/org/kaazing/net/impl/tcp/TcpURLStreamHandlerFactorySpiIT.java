@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 
-import java.io.Closeable;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
@@ -59,8 +58,6 @@ public class TcpURLStreamHandlerFactorySpiIT {
         byte[] buf = new byte[32];
         int len = in.read(buf);
         in.close();
-
-        ((Closeable) connection).close();
 
         robot.join();
 
