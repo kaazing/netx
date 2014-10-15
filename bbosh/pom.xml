@@ -23,9 +23,9 @@
         <version>1.1.0.8-SNAPSHOT</version>
     </parent>
 
-    <artifactId>net.tcp</artifactId>
-    <name>Net TCP Implementation</name>
-    <description>Support for TCP URLs</description>
+    <artifactId>net.bbosh</artifactId>
+    <name>Net BBOSH Implementation</name>
+    <description>Support for Bidirectional Binary Streams Over HTTP (BBOSH) URLs</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -49,6 +49,13 @@
             <version>[1.3.0.0, 1.4.0.0)</version>
             <scope>test</scope>
         </dependency>
+<!--
+        <dependency>
+            <groupId>org.kaazing</groupId>
+            <artifactId>robotic.bbosh</artifactId>
+            <version>[0.0.0.0, 0.0.0.1]</version>
+        </dependency>
+-->
     </dependencies>
 
     <build>

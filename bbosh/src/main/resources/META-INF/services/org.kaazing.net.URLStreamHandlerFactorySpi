@@ -14,4 +14,4 @@
 # limitations under the License.
 #
 
-org.kaazing.net.impl.data.DataURLStreamHandlerFactorySpi
+org.kaazing.net.bbosh.impl.BBoshURLStreamHandlerFactorySpi

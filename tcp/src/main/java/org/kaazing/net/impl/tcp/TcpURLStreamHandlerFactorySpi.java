@@ -59,6 +59,9 @@ public final class TcpURLStreamHandlerFactorySpi extends URLStreamHandlerFactory
             private final Socket socket;
             private final InetSocketAddress endpoint;
 
+            private InputStream input;
+            private OutputStream output;
+
             public TcpURLConnection(URL location) throws IOException {
                 super(location);
 
@@ -89,6 +92,7 @@ public final class TcpURLStreamHandlerFactorySpi extends URLStreamHandlerFactory
             @Override
             public void connect() throws IOException {
                 socket.connect(endpoint);
+                connected = true;
             }
 
             @Override
@@ -113,17 +117,122 @@ public final class TcpURLStreamHandlerFactorySpi extends URLStreamHandlerFactory
 
             @Override
             public InputStream getInputStream() throws IOException {
-                return socket.getInputStream();
+                if (input == null) {
+                    input = new TcpInputStream(socket);
+                }
+                return input;
             }
 
             @Override
             public OutputStream getOutputStream() throws IOException {
-                return socket.getOutputStream();
+                if (output == null) {
+                    output = new TcpOutputStream(socket);
+                }
+                return output;
             }
 
             @Override
             public void close() throws IOException {
                 socket.close();
+            }
+
+            private final class TcpInputStream extends InputStream {
+
+                private final InputStream input;
+
+                public TcpInputStream(Socket socket) throws IOException {
+                    this.input = socket.getInputStream();
+                }
+
+                @Override
+                public int read() throws IOException {
+                    return input.read();
+                }
+
+                @Override
+                public int read(byte[] b) throws IOException {
+                    return input.read(b);
+                }
+
+                @Override
+                public int read(byte[] b, int off, int len) throws IOException {
+                    return input.read(b, off, len);
+                }
+
+                @Override
+                public long skip(long n) throws IOException {
+                    return input.skip(n);
+                }
+
+                @Override
+                public int available() throws IOException {
+                    return input.available();
+                }
+
+                @Override
+                public void close() throws IOException {
+                    if (socket.isOutputShutdown()) {
+                        socket.close();
+                    }
+                    else {
+                        socket.shutdownInput();
+                    }
+                }
+
+                @Override
+                public synchronized void mark(int readlimit) {
+                    input.mark(readlimit);
+                }
+
+                @Override
+                public synchronized void reset() throws IOException {
+                    input.reset();
+                }
+
+                @Override
+                public boolean markSupported() {
+                    return input.markSupported();
+                }
+            }
+
+            private final class TcpOutputStream extends OutputStream {
+
+                private final OutputStream output;
+
+                public TcpOutputStream(Socket socket) throws IOException {
+                    this.output = socket.getOutputStream();
+                }
+
+                @Override
+                public void write(int b) throws IOException {
+                    output.write(b);
+                }
+
+                @Override
+                public void write(byte[] b) throws IOException {
+                    output.write(b);
+                }
+
+                @Override
+                public void write(byte[] b, int off, int len) throws IOException {
+                    output.write(b, off, len);
+                }
+
+                @Override
+                public void flush() throws IOException {
+                    output.flush();
+                }
+
+                @Override
+                public void close() throws IOException {
+                    if (socket.isInputShutdown()) {
+                        socket.close();
+                    }
+                    else {
+                        socket.shutdownOutput();
+                    }
+                }
+
             }
         }
     }
