@@ -27,18 +27,25 @@ import org.kaazing.net.bbosh.BBoshStrategy;
 
 final class BBoshSocket implements Closeable {
 
+    private static final int STATUS_OPEN = 0;
+    private static final int STATUS_READ_CLOSED = 1 << 0;
+    private static final int STATUS_WRITE_CLOSED = 1 << 1;
+    private static final int STATUS_CLOSED = STATUS_READ_CLOSED | STATUS_WRITE_CLOSED;
+
     private final Object lock;
     private final URL location;
     private final HttpURLConnection[] connections;
     private final InputStream input;
     private final OutputStream output;
     private int sequenceNo;
+    private int status;
 
     BBoshSocket(URL location, int initialSequenceNo, BBoshStrategy strategy) {
         this.location = location;
         this.connections = new HttpURLConnection[strategy.getRequests()];
         this.lock = new Object();
         this.sequenceNo = initialSequenceNo;
+        this.status = STATUS_OPEN;
         this.input = new BBoshInputStream();
         this.output = new BBoshOutputStream();
     }
@@ -53,13 +60,27 @@ final class BBoshSocket implements Closeable {
 
     @Override
     public void close() throws IOException {
-        HttpURLConnection connection = newClosable(acquireSequenceNo());
-        switch (connection.getResponseCode()) {
-        case 200:
-        case 404:
+        switch (status) {
+        case STATUS_CLOSED:
             break;
         default:
-            throw new IOException("Close failed");
+            try {
+                HttpURLConnection connection = newClosable(acquireSequenceNo());
+                switch (connection.getResponseCode()) {
+                case 200:
+                case 404:
+                    break;
+                default:
+                    throw new IOException("Close failed");
+                }
+            }
+            catch (IOException e) {
+                // ignore, treat as closed
+            }
+            finally {
+                status = STATUS_CLOSED;
+            }
+            break;
         }
     }
 
@@ -97,7 +118,7 @@ final class BBoshSocket implements Closeable {
         newConnection.setRequestProperty("Accept", "application/octet-stream");
         newConnection.setRequestProperty("Content-Type", "application/octet-stream");
         newConnection.setRequestProperty("X-Sequence-No", Integer.toString(sequenceNo));
-        newConnection.setDoOutput(true);
+        newConnection.setDoOutput(false);
         newConnection.setDoInput(true);
 
         connections[sequenceNo % connections.length] = newConnection;
@@ -116,7 +137,7 @@ final class BBoshSocket implements Closeable {
             }
         }
         assert connections[sequenceNo % connections.length] == null;
-        return ++sequenceNo;
+        return sequenceNo++;
     }
 
 
@@ -128,24 +149,61 @@ final class BBoshSocket implements Closeable {
         public int read() throws IOException {
             while (true) {
                 HttpURLConnection readable = readable();
-                InputStream stream = readable.getInputStream();
-                int read = stream.read();
+                try {
+                    InputStream stream = readable.getInputStream();
+                    int read = stream.read();
 
-                if (read != -1) {
-                    return read;
+                    if (read == -1 || stream.available() == 0) {
+                        stream.close();
+                        advanceIndex();
+                    }
+
+                    if (read != -1) {
+                        return read;
+                    }
                 }
-
-                stream.close();
-                readerIndex++;
+                catch (IOException e) {
+                    // status code 404 throws FileNotFoundException (!)
+                    advanceIndex();
+                    return -1;
+                }
             }
         }
 
         @Override
         public void close() throws IOException {
-            HttpURLConnection readable = readable();
-            InputStream stream = readable.getInputStream();
-            stream.close();
-            readerIndex++;
+            if (readerIndex != sequenceNo) {
+                HttpURLConnection readable = readable();
+                try {
+                    InputStream stream = readable.getInputStream();
+                    stream.close();
+                }
+                catch (IOException e) {
+                    // ignore (treat as closed)
+                }
+                finally {
+                    advanceIndex();
+                }
+            }
+
+            switch (status) {
+            case STATUS_OPEN:
+                status |= STATUS_READ_CLOSED;
+                break;
+            case STATUS_WRITE_CLOSED:
+                BBoshSocket.this.close();
+                break;
+            default:
+                break;
+            }
+        }
+
+        private void advanceIndex() {
+            synchronized (lock) {
+                connections[readerIndex % connections.length] = null;
+                readerIndex++;
+                lock.notify();
+            }
         }
 
         private HttpURLConnection readable() throws IOException {
@@ -167,31 +225,63 @@ final class BBoshSocket implements Closeable {
 
         @Override
         public void write(int b) throws IOException {
-            HttpURLConnection writable = writable();
-            OutputStream stream = writable.getOutputStream();
-            stream.write(b);
+            while (true) {
+                HttpURLConnection writable = writable();
+                OutputStream stream = writable.getOutputStream();
+                try {
+                    // ideally check stream.isClosed()
+                    stream.write(b);
+                }
+                catch (IOException e) {
+                    writerIndex++;
+                    continue;
+                }
+                break;
+            }
         }
 
         @Override
         public void write(byte[] b) throws IOException {
-            HttpURLConnection writable = writable();
-            OutputStream stream = writable.getOutputStream();
-            stream.write(b);
+            while (true) {
+                HttpURLConnection writable = writable();
+                OutputStream stream = writable.getOutputStream();
+                try {
+                    // ideally check stream.isClosed()
+                    stream.write(b);
+                }
+                catch (IOException e) {
+                    writerIndex++;
+                    continue;
+                }
+                break;
+            }
         }
 
         @Override
         public void write(byte[] b, int off, int len) throws IOException {
-            HttpURLConnection writable = writable();
-            OutputStream stream = writable.getOutputStream();
-            stream.write(b, off, len);
+            while (true) {
+                HttpURLConnection writable = writable();
+                OutputStream stream = writable.getOutputStream();
+                try {
+                    // ideally check stream.isClosed()
+                    stream.write(b, off, len);
+                }
+                catch (IOException e) {
+                    writerIndex++;
+                    continue;
+                }
+                break;
+            }
         }
 
         @Override
         public void flush() throws IOException {
-            HttpURLConnection writable = writable();
-            OutputStream stream = writable.getOutputStream();
-            stream.close();
-            writerIndex++;
+            if (writerIndex != sequenceNo) {
+                HttpURLConnection writable = writable();
+                OutputStream stream = writable.getOutputStream();
+                stream.close();
+                writerIndex++;
+            }
         }
 
         @Override
@@ -200,16 +290,29 @@ final class BBoshSocket implements Closeable {
             OutputStream stream = writable.getOutputStream();
             stream.close();
             writerIndex++;
+
+            switch (status) {
+            case STATUS_OPEN:
+                status |= STATUS_WRITE_CLOSED;
+                break;
+            case STATUS_READ_CLOSED:
+                BBoshSocket.this.close();
+                break;
+            default:
+                break;
+            }
         }
 
         private HttpURLConnection writable() throws IOException {
             HttpURLConnection writable;
-            if (writerIndex == sequenceNo) {
-                writable = newWritable(acquireSequenceNo());
-            }
-            else {
-                writable = connections[writerIndex % connections.length];
-            }
+            do {
+                if (writerIndex == sequenceNo) {
+                    writable = newWritable(acquireSequenceNo());
+                }
+                else {
+                    writable = connections[writerIndex % connections.length];
+                }
+            } while (!writable.getDoOutput());
             return writable;
         }
 

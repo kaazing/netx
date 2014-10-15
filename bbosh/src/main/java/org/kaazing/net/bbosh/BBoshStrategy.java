@@ -29,7 +29,6 @@ public abstract class BBoshStrategy {
 
     public static enum Kind {
         POLLING,
-        LONG_POLLING
     }
 
     public abstract Kind getKind();
@@ -48,15 +47,6 @@ public abstract class BBoshStrategy {
                     return new Polling(interval, intervalUnit);
                 }
                 break;
-            case 'l':
-                Matcher longPollingMatcher = LongPolling.PATTERN.matcher(strategy);
-                if (longPollingMatcher.matches()) {
-                    int interval = parseInt(longPollingMatcher.group(1));
-                    TimeUnit intervalUnit = SECONDS;
-                    int requests = parseInt(unlessNonNull(longPollingMatcher.group(1), "2"));
-                    return new LongPolling(interval, intervalUnit, requests);
-                }
-                break;
             default:
                 break;
             }
@@ -65,13 +55,9 @@ public abstract class BBoshStrategy {
         throw new IllegalArgumentException(strategy);
     }
 
-    private static <T> T unlessNonNull(T maybeNull, T defaultValue) {
-        return (maybeNull != null) ? maybeNull : defaultValue;
-    }
-
     public static final class Polling extends BBoshStrategy {
 
-        private static final Pattern PATTERN = Pattern.compile("polling;interval=([0-9]+)(s)");
+        private static final Pattern PATTERN = Pattern.compile("polling;interval=([0-9]+)s");
 
         private final int interval;
         private final TimeUnit intervalUnit;
@@ -96,38 +82,4 @@ public abstract class BBoshStrategy {
         }
     }
 
-    public static final class LongPolling extends BBoshStrategy {
-
-        private static final Pattern PATTERN = Pattern.compile("long-polling;interval=([0-9]+)(s)(:?;request=([0-9]+))");
-
-        private final int interval;
-        private final TimeUnit intervalUnit;
-        private final int requests;
-
-        public LongPolling(int interval, TimeUnit intervalUnit, int requests) {
-            this.interval = interval;
-            this.intervalUnit = intervalUnit;
-            this.requests = requests;
-        }
-
-        @Override
-        public Kind getKind() {
-            return Kind.LONG_POLLING;
-        }
-
-        @Override
-        public int getRequests() {
-            return requests;
-        }
-
-        public String toString() {
-            char intervalUnitChar = toLowerCase(intervalUnit.name().charAt(0));
-            if (requests == 2) {
-                return format("long-polling;interval=%d%s", interval, intervalUnitChar);
-            }
-            else {
-                return format("long-polling;interval=%d%s;requests=%d", interval, intervalUnitChar, requests);
-            }
-        }
-    }
 }

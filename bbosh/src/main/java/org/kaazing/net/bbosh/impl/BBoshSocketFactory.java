@@ -19,7 +19,6 @@ package org.kaazing.net.bbosh.impl;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Iterator;
 import java.util.List;
 
 import org.kaazing.net.bbosh.BBoshStrategy;
@@ -50,17 +49,10 @@ final class BBoshSocketFactory {
         connection.setRequestProperty("X-Protocol", "bbosh/1.0");
         connection.setRequestProperty("X-Sequence-No", Integer.toString(initialSequenceNo));
 
-        if (!strategies.isEmpty()) {
-            StringBuilder acceptStrategy = new StringBuilder();
-            for (Iterator<BBoshStrategy> i$ = strategies.iterator(); i$.hasNext();) {
-                BBoshStrategy supportedStrategy = i$.next();
-                acceptStrategy.append(supportedStrategy);
-                if (i$.hasNext()) {
-                    acceptStrategy.append(", ");
-                }
-            }
-            connection.setRequestProperty("X-Accept-Strategy", acceptStrategy.toString());
+        for (BBoshStrategy acceptStrategy : strategies) {
+            connection.addRequestProperty("X-Accept-Strategy", acceptStrategy.toString());
         }
+
         connection.setDoOutput(true);
         connection.setDoInput(true);
         connection.getOutputStream().close();
@@ -75,7 +67,7 @@ final class BBoshSocketFactory {
                 URL instanceURL = new URL(factoryURL, location);
                 String strategy = connection.getHeaderField("X-Strategy");
                 BBoshStrategy negotiatedStrategy = BBoshStrategy.valueOf(strategy);
-                return new BBoshSocket(instanceURL, initialSequenceNo, negotiatedStrategy);
+                return new BBoshSocket(instanceURL, initialSequenceNo + 1, negotiatedStrategy);
             }
             catch (IllegalArgumentException e) {
                 throw new IOException("Connection failed", e);

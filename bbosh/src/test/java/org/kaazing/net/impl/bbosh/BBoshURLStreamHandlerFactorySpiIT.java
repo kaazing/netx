@@ -25,7 +25,6 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -38,16 +37,15 @@ import org.kaazing.robot.junit.rules.RobotRule;
 public class BBoshURLStreamHandlerFactorySpiIT {
 
     @Rule
-    public RobotRule robot = new RobotRule();
-
-    @Rule
     public TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
 
-    @Ignore("Requires Robot support for multiple HTTP requests with same request URI")
+    @Rule
+    public RobotRule robot = new RobotRule();
+
     @Test
-    @Robotic(script = "polling/echo.then.closed")
-    public void shouldEcho() throws Exception {
-        URL location = URLFactory.createURL("bbosh://localhost:8000/connection");
+    @Robotic("polling/accept.echo.then.close")
+    public void shouldConnectEchoThenClosedViaPolling() throws Exception {
+        URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
         URLConnection connection = location.openConnection();
         connection.connect();
@@ -67,4 +65,26 @@ public class BBoshURLStreamHandlerFactorySpiIT {
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
     }
 
+    @Test
+    @Robotic("polling/accept.echo.then.closed")
+    public void shouldConnectEchoThenCloseViaPolling() throws Exception {
+        URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
+
+        URLConnection connection = location.openConnection();
+        connection.connect();
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        out.write("Hello, world".getBytes(UTF_8));
+        out.close();
+
+        byte[] buf = new byte[12];
+        int len = in.read(buf);
+        in.close();
+
+        robot.join();
+
+        assertEquals(12, len);
+        assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
+    }
 }

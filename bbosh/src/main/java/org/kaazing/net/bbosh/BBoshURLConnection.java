@@ -16,15 +16,14 @@
 
 package org.kaazing.net.bbosh;
 
-import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.Closeable;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Arrays;
 import java.util.List;
 
-import org.kaazing.net.bbosh.BBoshStrategy.LongPolling;
 import org.kaazing.net.bbosh.BBoshStrategy.Polling;
 
 public abstract class BBoshURLConnection extends URLConnection implements Closeable {
@@ -34,7 +33,7 @@ public abstract class BBoshURLConnection extends URLConnection implements Closea
 
     protected BBoshURLConnection(URL url) {
         super(url);
-        supportedStrategies = asList(new Polling(5, SECONDS), new LongPolling(30, SECONDS, 2));
+        supportedStrategies = Arrays.<BBoshStrategy>asList(new Polling(5, SECONDS));
     }
 
     public void setSupportedStrategies(List<BBoshStrategy> strategies) {
