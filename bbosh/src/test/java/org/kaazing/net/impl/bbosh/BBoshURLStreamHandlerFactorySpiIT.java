@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.net.impl.tcp;
+package org.kaazing.net.impl.bbosh;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -25,38 +25,38 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
-import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.net.URLFactory;
 import org.kaazing.robot.junit.annotation.Robotic;
 import org.kaazing.robot.junit.rules.RobotRule;
 
-public class TcpURLStreamHandlerFactorySpiIT {
-
-    private final RobotRule robot = new RobotRule();
-
-    private final TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
+public class BBoshURLStreamHandlerFactorySpiIT {
 
     @Rule
-    public final TestRule chain = RuleChain.outerRule(robot).around(timeout);
+    public TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
+
+    @Rule
+    public RobotRule robot = new RobotRule().setScriptRoot("org/kaazing/robotic/bbosh");
 
     @Test
-    @Robotic(script = "echo.then.closed")
-    public void shouldEcho() throws Exception {
-        URL location = URLFactory.createURL("tcp://localhost:61234");
+    @Ignore ("Requires Robot 2.0 for script syntax")
+    @Robotic(script = "polling/accept.echo.then.close")
+    public void shouldConnectEchoThenClosedViaPolling() throws Exception {
+        URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
         URLConnection connection = location.openConnection();
         connection.connect();
-
         OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
         out.write("Hello, world".getBytes(UTF_8));
         out.close();
 
-        InputStream in = connection.getInputStream();
         byte[] buf = new byte[32];
         int len = in.read(buf);
         in.close();
@@ -67,4 +67,27 @@ public class TcpURLStreamHandlerFactorySpiIT {
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
     }
 
+    @Test
+    @Ignore ("Requires Robot 2.0 for script syntax")
+    @Robotic(script = "polling/accept.echo.then.closed")
+    public void shouldConnectEchoThenCloseViaPolling() throws Exception {
+        URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
+
+        URLConnection connection = location.openConnection();
+        connection.connect();
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        out.write("Hello, world".getBytes(UTF_8));
+        out.close();
+
+        byte[] buf = new byte[12];
+        int len = in.read(buf);
+        in.close();
+
+        robot.join();
+
+        assertEquals(12, len);
+        assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
+    }
 }
