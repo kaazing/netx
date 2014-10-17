@@ -19,13 +19,13 @@ package org.kaazing.net.impl.bbosh;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -37,15 +37,15 @@ import org.kaazing.robot.junit.rules.RobotRule;
 
 public class BBoshURLStreamHandlerFactorySpiIT {
 
-    @Rule
-    public TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
+    private TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
+
+    private RobotRule robot = new RobotRule().setScriptRoot("org/kaazing/robotic/bbosh");
 
     @Rule
-    public RobotRule robot = new RobotRule().setScriptRoot("org/kaazing/robotic/bbosh");
+    public TestRule chain = outerRule(robot).around(timeout);
 
     @Test
-    @Ignore ("Requires Robot 2.0 for script syntax")
-    @Robotic(script = "polling/accept.echo.then.close")
+    @Robotic("polling/accept.echo.then.close")
     public void shouldConnectEchoThenClosedViaPolling() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
@@ -68,8 +68,7 @@ public class BBoshURLStreamHandlerFactorySpiIT {
     }
 
     @Test
-    @Ignore ("Requires Robot 2.0 for script syntax")
-    @Robotic(script = "polling/accept.echo.then.closed")
+    @Robotic("polling/accept.echo.then.closed")
     public void shouldConnectEchoThenCloseViaPolling() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
