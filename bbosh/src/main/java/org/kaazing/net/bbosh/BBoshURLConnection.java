@@ -21,10 +21,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.io.Closeable;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.kaazing.net.bbosh.BBoshStrategy.Polling;
+import org.kaazing.net.bbosh.BBoshStrategy.Streaming;
 
 public abstract class BBoshURLConnection extends URLConnection implements Closeable {
 
@@ -33,7 +34,19 @@ public abstract class BBoshURLConnection extends URLConnection implements Closea
 
     protected BBoshURLConnection(URL url) {
         super(url);
-        supportedStrategies = Arrays.<BBoshStrategy>asList(new Polling(5, SECONDS));
+        supportedStrategies = new ArrayList<BBoshStrategy>();
+        supportedStrategies.add(new Polling(5, SECONDS));
+        supportedStrategies.add(new Streaming());
+    }
+
+    public void setSupportedStrategies(BBoshStrategy strategy, BBoshStrategy... strategies) {
+        supportedStrategies.clear();
+        supportedStrategies.add(strategy);
+        if (strategies != null) {
+            for (int i = 0; i < strategies.length; i++) {
+                supportedStrategies.add(strategies[i]);
+            }
+        }
     }
 
     public void setSupportedStrategies(List<BBoshStrategy> strategies) {

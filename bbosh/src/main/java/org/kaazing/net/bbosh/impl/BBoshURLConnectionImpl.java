@@ -31,15 +31,15 @@ final class BBoshURLConnectionImpl extends BBoshURLConnection {
     private static final int CONNECTED = 1;
     private static final int CLOSED = 2;
 
-    private final BBoshSocketFactory connectionFactory;
+    private final BBoshSocketFactory socketFactory;
 
-    private BBoshSocket connection;
+    private BBoshSocket socket;
     private int status;
 
     BBoshURLConnectionImpl(URL url, String httpScheme) throws IOException {
         super(url);
         URL factoryURL = new URL(httpScheme, url.getHost(), url.getPort(), url.getFile());
-        connectionFactory = new BBoshSocketFactory(factoryURL);
+        socketFactory = new BBoshSocketFactory(factoryURL);
     }
 
     @Override
@@ -58,13 +58,13 @@ final class BBoshURLConnectionImpl extends BBoshURLConnection {
     @Override
     public InputStream getInputStream() throws IOException {
         doConnectWhenInitialized();
-        return connection.getInputStream();
+        return socket.getInputStream();
     }
 
     @Override
     public OutputStream getOutputStream() throws IOException {
         doConnectWhenInitialized();
-        return connection.getOutputStream();
+        return socket.getOutputStream();
     }
 
     @Override
@@ -94,12 +94,12 @@ final class BBoshURLConnectionImpl extends BBoshURLConnection {
     private void doConnect() throws IOException {
         List<BBoshStrategy> strategies = getSupportedStrategies();
         int timeout = getConnectTimeout();
-        connection = connectionFactory.createSocket(strategies, timeout);
+        socket = socketFactory.createSocket(strategies, timeout);
         status = CONNECTED;
     }
 
     private void doClose() throws IOException {
-        connection.close();
+        socket.close();
         status = CLOSED;
     }
 }

@@ -67,7 +67,12 @@ final class BBoshSocketFactory {
                 URL instanceURL = new URL(factoryURL, location);
                 String strategy = connection.getHeaderField("X-Strategy");
                 BBoshStrategy negotiatedStrategy = BBoshStrategy.valueOf(strategy);
-                return new BBoshSocket(instanceURL, initialSequenceNo + 1, negotiatedStrategy);
+                switch (negotiatedStrategy.getKind()) {
+                case POLLING:
+                    return new BBoshPollingSocket(instanceURL, initialSequenceNo + 1, negotiatedStrategy);
+                case STREAMING:
+                    return new BBoshStreamingSocket(instanceURL, initialSequenceNo + 1, negotiatedStrategy);
+                }
             }
             catch (IllegalArgumentException e) {
                 throw new IOException("Connection failed", e);

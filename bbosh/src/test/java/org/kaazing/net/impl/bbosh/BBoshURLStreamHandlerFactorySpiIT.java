@@ -24,7 +24,6 @@ import static org.junit.rules.RuleChain.outerRule;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
-import java.net.URLConnection;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +31,9 @@ import org.junit.rules.DisableOnDebug;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.net.URLFactory;
+import org.kaazing.net.bbosh.BBoshStrategy.Polling;
+import org.kaazing.net.bbosh.BBoshStrategy.Streaming;
+import org.kaazing.net.bbosh.BBoshURLConnection;
 import org.kaazing.robot.junit.annotation.Robotic;
 import org.kaazing.robot.junit.rules.RobotRule;
 
@@ -49,7 +51,8 @@ public class BBoshURLStreamHandlerFactorySpiIT {
     public void shouldConnectEchoThenClosedViaPolling() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
-        URLConnection connection = location.openConnection();
+        BBoshURLConnection connection = (BBoshURLConnection) location.openConnection();
+        connection.setSupportedStrategies(new Polling(5, SECONDS));
         connection.connect();
         OutputStream out = connection.getOutputStream();
         InputStream in = connection.getInputStream();
@@ -72,7 +75,56 @@ public class BBoshURLStreamHandlerFactorySpiIT {
     public void shouldConnectEchoThenCloseViaPolling() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
-        URLConnection connection = location.openConnection();
+        BBoshURLConnection connection = (BBoshURLConnection) location.openConnection();
+        connection.setSupportedStrategies(new Polling(5, SECONDS));
+        connection.connect();
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        out.write("Hello, world".getBytes(UTF_8));
+        out.close();
+
+        byte[] buf = new byte[12];
+        int len = in.read(buf);
+        in.close();
+
+        robot.join();
+
+        assertEquals(12, len);
+        assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
+    }
+
+    @Test
+    @Robotic("streaming/accept.echo.then.close")
+    public void shouldConnectEchoThenClosedViaStreaming() throws Exception {
+        URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
+
+        BBoshURLConnection connection = (BBoshURLConnection) location.openConnection();
+        connection.setSupportedStrategies(new Streaming());
+        connection.connect();
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        out.write("Hello, world".getBytes(UTF_8));
+        out.close();
+
+        byte[] buf = new byte[32];
+        int len = in.read(buf);
+        in.close();
+
+        robot.join();
+
+        assertEquals(12, len);
+        assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
+    }
+
+    @Test
+    @Robotic("streaming/accept.echo.then.closed")
+    public void shouldConnectEchoThenCloseViaStreaming() throws Exception {
+        URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
+
+        BBoshURLConnection connection = (BBoshURLConnection) location.openConnection();
+        connection.setSupportedStrategies(new Streaming());
         connection.connect();
         OutputStream out = connection.getOutputStream();
         InputStream in = connection.getInputStream();
