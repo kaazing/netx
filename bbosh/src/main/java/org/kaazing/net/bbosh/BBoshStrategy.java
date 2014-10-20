@@ -29,6 +29,7 @@ public abstract class BBoshStrategy {
 
     public static enum Kind {
         POLLING,
+        STREAMING
     }
 
     public abstract Kind getKind();
@@ -45,6 +46,12 @@ public abstract class BBoshStrategy {
                     int interval = parseInt(pollingMatcher.group(1));
                     TimeUnit intervalUnit = SECONDS;
                     return new Polling(interval, intervalUnit);
+                }
+                break;
+            case 's':
+                Matcher streamingMatcher = Streaming.PATTERN.matcher(strategy);
+                if (streamingMatcher.matches()) {
+                    return new Streaming();
                 }
                 break;
             default:
@@ -79,6 +86,25 @@ public abstract class BBoshStrategy {
 
         public String toString() {
             return format("polling;interval=%d%s", interval, toLowerCase(intervalUnit.name().charAt(0)));
+        }
+    }
+
+    public static final class Streaming extends BBoshStrategy {
+
+        private static final Pattern PATTERN = Pattern.compile("streaming;request=chunked");
+
+        @Override
+        public Kind getKind() {
+            return Kind.STREAMING;
+        }
+
+        @Override
+        public int getRequests() {
+            return 1;
+        }
+
+        public String toString() {
+            return "streaming;request=chunked";
         }
     }
 

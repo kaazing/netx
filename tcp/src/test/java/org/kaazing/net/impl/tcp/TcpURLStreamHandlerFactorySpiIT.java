@@ -45,7 +45,7 @@ public class TcpURLStreamHandlerFactorySpiIT {
     public final TestRule chain = RuleChain.outerRule(robot).around(timeout);
 
     @Test
-    @Robotic(script = "echo.then.closed")
+    @Robotic("echo.then.closed")
     public void shouldEcho() throws Exception {
         URL location = URLFactory.createURL("tcp://localhost:61234");
 
