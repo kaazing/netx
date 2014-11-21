@@ -40,7 +40,7 @@ import java.util.ServiceLoader;
  * protocols such as
  * <p/>
  * {@code
- * ws, wse, wsn, wss, wse+ssl
+ * ws, wss
  * }
  * <p/>
  * like this:
