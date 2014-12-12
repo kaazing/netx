@@ -27,9 +27,7 @@
 
     <name>Net Utilities</name>
     <url>https://github.com/kaazing/net.api</url>
-    <description>
-        Network utility that extends java.net, including URL
-    </description>
+    <description>Network utility that extends java.net, including URL</description>
 
     <licenses>
         <license>
