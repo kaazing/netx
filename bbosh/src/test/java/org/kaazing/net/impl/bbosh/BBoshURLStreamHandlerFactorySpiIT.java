@@ -34,20 +34,20 @@ import org.kaazing.net.URLFactory;
 import org.kaazing.net.bbosh.BBoshStrategy.Polling;
 import org.kaazing.net.bbosh.BBoshStrategy.Streaming;
 import org.kaazing.net.bbosh.BBoshURLConnection;
-import org.kaazing.robot.junit.annotation.Robotic;
-import org.kaazing.robot.junit.rules.RobotRule;
+import org.kaazing.k3po.junit.annotation.Specification;
+import org.kaazing.k3po.junit.rules.K3poRule;
 
 public class BBoshURLStreamHandlerFactorySpiIT {
 
     private TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
 
-    private RobotRule robot = new RobotRule().setScriptRoot("org/kaazing/robotic/bbosh");
+    private K3poRule robot = new K3poRule().setScriptRoot("org/kaazing/robotic/bbosh");
 
     @Rule
     public TestRule chain = outerRule(robot).around(timeout);
 
     @Test
-    @Robotic("polling/accept.echo.then.close")
+    @Specification("polling/accept.echo.then.close")
     public void shouldConnectEchoThenClosedViaPolling() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
@@ -71,7 +71,7 @@ public class BBoshURLStreamHandlerFactorySpiIT {
     }
 
     @Test
-    @Robotic("polling/accept.echo.then.closed")
+    @Specification("polling/accept.echo.then.closed")
     public void shouldConnectEchoThenCloseViaPolling() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
@@ -95,7 +95,7 @@ public class BBoshURLStreamHandlerFactorySpiIT {
     }
 
     @Test
-    @Robotic("streaming/accept.echo.then.close")
+    @Specification("streaming/accept.echo.then.close")
     public void shouldConnectEchoThenClosedViaStreaming() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 
@@ -119,7 +119,7 @@ public class BBoshURLStreamHandlerFactorySpiIT {
     }
 
     @Test
-    @Robotic("streaming/accept.echo.then.closed")
+    @Specification("streaming/accept.echo.then.closed")
     public void shouldConnectEchoThenCloseViaStreaming() throws Exception {
         URL location = URLFactory.createURL("bbosh://localhost:8000/connections");
 

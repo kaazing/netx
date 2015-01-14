@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>net.parent</artifactId>
-        <version>1.1.0.10-SNAPSHOT</version>
+        <version>1.2.0.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>net.bbosh</artifactId>
@@ -45,7 +45,7 @@
         </dependency>
         <dependency>
             <groupId>org.kaazing</groupId>
-            <artifactId>robot.junit</artifactId>
+            <artifactId>k3po.junit</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -59,7 +59,7 @@
         <plugins>
             <plugin>
                 <groupId>org.kaazing</groupId>
-                <artifactId>robot-maven-plugin</artifactId>
+                <artifactId>k3po-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>

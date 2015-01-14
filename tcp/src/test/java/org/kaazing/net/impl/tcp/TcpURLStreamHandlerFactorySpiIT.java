@@ -32,12 +32,12 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.net.URLFactory;
-import org.kaazing.robot.junit.annotation.Robotic;
-import org.kaazing.robot.junit.rules.RobotRule;
+import org.kaazing.k3po.junit.annotation.Specification;
+import org.kaazing.k3po.junit.rules.K3poRule;
 
 public class TcpURLStreamHandlerFactorySpiIT {
 
-    private final RobotRule robot = new RobotRule();
+    private final K3poRule robot = new K3poRule();
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
 
@@ -45,7 +45,7 @@ public class TcpURLStreamHandlerFactorySpiIT {
     public final TestRule chain = RuleChain.outerRule(robot).around(timeout);
 
     @Test
-    @Robotic("echo.then.closed")
+    @Specification("echo.then.closed")
     public void shouldEcho() throws Exception {
         URL location = URLFactory.createURL("tcp://localhost:61234");
 
