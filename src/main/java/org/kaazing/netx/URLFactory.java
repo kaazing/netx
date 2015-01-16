@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.net;
+package org.kaazing.netx;
 
 import java.net.MalformedURLException;
 import java.net.URI;
