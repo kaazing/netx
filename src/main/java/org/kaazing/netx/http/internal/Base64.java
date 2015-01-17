@@ -19,7 +19,7 @@ package org.kaazing.netx.http.internal;
 /**
  * Internal class. This class manages the Base64 encoding and decoding
  */
-final class Base64 {
+public final class Base64 {
 
     private static final byte[] INDEXED = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes();
     private static final byte PADDING_BYTE = (byte) '=';

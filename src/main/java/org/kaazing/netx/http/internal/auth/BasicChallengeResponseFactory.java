@@ -16,12 +16,14 @@
 
 package org.kaazing.netx.http.internal.auth;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import java.net.PasswordAuthentication;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.http.auth.ChallengeResponse;
+import org.kaazing.netx.http.internal.Base64;
 
 public final class BasicChallengeResponseFactory {
     private BasicChallengeResponseFactory() {
@@ -29,7 +31,8 @@ public final class BasicChallengeResponseFactory {
 
     public static ChallengeResponse create(PasswordAuthentication creds, ChallengeHandler nextChallengeHandler) {
         String unencoded = String.format("%s:%s", creds.getUserName(), new String(creds.getPassword()));
-        String response = String.format("Basic %s", Base64Util.encode(ByteBuffer.wrap(unencoded.getBytes())));
+        byte[] encoded = Base64.encode(unencoded.getBytes(US_ASCII));
+        String response = String.format("Basic %s", new String(encoded, US_ASCII));
         Arrays.fill(creds.getPassword(), (char) 0);
         return new ChallengeResponse(response.toCharArray(), nextChallengeHandler);
     }
