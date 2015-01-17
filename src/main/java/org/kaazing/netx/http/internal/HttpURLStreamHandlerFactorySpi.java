@@ -22,8 +22,7 @@ import java.net.URLStreamHandler;
 import java.util.Collection;
 import java.util.List;
 
-import org.kaazing.net.URLStreamHandlerFactorySpi;
-
+import org.kaazing.netx.URLStreamHandlerFactorySpi;
 
 public final class HttpURLStreamHandlerFactorySpi extends URLStreamHandlerFactorySpi {
 

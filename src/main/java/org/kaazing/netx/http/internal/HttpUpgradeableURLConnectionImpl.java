@@ -18,7 +18,7 @@ package org.kaazing.netx.http.internal;
 
 import java.net.URL;
 
-class HttpUpgradeableURLConnectionImpl extends HttpURLConnectionImpl {
+class HttpUpgradeableURLConnectionImpl extends AbstractHttpURLConnection {
 
     private static final String HEADER_UPGRADE = "Upgrade";
 

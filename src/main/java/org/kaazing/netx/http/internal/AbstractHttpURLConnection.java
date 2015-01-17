@@ -29,17 +29,17 @@ import java.util.Map;
 
 import org.kaazing.netx.http.HttpURLConnection;
 
-abstract class HttpURLConnectionImpl extends HttpURLConnection {
+abstract class AbstractHttpURLConnection extends HttpURLConnection {
 
     protected java.net.HttpURLConnection connection;
     private final Map<String, List<String>> requestHeaders;
 
-    public HttpURLConnectionImpl(URL url) {
+    public AbstractHttpURLConnection(URL url) {
         super(url);
         requestHeaders = new LinkedHashMap<String, List<String>>();
     }
 
-    protected HttpURLConnectionImpl(URL url, java.net.HttpURLConnection connection) {
+    protected AbstractHttpURLConnection(URL url, java.net.HttpURLConnection connection) {
         super(url);
         this.connection = connection;
         requestHeaders = new LinkedHashMap<String, List<String>>();

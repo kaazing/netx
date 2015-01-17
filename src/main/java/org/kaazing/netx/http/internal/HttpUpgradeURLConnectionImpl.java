@@ -44,7 +44,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-final class HttpUpgradeURLConnectionImpl extends HttpURLConnectionImpl {
+final class HttpUpgradeURLConnectionImpl extends AbstractHttpURLConnection {
 
     private static enum State { INITIAL, HANDSHAKE_SENT, HANDSHAKE_RECEIVED }
 
