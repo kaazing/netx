@@ -16,12 +16,12 @@
 
 package org.kaazing.netx.http.internal;
 
+import static java.util.Collections.unmodifiableMap;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.ProtocolException;
 import java.net.URL;
-import java.security.Permission;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,334 +29,161 @@ import java.util.Map;
 
 import org.kaazing.netx.http.HttpURLConnection;
 
-abstract class HttpURLConnectionImpl extends HttpURLConnection {
+final class HttpURLConnectionImpl extends HttpURLConnection {
 
-    protected java.net.HttpURLConnection connection;
-    private final Map<String, List<String>> requestHeaders;
+    private final Map<String, List<String>> requestProperties;
+    private final Map<String, List<String>> requestPropertiesRO;
+    private final HttpHeaderFields headerFields;
+
+    private HttpURLConnectionHandler handler;
+
+    private int connectTimeout;
+    private int readTimeout;
 
     public HttpURLConnectionImpl(URL url) {
         super(url);
-        requestHeaders = new LinkedHashMap<String, List<String>>();
+        this.requestProperties = new LinkedHashMap<String, List<String>>();
+        this.requestPropertiesRO = unmodifiableMap(requestProperties);
+        this.headerFields = new HttpHeaderFields();
+        this.handler = new HttpURLConnectionHandler.Default(this);
     }
 
-    protected HttpURLConnectionImpl(URL url, java.net.HttpURLConnection connection) {
-        super(url);
-        this.connection = connection;
-        requestHeaders = new LinkedHashMap<String, List<String>>();
+    @Override
+    public void addRequestProperty(String key, String value) {
+        super.addRequestProperty(key, value);
+        List<String> values = getRequestPropertyValues(key, true);
+        values.clear();
+        values.add(value);
+        detectHttpUpgrade(key);
     }
 
     @Override
     public void connect() throws IOException {
-        openConnection();
+        handler.connect();
     }
 
     @Override
     public void disconnect() {
-        connection(false).disconnect();
-    }
-
-    @Override
-    public boolean usingProxy() {
-        return connection(false).usingProxy();
-    }
-
-    @Override
-    public String getHeaderFieldKey(int n) {
-        return connection(true).getHeaderFieldKey(n);
-    }
-
-    @Override
-    public void setFixedLengthStreamingMode(int contentLength) {
-        connection(false).setFixedLengthStreamingMode(contentLength);
-    }
-
-    @Override
-    public void setFixedLengthStreamingMode(long contentLength) {
-        connection(false).setFixedLengthStreamingMode(contentLength);
-    }
-
-    @Override
-    public void setChunkedStreamingMode(int chunklen) {
-        connection(false).setChunkedStreamingMode(chunklen);
-    }
-
-    @Override
-    public String getHeaderField(int n) {
-        return connection(true).getHeaderField(n);
-    }
-
-    @Override
-    public void setInstanceFollowRedirects(boolean followRedirects) {
-        connection(false).setInstanceFollowRedirects(followRedirects);
-    }
-
-    @Override
-    public boolean getInstanceFollowRedirects() {
-        return connection(false).getInstanceFollowRedirects();
-    }
-
-    @Override
-    public void setRequestMethod(String method) throws ProtocolException {
-        connection(false).setRequestMethod(method);
-    }
-
-    @Override
-    public String getRequestMethod() {
-        return connection(false).getRequestMethod();
-    }
-
-    @Override
-    public int getResponseCode() throws IOException {
-        return connection(true).getResponseCode();
-    }
-
-    @Override
-    public String getResponseMessage() throws IOException {
-        return connection(true).getResponseMessage();
-    }
-
-    @Override
-    public long getHeaderFieldDate(String name, long Default) {
-        return connection(true).getHeaderFieldDate(name, Default);
-    }
-
-    @Override
-    public Permission getPermission() throws IOException {
-        return connection(false).getPermission();
-    }
-
-    @Override
-    public InputStream getErrorStream() {
-        return connection(false).getErrorStream();
-    }
-
-    @Override
-    public void setConnectTimeout(int timeout) {
-        connection(false).setConnectTimeout(timeout);
+        handler.disconnect();
     }
 
     @Override
     public int getConnectTimeout() {
-        return connection(false).getConnectTimeout();
+        return connectTimeout;
     }
 
     @Override
-    public void setReadTimeout(int timeout) {
-        connection(false).setReadTimeout(timeout);
+    public InputStream getErrorStream() {
+        return handler.getErrorStream();
     }
 
     @Override
-    public int getReadTimeout() {
-        return connection(false).getReadTimeout();
+    public String getHeaderField(int n) {
+        return headerFields.value(n);
     }
 
     @Override
-    public URL getURL() {
-        return connection(false).getURL();
-    }
-
-    @Override
-    public int getContentLength() {
-        return connection(true).getContentLength();
-    }
-
-    @Override
-    public long getContentLengthLong() {
-        return connection(true).getContentLengthLong();
-    }
-
-    @Override
-    public String getContentType() {
-        return connection(true).getContentType();
-    }
-
-    @Override
-    public String getContentEncoding() {
-        return connection(true).getContentEncoding();
-    }
-
-    @Override
-    public long getExpiration() {
-        return connection(true).getExpiration();
-    }
-
-    @Override
-    public long getDate() {
-        return connection(true).getDate();
-    }
-
-    @Override
-    public long getLastModified() {
-        return connection(true).getLastModified();
+    public String getHeaderFieldKey(int n) {
+        return headerFields.key(n);
     }
 
     @Override
     public String getHeaderField(String name) {
-        return connection(true).getHeaderField(name);
+        return headerFields.value(name);
     }
 
     @Override
     public Map<String, List<String>> getHeaderFields() {
-        return connection(true).getHeaderFields();
-    }
-
-    @Override
-    public int getHeaderFieldInt(String name, int Default) {
-        return connection(true).getHeaderFieldInt(name, Default);
-    }
-
-    @Override
-    public long getHeaderFieldLong(String name, long Default) {
-        return connection(true).getHeaderFieldLong(name, Default);
-    }
-
-    @Override
-    public Object getContent() throws IOException {
-        return connection(true).getContent();
-    }
-
-    @Override
-    @SuppressWarnings("rawtypes")
-    public Object getContent(Class[] classes) throws IOException {
-        return connection(true).getContent(classes);
+        return headerFields.map();
     }
 
     @Override
     public InputStream getInputStream() throws IOException {
-        return connection(false).getInputStream();
+        return handler.getInputStream();
     }
 
     @Override
     public OutputStream getOutputStream() throws IOException {
-        return connection(true).getOutputStream();
+        return handler.getOutputStream();
     }
 
     @Override
-    public String toString() {
-        return connection(false).toString();
+    public int getReadTimeout() {
+        return readTimeout;
     }
 
     @Override
-    public void setDoInput(boolean doinput) {
-        connection(false).setDoInput(doinput);
+    public Map<String, List<String>> getRequestProperties() {
+        return getRequestProperties(false);
     }
 
     @Override
-    public boolean getDoInput() {
-        return connection(false).getDoInput();
+    public String getRequestProperty(String key) {
+        List<String> requestPropertyValues = getRequestPropertyValues(key, false);
+        return (requestPropertyValues != null) ? requestPropertyValues.get(0) : null;
     }
 
     @Override
-    public void setDoOutput(boolean dooutput) {
-        connection(false).setDoOutput(dooutput);
+    public void setConnectTimeout(int timeout) {
+        this.connectTimeout = timeout;
     }
 
     @Override
-    public boolean getDoOutput() {
-        return connection(false).getDoOutput();
-    }
-
-    @Override
-    public void setAllowUserInteraction(boolean allowuserinteraction) {
-        connection(false).setAllowUserInteraction(allowuserinteraction);
-    }
-
-    @Override
-    public boolean getAllowUserInteraction() {
-        return connection(false).getAllowUserInteraction();
-    }
-
-    @Override
-    public void setUseCaches(boolean usecaches) {
-        connection(false).setUseCaches(usecaches);
-    }
-
-    @Override
-    public boolean getUseCaches() {
-        return connection(false).getUseCaches();
-    }
-
-    @Override
-    public void setIfModifiedSince(long ifmodifiedsince) {
-        connection(false).setIfModifiedSince(ifmodifiedsince);
-    }
-
-    @Override
-    public long getIfModifiedSince() {
-        return connection(false).getIfModifiedSince();
-    }
-
-    @Override
-    public boolean getDefaultUseCaches() {
-        return connection(false).getDefaultUseCaches();
-    }
-
-    @Override
-    public void setDefaultUseCaches(boolean defaultusecaches) {
-        connection(false).setDefaultUseCaches(defaultusecaches);
+    public void setReadTimeout(int timeout) {
+        this.readTimeout = timeout;
     }
 
     @Override
     public void setRequestProperty(String key, String value) {
-        connection(false).setRequestProperty(key, value);
-        List<String> values = requestHeaders.get(key);
+        List<String> values = requestProperties.get(key);
         if (values == null) {
             values = new LinkedList<String>();
-            requestHeaders.put(key, values);
+            requestProperties.put(key, values);
         }
         else {
             values.clear();
         }
         values.add(value);
+        detectHttpUpgrade(key);
     }
 
     @Override
-    public void addRequestProperty(String key, String value) {
-        connection(false).addRequestProperty(key, value);
+    public boolean usingProxy() {
+        return false;
     }
 
-    @Override
-    public String getRequestProperty(String key) {
-        return connection(false).getRequestProperty(key);
+    Map<String, List<String>> getRequestProperties(boolean internal) {
+        return internal ? requestPropertiesRO : super.getRequestProperties();
     }
 
-    @Override
-    public Map<String, List<String>> getRequestProperties() {
-        return connection(false).getRequestProperties();
+    HttpHeaderFields getHttpHeaderFields() {
+        return headerFields;
     }
 
-    protected Map<String, List<String>> getRequestHeaders() {
-        return requestHeaders;
+    int getChunkStreamingMode() {
+        return chunkLength;
     }
 
-    protected int getResponseCode0() throws IOException {
-        return super.getResponseCode();
+    int getFixedLengthStreamingMode() {
+        return fixedContentLength;
     }
 
-    protected String getResponseMessage0() throws IOException {
-        return super.getResponseMessage();
+    long getFixedLengthStreamingModeLong() {
+        return fixedContentLengthLong;
     }
 
-    protected java.net.HttpURLConnection connection(boolean input) {
-
-        try {
-            openConnection();
-
-            if (input) {
-                getInputStream();
-            }
+    private List<String> getRequestPropertyValues(String key, boolean createIfNull) {
+        List<String> values = requestProperties.get(key);
+        if (values == null && createIfNull) {
+            values = new LinkedList<String>();
+            requestProperties.put(key, values);
         }
-        catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-
-        return connection;
+        return values;
     }
 
-    private void openConnection() throws IOException {
-        if (connection == null) {
-            URL delegateURL = new URL(url.toString());
-            connection = (java.net.HttpURLConnection) delegateURL.openConnection();
+    private void detectHttpUpgrade(String key) {
+        if ("Upgrade".equalsIgnoreCase(key)) {
+            this.handler = new HttpURLConnectionHandler.Upgradeable(this);
         }
     }
 

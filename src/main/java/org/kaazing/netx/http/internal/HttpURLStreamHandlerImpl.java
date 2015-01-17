@@ -25,7 +25,7 @@ class HttpURLStreamHandlerImpl extends URLStreamHandler {
 
     @Override
     protected URLConnection openConnection(URL u) throws IOException {
-        return new HttpUpgradeableURLConnectionImpl(u);
+        return new HttpURLConnectionImpl(u);
     }
 
 

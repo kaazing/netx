@@ -38,7 +38,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
-import org.kaazing.net.URLFactory;
+import org.kaazing.netx.URLFactory;
 
 
 // TODO: verify specification.http scripts instead
@@ -83,6 +83,7 @@ public class HttpIT {
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Upgrade", "websocket");
         connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
+        connection.setDoOutput(true);
         Writer output = new OutputStreamWriter(connection.getOutputStream(), UTF_8);
         Reader input = new InputStreamReader(connection.getInputStream(), UTF_8);
         output.write("Hello, world");
