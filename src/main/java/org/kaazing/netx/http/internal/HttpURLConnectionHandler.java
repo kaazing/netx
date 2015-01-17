@@ -91,9 +91,13 @@ abstract class HttpURLConnectionHandler  {
         public InputStream getInputStream() throws IOException {
             if (input == null) {
                 HttpURLConnection bundled = bundled();
-                input = bundled.getInputStream();
-                HttpHeaderFields headerFields = connection.getHttpHeaderFields();
-                headerFields.addAll(bundled.getHeaderFields());
+                try {
+                    input = bundled.getInputStream();
+                }
+                finally {
+                    HttpHeaderFields headerFields = connection.getHttpHeaderFields();
+                    headerFields.addAll(bundled.getHeaderFields());
+                }
             }
             return input;
         }
@@ -248,14 +252,16 @@ abstract class HttpURLConnectionHandler  {
             case HANDSHAKE_SENT:
                 input = socket.getInputStream();
                 HttpHeaderFields headerFields = connection.getHttpHeaderFields();
+
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input, "US-ASCII"));
                 String start = reader.readLine();
+                headerFields.add(null, start);
+
                 Matcher startMatcher = PATTERN_START.matcher(start);
                 if (!startMatcher.matches()) {
                     throw new IllegalStateException("Bad HTTP/1.1 syntax");
                 }
                 int responseCode = parseInt(startMatcher.group(1));
-                headerFields.add(null, start);
 
                 Map<String, List<String>> cookies = null;
                 for (String header = reader.readLine(); !header.isEmpty(); header = reader.readLine()) {

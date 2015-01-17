@@ -68,6 +68,7 @@ public class HttpIT {
     @Specification("response.with.status.code.401")
     public void shouldHandle401() throws Exception {
         URL url = URLFactory.createURL("http://localhost:8080/path?query");
+//        URL url = new URL("http://localhost:8080/path?query");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("POST");
         connection.setRequestProperty("X-Header", "value");
