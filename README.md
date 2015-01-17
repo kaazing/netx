@@ -1,5 +1,4 @@
-Kaazing netx.http
-===============
+# netx.http
 [![Build Status][build-status-image]][build-status]
 
 [build-status-image]: https://travis-ci.org/kaazing/netx.http.svg?branch=develop
