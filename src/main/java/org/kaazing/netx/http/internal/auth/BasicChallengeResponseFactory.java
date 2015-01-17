@@ -31,7 +31,8 @@ public final class BasicChallengeResponseFactory {
 
     public static ChallengeResponse create(PasswordAuthentication creds, ChallengeHandler nextChallengeHandler) {
         String unencoded = String.format("%s:%s", creds.getUserName(), new String(creds.getPassword()));
-        String response = String.format("Basic %s", new String(Base64.encode(unencoded.getBytes(US_ASCII))));
+        byte[] encoded = Base64.encode(unencoded.getBytes(US_ASCII));
+        String response = String.format("Basic %s", new String(encoded, US_ASCII));
         Arrays.fill(creds.getPassword(), (char) 0);
         return new ChallengeResponse(response.toCharArray(), nextChallengeHandler);
     }
