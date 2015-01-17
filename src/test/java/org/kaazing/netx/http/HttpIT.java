@@ -155,7 +155,17 @@ public class HttpIT {
 
     @Test
     @Specification("response.upgrade.failed.with.status.code.302")
-    public void shouldFollow302Redirect() throws Exception {
-        
+    public void shouldNotFollow302Redirect() throws Exception {
+        URL url = URLFactory.createURL("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Upgrade", "websocket");
+        connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
+        connection.setInstanceFollowRedirects(false);
+
+        assertEquals(302, connection.getResponseCode());
+        assertEquals("http://localhost:8080/different/path", connection.getHeaderField("Location"));
+
+        k3po.join();
     }
 }
