@@ -158,9 +158,6 @@ abstract class HttpURLConnectionHandler  {
 
 
         private static final Pattern PATTERN_START = Pattern.compile("HTTP\\/1\\.1\\s+([1-5]\\d\\d)\\s+(.*)");
-        private static final Pattern PATTERN_HEADER =
-                Pattern.compile("([!#$%&'\\*\\+\\-\\^_`|~0-9a-zA-Z]+):\\s*([!#$%&'\\*\\+\\-\\^_`|~0-9a-zA-Z=\\\"\\s]+)");
-
         private static final Pattern PATTERN_BASIC_CHALLENGE = Pattern.compile("Basic(?: realm=\"([^\"]+)\")?");
 
         private static enum State { INITIAL, HANDSHAKE_SENT, HANDSHAKE_RECEIVED }
@@ -265,12 +262,12 @@ abstract class HttpURLConnectionHandler  {
 
                 Map<String, List<String>> cookies = null;
                 for (String header = reader.readLine(); !header.isEmpty(); header = reader.readLine()) {
-                    Matcher headerMatcher = PATTERN_HEADER.matcher(header);
-                    if (!headerMatcher.matches()) {
+                    int colonAt = header.indexOf(':');
+                    if (colonAt == -1) {
                         throw new IllegalStateException("Bad HTTP/1.1 syntax");
                     }
-                    String name = headerMatcher.group(1);
-                    String value = headerMatcher.group(2);
+                    String name = header.substring(0, colonAt).trim();
+                    String value = header.substring(colonAt + 1).trim();
                     // detect cookies
                     if ("Set-Cookie".equalsIgnoreCase(name) || "Set-Cookie2".equalsIgnoreCase(name)) {
                         if (cookies == null) {
