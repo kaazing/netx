@@ -26,7 +26,7 @@ import org.kaazing.netx.URLStreamHandlerFactorySpi;
 
 public final class HttpURLStreamHandlerFactorySpi extends URLStreamHandlerFactorySpi {
 
-    private static final List<String> SUPPORTED_PROTOCOLS = asList("http", "https");
+    private static final List<String> SUPPORTED_PROTOCOLS = asList("http");
 
     @Override
     public URLStreamHandler createURLStreamHandler(String protocol) {

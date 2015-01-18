@@ -15,3 +15,4 @@
 #
 
 org.kaazing.netx.http.internal.HttpURLStreamHandlerFactorySpi
+org.kaazing.netx.http.internal.HttpsURLStreamHandlerFactorySpi
