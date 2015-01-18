@@ -16,12 +16,16 @@
 
 package org.kaazing.netx.http.internal;
 
+import static java.lang.String.format;
 import static java.util.Collections.unmodifiableMap;
+import static org.kaazing.netx.http.internal.HttpRedirectPolicyUtils.shouldFollowRedirect;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -99,6 +103,43 @@ final class HttpURLConnectionImpl extends HttpURLConnection {
 
     @Override
     public InputStream getInputStream() throws IOException {
+        InputStream input = handler.getInputStream();
+        switch (responseCode) {
+        case HTTP_MOVED_PERM:
+        case HTTP_MOVED_TEMP:
+        case HTTP_SEE_OTHER:
+            // TODO: check maximum number of redirects
+            if (getInstanceFollowRedirects()) {
+                input = processRedirect(input);
+            }
+            break;
+        default:
+            break;
+        }
+        return input;
+    }
+
+    private InputStream processRedirect(InputStream input) throws IOException {
+
+        String location = headerFields.value("Location");
+        if (location == null) {
+            throw new IllegalStateException(format("Redirect missing Location header (%d)", responseCode));
+        }
+
+        URL currentURL = getURL();
+        URL redirectURL = new URL(currentURL, location, new URLStreamHandler() {
+            @Override
+            protected URLConnection openConnection(URL u) throws IOException {
+                return HttpURLConnectionImpl.this;
+            }
+        });
+
+        if (!shouldFollowRedirect(getRedirectPolicy(), currentURL, redirectURL)) {
+            return input;
+        }
+
+        reset(redirectURL);
+        handler.disconnect();
         return handler.getInputStream();
     }
 
@@ -170,6 +211,18 @@ final class HttpURLConnectionImpl extends HttpURLConnection {
 
     long getFixedLengthStreamingModeLong() {
         return fixedContentLengthLong;
+    }
+
+    void setResponse(int responseCode, String responseMessage) {
+        this.responseCode = responseCode;
+        this.responseMessage = responseMessage;
+    }
+
+    void reset(URL url) {
+        this.url = url;
+        this.responseCode = -1;
+        this.responseMessage = null;
+        this.headerFields.clear();
     }
 
     private List<String> getRequestPropertyValues(String key, boolean createIfNull) {
