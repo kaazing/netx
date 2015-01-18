@@ -25,7 +25,11 @@ import java.util.Map;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 
-class HttpRedirectPolicyUtils {
+final class HttpRedirectPolicyUtils {
+
+    private HttpRedirectPolicyUtils() {
+        // utilities only
+    }
 
     public static boolean shouldFollowRedirect(HttpRedirectPolicy redirectPolicy, URL currentURL, URL redirectURL) {
         return POLICY_CHECKERS.get(redirectPolicy).compare(currentURL, redirectURL) == 0;
