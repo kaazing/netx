@@ -21,7 +21,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 
-class HttpURLStreamHandlerImpl extends URLStreamHandler {
+class HttpsURLStreamHandlerImpl extends URLStreamHandler {
 
     @Override
     protected URLConnection openConnection(URL u) throws IOException {
@@ -30,7 +30,7 @@ class HttpURLStreamHandlerImpl extends URLStreamHandler {
 
     @Override
     protected int getDefaultPort() {
-        return 80;
+        return 443;
     }
 
 

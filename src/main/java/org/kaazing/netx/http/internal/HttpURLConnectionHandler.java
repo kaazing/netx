@@ -48,6 +48,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
+
 abstract class HttpURLConnectionHandler  {
 
     protected final HttpURLConnectionImpl connection;
@@ -188,7 +191,7 @@ abstract class HttpURLConnectionHandler  {
                 String host = url.getHost();
                 int port = url.getPort();
                 if (port == -1) {
-                    throw new IllegalStateException("TODO: default HTTP(S) port");
+                    port = url.getDefaultPort();
                 }
 
                 SecurityManager security = System.getSecurityManager();
@@ -196,7 +199,18 @@ abstract class HttpURLConnectionHandler  {
                     security.checkConnect(host, port);
                 }
 
-                socket = new Socket(host, port);
+                String protocol = url.getProtocol();
+                if ("http".equalsIgnoreCase(protocol)) {
+                    SocketFactory socketFactory = SocketFactory.getDefault();
+                    socket = socketFactory.createSocket(host, port);
+                }
+                else if ("https".equalsIgnoreCase(protocol)) {
+                    SocketFactory socketFactory = SSLSocketFactory.getDefault();
+                    socket = socketFactory.createSocket(host, port);
+                }
+                else {
+                    throw new IllegalStateException(format("Unexpected protocol: %s", protocol));
+                }
                 output = socket.getOutputStream();
 
                 String method = connection.getRequestMethod();
