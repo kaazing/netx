@@ -16,14 +16,14 @@
 
 package org.kaazing.netx.http.internal.auth;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.kaazing.netx.http.internal.auth.DefaultDispatchChallengeHandler;
+import static org.kaazing.netx.http.internal.auth.NodeTest.NodeType.TEST;
 
 import java.util.Arrays;
 
-import static org.kaazing.netx.http.internal.auth.NodeTest.NodeType.TEST;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.kaazing.netx.http.internal.auth.DefaultDispatchChallengeHandler.Node;
 
 public class NodeTest {
 
@@ -48,7 +48,7 @@ public class NodeTest {
     @Test
     public void testMakeChild() throws Exception {
         root.addChild("foo", TEST);
-        DefaultDispatchChallengeHandler.Node fooNode = root.getChild("foo");
+        Node<String, NodeType> fooNode = root.getChild("foo");
         Assert.assertEquals("foo", fooNode.getName());
         Assert.assertSame(root, fooNode.getParent());
     }
@@ -57,11 +57,11 @@ public class NodeTest {
     public void testFullyQualifiedName() throws Exception {
         Assert.assertEquals("", root.getFullyQualifiedName());
         root.addChild("foo", TEST);
-        DefaultDispatchChallengeHandler.Node foo = root.getChild("foo");
+        Node<String, NodeType> foo = root.getChild("foo");
         Assert.assertEquals("foo", foo.getFullyQualifiedName());
 
         foo.addChild("bar", TEST);
-        DefaultDispatchChallengeHandler.Node bar = foo.getChild("bar");
+        Node<String, NodeType> bar = foo.getChild("bar");
         Assert.assertEquals("foo.bar", bar.getFullyQualifiedName());
     }
 
@@ -77,7 +77,7 @@ public class NodeTest {
     public void testWildcard() throws Exception {
         Assert.assertFalse(root.isWildcard());
         root.addChild("foo", TEST);
-        DefaultDispatchChallengeHandler.Node foo = root.getChild("foo");
+        Node<String, NodeType> foo = root.getChild("foo");
         Assert.assertFalse(foo.isWildcard());
     }
 
@@ -98,9 +98,9 @@ public class NodeTest {
     @Test
     public void testGetParent() throws Exception {
         root.addChild("foo", TEST);
-        DefaultDispatchChallengeHandler.Node foo = root.getChild("foo");
+        Node<String, NodeType> foo = root.getChild("foo");
         foo.addChild("bar", TEST);
-        DefaultDispatchChallengeHandler.Node bar = foo.getChild("bar");
+        Node<String, NodeType> bar = foo.getChild("bar");
 
         Assert.assertNull(root.getParent());
         Assert.assertEquals(root, foo.getParent());
@@ -119,7 +119,7 @@ public class NodeTest {
         Assert.assertFalse(root.isWildcard());
         root.addChild("foo", TEST);
         Assert.assertFalse(root.isWildcard());
-        DefaultDispatchChallengeHandler.Node foo = root.getChild("foo");
+        Node<String, NodeType> foo = root.getChild("foo");
         Assert.assertFalse(foo.isWildcard());
 
         foo.addChild(DefaultDispatchChallengeHandler.Node.getWildcardChar(), TEST);
@@ -130,7 +130,7 @@ public class NodeTest {
     @Test
     public void testHasWildcardDefined() throws Exception {
         root.addChild("foo", TEST);
-        DefaultDispatchChallengeHandler.Node foo = root.getChild("foo");
+        Node<String, NodeType> foo = root.getChild("foo");
         foo.addChild(DefaultDispatchChallengeHandler.Node.getWildcardChar(), TEST);
         Assert.assertTrue(foo.hasWildcardChild());
         Assert.assertTrue(foo.getChild(DefaultDispatchChallengeHandler.Node.getWildcardChar()).isWildcard());
@@ -141,9 +141,9 @@ public class NodeTest {
     @Test
     public void testGetWildcard() throws Exception {
         root.addChild("foo", TEST);
-        DefaultDispatchChallengeHandler.Node foo = root.getChild("foo");
+        Node<String, NodeType> foo = root.getChild("foo");
         foo.addChild(DefaultDispatchChallengeHandler.Node.getWildcardChar(), TEST);
-        DefaultDispatchChallengeHandler.Node fooChild = foo.getChild(DefaultDispatchChallengeHandler.Node.getWildcardChar());
+        Node<String, NodeType> fooChild = foo.getChild(DefaultDispatchChallengeHandler.Node.getWildcardChar());
         // Wildcard nodes know they are wildcards.
         Assert.assertTrue(fooChild.isWildcard());
         // Parents of wildcards know they have wildcard children.
