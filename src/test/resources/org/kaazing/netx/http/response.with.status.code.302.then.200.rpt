@@ -1,0 +1,27 @@
+accept http://localhost:8080/path
+
+accepted
+connected
+
+read method "GET"
+read header "X-Header" "value"
+
+write status "302" "Found"
+write header content-length
+write header "Location" "http://localhost:8080/different/path"
+
+write close
+read closed
+
+accept http://localhost:8080/different/path
+
+accepted
+connected
+
+read method "GET"
+read header "X-Header" "value"
+read closed
+
+write status "200" "OK"
+write header content-length
+write close

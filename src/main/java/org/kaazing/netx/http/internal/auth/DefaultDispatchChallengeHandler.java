@@ -605,7 +605,7 @@ public class DefaultDispatchChallengeHandler extends DispatchChallengeHandler {
         String getFullyQualifiedName() {
             StringBuilder b = new StringBuilder();
             List<String> name = new ArrayList<String>();
-            Node cursor = this;
+            Node<T, ?> cursor = this;
             while (!cursor.isRootNode()) {
                 name.add(cursor.name);
                 cursor = cursor.parent;

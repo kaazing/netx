@@ -82,8 +82,10 @@ abstract class HttpURLConnectionHandler  {
 
         @Override
         public void disconnect() {
+            input = null;
             if (bundled != null) {
                 bundled.disconnect();
+                bundled = null;
             }
         }
 
@@ -97,6 +99,7 @@ abstract class HttpURLConnectionHandler  {
                 finally {
                     HttpHeaderFields headerFields = connection.getHttpHeaderFields();
                     headerFields.addAll(bundled.getHeaderFields());
+                    connection.setResponse(bundled.getResponseCode(), bundled.getResponseMessage());
                 }
             }
             return input;
@@ -120,7 +123,6 @@ abstract class HttpURLConnectionHandler  {
                 bundled.setDoInput(connection.getDoInput());
                 bundled.setDoOutput(connection.getDoOutput());
                 bundled.setIfModifiedSince(connection.getIfModifiedSince());
-                bundled.setInstanceFollowRedirects(connection.getInstanceFollowRedirects());
                 bundled.setReadTimeout(connection.getReadTimeout());
                 bundled.setRequestMethod(connection.getRequestMethod());
 
@@ -147,6 +149,9 @@ abstract class HttpURLConnectionHandler  {
                 }
 
                 bundled.setUseCaches(connection.getUseCaches());
+
+                // auto-redirect disabled to apply redirect policy
+                bundled.setInstanceFollowRedirects(false);
 
                 this.bundled = bundled;
             }
@@ -238,6 +243,7 @@ abstract class HttpURLConnectionHandler  {
             catch (IOException e) {
                 // ignore
             }
+            state = State.INITIAL;
         }
 
         @Override
@@ -259,6 +265,8 @@ abstract class HttpURLConnectionHandler  {
                     throw new IllegalStateException("Bad HTTP/1.1 syntax");
                 }
                 int responseCode = parseInt(startMatcher.group(1));
+                String responseMessage = startMatcher.group(2);
+                connection.setResponse(responseCode, responseMessage);
 
                 Map<String, List<String>> cookies = null;
                 for (String header = reader.readLine(); !header.isEmpty(); header = reader.readLine()) {
@@ -299,20 +307,9 @@ abstract class HttpURLConnectionHandler  {
 
                 switch (responseCode) {
                 case HTTP_SWITCHING_PROTOCOLS:
-                    break;
                 case HTTP_MOVED_PERM:
                 case HTTP_MOVED_TEMP:
                 case HTTP_SEE_OTHER:
-                    // 3xx (note HttpRedirectPolicy is higher level)
-                    if (connection.getInstanceFollowRedirects()) {
-                        String location = headerFields.value("Location");
-                        if (location == null) {
-                            throw new IllegalStateException(format("Redirect missing Location header (%d)", responseCode));
-                        }
-                        // TODO: repeat request at new Location
-                        // Note: check maximum redirects
-                        throw new UnsupportedOperationException("Redirect not yet supported");
-                    }
                     break;
                 case HTTP_UNAUTHORIZED:
                     // Note: check maximum redirects

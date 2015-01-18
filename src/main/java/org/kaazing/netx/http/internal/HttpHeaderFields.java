@@ -81,4 +81,10 @@ final class HttpHeaderFields  {
     public Map<String, List<String>> map() {
         return valuesByKeyRO;
     }
+
+    public void clear() {
+        keys.clear();
+        values.clear();
+        valuesByKey.clear();
+    }
 }

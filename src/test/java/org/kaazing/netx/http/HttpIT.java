@@ -20,13 +20,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.http.HttpRedirectPolicy.NEVER;
 
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.Authenticator;
-import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,10 +65,21 @@ public class HttpIT {
     }
 
     @Test
+    @Specification("response.with.status.code.302")
+    public void shouldNotFollow302WithPolicyNever() throws Exception {
+        URL url = URLFactory.createURL("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("X-Header", "value");
+        connection.setRedirectPolicy(NEVER);
+        assertEquals(302, connection.getResponseCode());
+        k3po.join();
+    }
+
+    @Test
     @Specification("response.with.status.code.401")
     public void shouldHandle401() throws Exception {
         URL url = URLFactory.createURL("http://localhost:8080/path?query");
-//        URL url = new URL("http://localhost:8080/path?query");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("POST");
         connection.setRequestProperty("X-Header", "value");
@@ -165,6 +176,33 @@ public class HttpIT {
 
         assertEquals(302, connection.getResponseCode());
         assertEquals("http://localhost:8080/different/path", connection.getHeaderField("Location"));
+
+        k3po.join();
+    }
+
+    @Test
+    @Specification("response.with.status.code.302.then.200")
+    public void shouldFollow302RedirectThenHandle200OK() throws Exception {
+        URL url = URLFactory.createURL("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("X-Header", "value");
+
+        assertEquals(200, connection.getResponseCode());
+
+        k3po.join();
+    }
+
+    @Test
+    @Specification("response.upgrade.failed.with.status.code.302.then.200")
+    public void shouldFollow302RedirectThenHandleUpgradeFailed200OK() throws Exception {
+        URL url = URLFactory.createURL("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Upgrade", "websocket");
+        connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
+
+        assertEquals(200, connection.getResponseCode());
 
         k3po.join();
     }
