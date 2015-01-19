@@ -21,7 +21,7 @@ import java.net.PasswordAuthentication;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.kaazing.netx.http.auth.BasicChallengeHandler;
+import org.kaazing.netx.http.auth.ApplicationBasicChallengeHandler;
 import org.kaazing.netx.http.auth.ChallengeRequest;
 import org.kaazing.netx.http.auth.ChallengeResponse;
 import org.kaazing.netx.http.auth.DispatchChallengeHandler;
@@ -29,7 +29,7 @@ import org.kaazing.netx.http.auth.LoginHandler;
 
 public class BasicChallengeHandlerTest {
 
-    BasicChallengeHandler basicHandler;
+    ApplicationBasicChallengeHandler basicHandler;
     LoginHandler loginHandler;
     DispatchChallengeHandler dispatchHandler;
 
@@ -38,7 +38,7 @@ public class BasicChallengeHandlerTest {
     @Before
     public void before() {
         dispatchHandler = DispatchChallengeHandler.create();
-        basicHandler = BasicChallengeHandler.create();
+        basicHandler = ApplicationBasicChallengeHandler.create();
         loginHandler = new LoginHandler() {
             @Override
             public PasswordAuthentication getCredentials() {

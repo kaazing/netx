@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
-import org.kaazing.netx.http.auth.BasicChallengeHandler;
+import org.kaazing.netx.http.auth.ApplicationBasicChallengeHandler;
 import org.kaazing.netx.http.auth.ChallengeRequest;
 import org.kaazing.netx.http.auth.ChallengeResponse;
 import org.kaazing.netx.http.auth.LoginHandler;
@@ -31,11 +31,11 @@ import org.kaazing.netx.http.auth.LoginHandlerProvider;
 /**
  * Challenge handler for Basic authentication. See RFC 2617.
  */
-public class DefaultBasicChallengeHandler extends BasicChallengeHandler implements LoginHandlerProvider {
+public class DefaultApplicationBasicChallengeHandler extends ApplicationBasicChallengeHandler implements LoginHandlerProvider {
 
 // ------------------------------ FIELDS ------------------------------
 
-    private static final String CLASS_NAME = DefaultBasicChallengeHandler.class.getName();
+    private static final String CLASS_NAME = DefaultApplicationBasicChallengeHandler.class.getName();
     private static final Logger LOG = Logger.getLogger(CLASS_NAME);
 
     private Map<String, LoginHandler> loginHandlersByRealm = new ConcurrentHashMap<String, LoginHandler>();
@@ -64,7 +64,7 @@ public class DefaultBasicChallengeHandler extends BasicChallengeHandler implemen
      *
      * @param loginHandler a login handler for credentials.
      */
-    public BasicChallengeHandler setLoginHandler(LoginHandler loginHandler) {
+    public ApplicationBasicChallengeHandler setLoginHandler(LoginHandler loginHandler) {
         this.loginHandler = loginHandler;
         return this;
     }

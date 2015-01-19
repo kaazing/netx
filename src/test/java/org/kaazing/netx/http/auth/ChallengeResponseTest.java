@@ -18,7 +18,7 @@ package org.kaazing.netx.http.auth;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.kaazing.netx.http.auth.BasicChallengeHandler;
+import org.kaazing.netx.http.auth.ApplicationBasicChallengeHandler;
 import org.kaazing.netx.http.auth.ChallengeResponse;
 
 public class ChallengeResponseTest {
@@ -34,7 +34,7 @@ public class ChallengeResponseTest {
         Assert.assertNull(response.getCredentials());
         Assert.assertNull(response.getNextChallengeHandler());
 
-        BasicChallengeHandler handler = BasicChallengeHandler.create();
+        ApplicationBasicChallengeHandler handler = ApplicationBasicChallengeHandler.create();
         response = new ChallengeResponse(null, handler);
         Assert.assertSame(handler, response.getNextChallengeHandler());
 

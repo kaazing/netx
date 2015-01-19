@@ -14,4 +14,4 @@
 # limitations under the License.
 #
 
-org.kaazing.netx.http.internal.auth.DefaultBasicChallengeHandler
+org.kaazing.netx.http.internal.auth.DefaultApplicationBasicChallengeHandler

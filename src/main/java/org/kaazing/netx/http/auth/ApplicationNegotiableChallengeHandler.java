@@ -18,12 +18,18 @@ package org.kaazing.netx.http.auth;
 
 
 import java.util.Collection;
+import java.util.ServiceLoader;
 
 /**
- * A NegotiableChallengeHandler can be used to directly respond to
- * "Negotiate" challenges, and in addition, can be used indirectly in conjunction
- * with a {@link NegotiateChallengeHandler}
+ * An ApplicationNegotiableChallengeHandler can be used to directly respond to
+ * "Application Negotiate" challenges, and in addition, can be used indirectly in conjunction
+ * with a {@link ApplicationNegotiateChallengeHandler}
  * to assist in the construction of a challenge response using object identifiers.
+ *<p>
+ * Note that the "Negotiate" authentication scheme is different from the
+ * "Application Negotiate" scheme. When "Negotiate" authentication is used, JDK directly
+ * uses the system java.net.Authenticator to setup the "Authorization" header.
+ * <p>
  *
  * @see <a href="http://tools.ietf.org/html/rfc4178#section-4.2.1">RFC 4178 Section 4.2.1</a> for details
  *      about how the supported object identifiers contribute towards the initial context token in the challenge response.
@@ -31,35 +37,35 @@ import java.util.Collection;
  * <p/>
  *
  */
-public abstract class NegotiableChallengeHandler extends ChallengeHandler {
+public abstract class ApplicationNegotiableChallengeHandler extends ChallengeHandler {
 
     /**
-     * Creates a new instance of {@link NegotiableChallengeHandler} using the
-     * {@link ServiceLoader} API with the implementation specified under
+     * Creates a new instance of {@link ApplicationNegotiableChallengeHandler} using
+     * the {@link ServiceLoader} API with the implementation specified under
      * META-INF/services.
      *
      * @return NegotiableChallengeHandler
      */
-    public static NegotiableChallengeHandler create() {
-        return create(NegotiableChallengeHandler.class);
+    public static ApplicationNegotiableChallengeHandler create() {
+        return create(ApplicationNegotiableChallengeHandler.class);
     }
 
     /**
-     * Creates a new instance of {@link NegotiableChallengeHandler} with the
-     * specified {@link ClassLoader} using the {@link ServiceLoader} API with
+     * Creates a new instance of {@link ApplicationNegotiableChallengeHandler} with
+     * the specified {@link ClassLoader} using the {@link ServiceLoader} API with
      * the implementation specified under META-INF/services.
      *
      * @param  classLoader          ClassLoader to be used to instantiate
      * @return NegotiableChallengeHandler
      */
-    public static NegotiableChallengeHandler create(ClassLoader classLoader) {
-        return create(NegotiableChallengeHandler.class, classLoader);
+    public static ApplicationNegotiableChallengeHandler create(ClassLoader classLoader) {
+        return create(ApplicationNegotiableChallengeHandler.class, classLoader);
     }
 
     /**
      * Default constructor.
      */
-    protected NegotiableChallengeHandler() {
+    protected ApplicationNegotiableChallengeHandler() {
     }
 
     /**
@@ -81,7 +87,7 @@ public abstract class NegotiableChallengeHandler extends ChallengeHandler {
      *
      * @return this challenge handler object, to support chained calls
      */
-    public abstract NegotiableChallengeHandler setLoginHandler(LoginHandler loginHandler);
+    public abstract ApplicationNegotiableChallengeHandler setLoginHandler(LoginHandler loginHandler);
 
     /**
      * Get the general login handler associated with this challenge handler.
