@@ -16,9 +16,8 @@
 
 package org.kaazing.netx.http.internal.auth;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-
 import java.net.PasswordAuthentication;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 
 import org.kaazing.netx.http.auth.ChallengeHandler;
@@ -26,6 +25,9 @@ import org.kaazing.netx.http.auth.ChallengeResponse;
 import org.kaazing.netx.http.internal.Base64;
 
 public final class BasicChallengeResponseFactory {
+
+    private static final Charset US_ASCII = Charset.forName("US-ASCII");
+
     private BasicChallengeResponseFactory() {
     }
 

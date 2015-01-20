@@ -22,7 +22,6 @@ import static java.net.HttpURLConnection.HTTP_MOVED_PERM;
 import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 import static java.net.HttpURLConnection.HTTP_SEE_OTHER;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.Arrays.fill;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 
@@ -41,6 +40,7 @@ import java.net.PasswordAuthentication;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,6 +52,8 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 
 abstract class HttpURLConnectionHandler  {
+
+    private static final Charset US_ASCII = Charset.forName("US-ASCII");
 
     protected final HttpURLConnectionImpl connection;
 
@@ -131,15 +133,11 @@ abstract class HttpURLConnectionHandler  {
 
                 int chunkLength = connection.getChunkStreamingMode();
                 int fixedContentLength = connection.getFixedLengthStreamingMode();
-                long fixedContentLengthLong = connection.getFixedLengthStreamingModeLong();
                 if (chunkLength != -1) {
                     bundled.setChunkedStreamingMode(chunkLength);
                 }
                 else if (fixedContentLength != -1) {
                     bundled.setFixedLengthStreamingMode(fixedContentLength);
-                }
-                else if (fixedContentLengthLong != -1L) {
-                    bundled.setFixedLengthStreamingMode(fixedContentLengthLong);
                 }
 
                 Map<String, List<String>> requestProperties = connection.getRequestProperties(true);

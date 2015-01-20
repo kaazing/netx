@@ -45,13 +45,13 @@ public class OriginTest {
     @Test
     public void shouldResolveURLMissingDefaultHttpPort() throws Exception {
         URL url = new URL("http://example.com/path/to/class");
-        assertEquals("http://example.com:80", asOrigin(url));
+        assertEquals("http://example.com", asOrigin(url));
     }
 
     @Test
     public void shouldResolveURLMissingDefaultHttpsPort() throws Exception {
         URL url = new URL("https://example.com/path/to/class");
-        assertEquals("https://example.com:443", asOrigin(url));
+        assertEquals("https://example.com", asOrigin(url));
     }
 
 }
