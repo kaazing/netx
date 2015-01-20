@@ -34,7 +34,7 @@ import javax.net.ssl.SSLSocketFactory;
 public abstract class HttpOriginSecuritySpi {
 
     private static final String BRIDGE_RESOURCE_NAME = "netx.http.bridge";
-    private static final String BRIDGE_RESOURCE_VERSION = "1.0";
+    private static final String BRIDGE_RESOURCE_VERSION = "2.0";
     private static final String BRIDGE_RESOURCE_PATH = format("/;resource/%s/%s", BRIDGE_RESOURCE_NAME, BRIDGE_RESOURCE_VERSION);
 
     public static HttpOriginSecuritySpi newInstance() {
