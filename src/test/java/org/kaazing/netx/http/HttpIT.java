@@ -121,7 +121,7 @@ public class HttpIT {
                 authenticationCalls.incrementAndGet();
                 return null;
             }
-            
+
         };
         Authenticator.setDefault(authenticator);
 
@@ -148,7 +148,7 @@ public class HttpIT {
                 authenticationCalls.incrementAndGet();
                 return super.getPasswordAuthentication();
             }
-            
+
         };
         Authenticator.setDefault(authenticator);
 
@@ -204,6 +204,43 @@ public class HttpIT {
 
         assertEquals(200, connection.getResponseCode());
 
+        k3po.join();
+    }
+
+    @Test
+    @Specification("response.upgrade.with.status.code.302.then.101")
+    public void shouldFollow302RedirectThenHandleUpgrade101OK() throws Exception {
+        URL url = URLFactory.createURL("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Upgrade", "websocket");
+        connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
+
+        assertEquals(101, connection.getResponseCode());
+
+        k3po.join();
+    }
+
+
+    @Test
+    @Specification("response.with.status.code.401.then.200")
+    public void shouldHandle401BasicThen200OK() throws Exception {
+        final AtomicInteger authenticationCalls = new AtomicInteger();
+        Authenticator authenticator = new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                authenticationCalls.incrementAndGet();
+                return new PasswordAuthentication("joe2", "welcome2".toCharArray());
+            }
+
+        };
+        Authenticator.setDefault(authenticator);
+
+        URL url = URLFactory.createURL("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("X-Header", "value");
+        assertEquals(200, connection.getResponseCode());
         k3po.join();
     }
 }
