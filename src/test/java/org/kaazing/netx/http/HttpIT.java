@@ -16,7 +16,6 @@
 
 package org.kaazing.netx.http;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
@@ -29,6 +28,7 @@ import java.io.Writer;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
@@ -43,6 +43,8 @@ import org.kaazing.netx.URLFactory;
 
 // TODO: verify specification.http scripts instead
 public class HttpIT {
+
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private final K3poRule k3po = new K3poRule();
 

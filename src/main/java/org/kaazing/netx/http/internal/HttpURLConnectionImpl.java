@@ -209,10 +209,6 @@ final class HttpURLConnectionImpl extends HttpURLConnection {
         return fixedContentLength;
     }
 
-    long getFixedLengthStreamingModeLong() {
-        return fixedContentLengthLong;
-    }
-
     void setResponse(int responseCode, String responseMessage) {
         this.responseCode = responseCode;
         this.responseMessage = responseMessage;
