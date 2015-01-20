@@ -48,10 +48,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocketFactory;
-
-abstract class HttpURLConnectionHandler  {
+abstract class HttpURLConnectionHandler {
 
     private static final Charset US_ASCII = Charset.forName("US-ASCII");
 
@@ -73,38 +70,40 @@ abstract class HttpURLConnectionHandler  {
 
     static class Default extends HttpURLConnectionHandler {
 
-        private HttpURLConnection bundled;
+        private final HttpOriginSecuritySpi security;
+
+        private HttpURLConnection delegate;
         private InputStream input;
 
         public Default(HttpURLConnectionImpl connection) {
             super(connection);
+            security = HttpOriginSecuritySpi.newInstance();
         }
 
         @Override
         public void connect() throws IOException {
-            bundled().connect();
+            delegate().connect();
         }
 
         @Override
         public void disconnect() {
             input = null;
-            if (bundled != null) {
-                bundled.disconnect();
-                bundled = null;
+            if (delegate != null) {
+                delegate.disconnect();
+                delegate = null;
             }
         }
 
         @Override
         public InputStream getInputStream() throws IOException {
             if (input == null) {
-                HttpURLConnection bundled = bundled();
+                HttpURLConnection delegate = delegate();
                 try {
-                    input = bundled.getInputStream();
+                    input = delegate.getInputStream();
                 }
                 finally {
-                    HttpHeaderFields headerFields = connection.getHttpHeaderFields();
-                    headerFields.addAll(bundled.getHeaderFields());
-                    connection.setResponse(bundled.getResponseCode(), bundled.getResponseMessage());
+                    connection.setHeaderFields(delegate.getHeaderFields());
+                    connection.setResponse(delegate.getResponseCode(), delegate.getResponseMessage());
                 }
             }
             return input;
@@ -112,51 +111,51 @@ abstract class HttpURLConnectionHandler  {
 
         @Override
         public OutputStream getOutputStream() throws IOException {
-            return bundled().getOutputStream();
+            return delegate().getOutputStream();
         }
 
         @Override
         public InputStream getErrorStream() {
-            return (bundled != null) ? bundled.getErrorStream() : null;
+            return (delegate != null) ? delegate.getErrorStream() : null;
         }
 
-        private HttpURLConnection bundled() throws IOException {
-            if (bundled == null) {
-                HttpURLConnection bundled = (HttpURLConnection) new URL(connection.getURL().toString()).openConnection();
-                bundled.setAllowUserInteraction(connection.getAllowUserInteraction());
-                bundled.setConnectTimeout(connection.getConnectTimeout());
-                bundled.setDoInput(connection.getDoInput());
-                bundled.setDoOutput(connection.getDoOutput());
-                bundled.setIfModifiedSince(connection.getIfModifiedSince());
-                bundled.setReadTimeout(connection.getReadTimeout());
-                bundled.setRequestMethod(connection.getRequestMethod());
+        private HttpURLConnection delegate() throws IOException {
+            if (this.delegate == null) {
+                HttpURLConnection delegate = security.openConnection(connection.getURL());
+                delegate.setAllowUserInteraction(connection.getAllowUserInteraction());
+                delegate.setConnectTimeout(connection.getConnectTimeout());
+                delegate.setDoInput(connection.getDoInput());
+                delegate.setDoOutput(connection.getDoOutput());
+                delegate.setIfModifiedSince(connection.getIfModifiedSince());
+                delegate.setReadTimeout(connection.getReadTimeout());
+                delegate.setRequestMethod(connection.getRequestMethod());
 
                 int chunkLength = connection.getChunkStreamingMode();
                 int fixedContentLength = connection.getFixedLengthStreamingMode();
                 if (chunkLength != -1) {
-                    bundled.setChunkedStreamingMode(chunkLength);
+                    delegate.setChunkedStreamingMode(chunkLength);
                 }
                 else if (fixedContentLength != -1) {
-                    bundled.setFixedLengthStreamingMode(fixedContentLength);
+                    delegate.setFixedLengthStreamingMode(fixedContentLength);
                 }
 
-                Map<String, List<String>> requestProperties = connection.getRequestProperties(true);
+                Map<String, List<String>> requestProperties = connection.getCachedRequestProperties();
                 for (Map.Entry<String, List<String>> entry : requestProperties.entrySet()) {
                     String key = entry.getKey();
                     List<String> values = entry.getValue();
                     for (String value : values) {
-                        bundled.addRequestProperty(key, value);
+                        delegate.addRequestProperty(key, value);
                     }
                 }
 
-                bundled.setUseCaches(connection.getUseCaches());
+                delegate.setUseCaches(connection.getUseCaches());
 
                 // auto-redirect disabled to apply redirect policy
-                bundled.setInstanceFollowRedirects(false);
+                delegate.setInstanceFollowRedirects(false);
 
-                this.bundled = bundled;
+                this.delegate = delegate;
             }
-            return bundled;
+            return delegate;
         }
     }
 
@@ -168,6 +167,8 @@ abstract class HttpURLConnectionHandler  {
 
         private static enum State { INITIAL, HANDSHAKE_SENT, HANDSHAKE_RECEIVED }
 
+        private final HttpOriginSecuritySpi security;
+
         private State state;
         private Socket socket;
         private InputStream input;
@@ -176,6 +177,7 @@ abstract class HttpURLConnectionHandler  {
 
         public Upgradeable(HttpURLConnectionImpl connection) {
             super(connection);
+            security = HttpOriginSecuritySpi.newInstance();
             state = State.INITIAL;
         }
 
@@ -192,27 +194,11 @@ abstract class HttpURLConnectionHandler  {
                     port = url.getDefaultPort();
                 }
 
-                SecurityManager security = System.getSecurityManager();
-                if (security != null) {
-                    security.checkConnect(host, port);
-                }
-
-                String protocol = url.getProtocol();
-                if ("http".equalsIgnoreCase(protocol)) {
-                    SocketFactory socketFactory = SocketFactory.getDefault();
-                    socket = socketFactory.createSocket(host, port);
-                }
-                else if ("https".equalsIgnoreCase(protocol)) {
-                    SocketFactory socketFactory = SSLSocketFactory.getDefault();
-                    socket = socketFactory.createSocket(host, port);
-                }
-                else {
-                    throw new IllegalStateException(format("Unexpected protocol: %s", protocol));
-                }
+                socket = security.createSocket(url);
                 output = socket.getOutputStream();
 
                 String method = connection.getRequestMethod();
-                Map<String, List<String>> headers = connection.getRequestProperties(true);
+                Map<String, List<String>> headers = connection.getCachedRequestProperties();
 
                 Writer writer = new OutputStreamWriter(output, US_ASCII);
                 writer.write(format("%s %s HTTP/1.1\r\n", method, url.getFile()));
@@ -266,11 +252,10 @@ abstract class HttpURLConnectionHandler  {
             switch (state) {
             case HANDSHAKE_SENT:
                 input = socket.getInputStream();
-                HttpHeaderFields headerFields = connection.getHttpHeaderFields();
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(input, "US-ASCII"));
                 String start = reader.readLine();
-                headerFields.add(null, start);
+                connection.addHeaderField(null, start);
 
                 Matcher startMatcher = PATTERN_START.matcher(start);
                 if (!startMatcher.matches()) {
@@ -281,6 +266,7 @@ abstract class HttpURLConnectionHandler  {
                 connection.setResponse(responseCode, responseMessage);
 
                 Map<String, List<String>> cookies = null;
+                List<String> challenges = null;
                 for (String header = reader.readLine(); !header.isEmpty(); header = reader.readLine()) {
                     int colonAt = header.indexOf(':');
                     if (colonAt == -1) {
@@ -300,8 +286,14 @@ abstract class HttpURLConnectionHandler  {
                         }
                         values.add(value);
                     }
+                    else if ("WWW-Authenticate".equalsIgnoreCase(name)) {
+                        if (challenges == null) {
+                            challenges = new LinkedList<String>();
+                        }
+                        challenges.add(value);
+                    }
                     else {
-                        headerFields.add(name, value);
+                        connection.addHeaderField(name, value);
                     }
                 }
 
@@ -311,8 +303,7 @@ abstract class HttpURLConnectionHandler  {
                         handler = new CookieManager();
                         CookieHandler.setDefault(handler);
                     }
-                    URI locationURI = URI.create(connection.getURL().toString());
-                    handler.put(locationURI, headerFields.map());
+                    connection.storeCookies(handler);
                 }
 
                 state = State.HANDSHAKE_RECEIVED;
@@ -325,7 +316,7 @@ abstract class HttpURLConnectionHandler  {
                     break;
                 case HTTP_UNAUTHORIZED:
                     // Note: check maximum redirects
-                    processChallenges();
+                    processChallenges(challenges);
                     break;
                 default:
                     throw new IllegalStateException(format("Upgrade failed (%d)", responseCode));
@@ -359,9 +350,7 @@ abstract class HttpURLConnectionHandler  {
             return error;
         }
 
-        private void processChallenges() throws IOException {
-            HttpHeaderFields headerFields = connection.getHttpHeaderFields();
-            List<String> challenges = headerFields.map().get("WWW-Authenticate");
+        private void processChallenges(List<String> challenges) throws IOException {
             if (challenges != null) {
                 for (String challenge : challenges) {
                     // TODO: digest, negotiate (!)

@@ -22,13 +22,13 @@
 package org.kaazing.netx.http.internal;
 
 import static org.junit.Assert.assertEquals;
-import static org.kaazing.netx.http.internal.Origin.asOrigin;
+import static org.kaazing.netx.http.internal.HttpOriginSecuritySpi.asOrigin;
 
 import java.net.URL;
 
 import org.junit.Test;
 
-public class OriginTest {
+public class HttpOriginSecuritySpiTest {
 
     @Test
     public void shouldResolveJARBasedURL() throws Exception {

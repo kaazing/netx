@@ -17,17 +17,16 @@
 package org.kaazing.netx.http.internal;
 
 import static java.lang.String.format;
-import static java.util.Collections.unmodifiableMap;
 import static org.kaazing.netx.http.internal.HttpRedirectPolicyUtils.shouldFollowRedirect;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.CookieHandler;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,8 +34,9 @@ import org.kaazing.netx.http.HttpURLConnection;
 
 final class HttpURLConnectionImpl extends HttpURLConnection {
 
-    private final Map<String, List<String>> requestProperties;
-    private final Map<String, List<String>> requestPropertiesRO;
+    private static final String HEADER_UPGRADE = "Upgrade";
+
+    private final HttpHeaderFields cachedRequestProperties;
     private final HttpHeaderFields headerFields;
 
     private HttpURLConnectionHandler handler;
@@ -46,8 +46,7 @@ final class HttpURLConnectionImpl extends HttpURLConnection {
 
     public HttpURLConnectionImpl(URL url) {
         super(url);
-        this.requestProperties = new LinkedHashMap<String, List<String>>();
-        this.requestPropertiesRO = unmodifiableMap(requestProperties);
+        this.cachedRequestProperties = new HttpHeaderFields();
         this.headerFields = new HttpHeaderFields();
         this.handler = new HttpURLConnectionHandler.Default(this);
     }
@@ -55,9 +54,7 @@ final class HttpURLConnectionImpl extends HttpURLConnection {
     @Override
     public void addRequestProperty(String key, String value) {
         super.addRequestProperty(key, value);
-        List<String> values = getRequestPropertyValues(key, true);
-        values.clear();
-        values.add(value);
+        cachedRequestProperties.add(key, value);
         detectHttpUpgrade(key);
     }
 
@@ -119,6 +116,86 @@ final class HttpURLConnectionImpl extends HttpURLConnection {
         return input;
     }
 
+    @Override
+    public OutputStream getOutputStream() throws IOException {
+        return handler.getOutputStream();
+    }
+
+    @Override
+    public int getReadTimeout() {
+        return readTimeout;
+    }
+
+    @Override
+    public void setConnectTimeout(int timeout) {
+        this.connectTimeout = timeout;
+    }
+
+    @Override
+    public void setReadTimeout(int timeout) {
+        this.readTimeout = timeout;
+    }
+
+    @Override
+    public void setRequestProperty(String key, String value) {
+        super.setRequestProperty(key, value);
+        cachedRequestProperties.set(key, value);
+        detectHttpUpgrade(key);
+    }
+
+    @Override
+    public boolean usingProxy() {
+        return false;
+    }
+
+    Map<String, List<String>> getCachedRequestProperties() {
+        return cachedRequestProperties.map();
+    }
+
+    int getChunkStreamingMode() {
+        return chunkLength;
+    }
+
+    int getFixedLengthStreamingMode() {
+        return fixedContentLength;
+    }
+
+    void setResponse(int responseCode, String responseMessage) {
+        this.responseCode = responseCode;
+        this.responseMessage = responseMessage;
+    }
+
+    void addHeaderField(String key, String value) {
+        this.headerFields.add(key, value);
+    }
+
+    void setHeaderFields(Map<String, List<String>> headerFields) {
+        this.headerFields.addAll(headerFields);
+    }
+
+    void storeCookies(CookieHandler handler) throws IOException {
+        URI locationURI = URI.create(url.toString());
+        handler.put(locationURI, headerFields.map());
+    }
+
+    void reset(URL url) {
+        this.url = url;
+        this.responseCode = -1;
+        this.responseMessage = null;
+        this.headerFields.clear();
+        this.handler = new HttpURLConnectionHandler.Default(this);
+
+        if (cachedRequestProperties.value(HEADER_UPGRADE) != null) {
+            this.handler = new HttpURLConnectionHandler.Upgradeable(this);
+        }
+    }
+
+    private void detectHttpUpgrade(String key) {
+        if (HEADER_UPGRADE.equalsIgnoreCase(key)) {
+            this.handler = new HttpURLConnectionHandler.Upgradeable(this);
+        }
+    }
+
     private InputStream processRedirect(InputStream input) throws IOException {
 
         String location = headerFields.value("Location");
@@ -138,102 +215,10 @@ final class HttpURLConnectionImpl extends HttpURLConnection {
             return input;
         }
 
-        reset(redirectURL);
         handler.disconnect();
+
+        reset(redirectURL);
         return handler.getInputStream();
-    }
-
-    @Override
-    public OutputStream getOutputStream() throws IOException {
-        return handler.getOutputStream();
-    }
-
-    @Override
-    public int getReadTimeout() {
-        return readTimeout;
-    }
-
-    @Override
-    public Map<String, List<String>> getRequestProperties() {
-        return getRequestProperties(false);
-    }
-
-    @Override
-    public String getRequestProperty(String key) {
-        List<String> requestPropertyValues = getRequestPropertyValues(key, false);
-        return (requestPropertyValues != null) ? requestPropertyValues.get(0) : null;
-    }
-
-    @Override
-    public void setConnectTimeout(int timeout) {
-        this.connectTimeout = timeout;
-    }
-
-    @Override
-    public void setReadTimeout(int timeout) {
-        this.readTimeout = timeout;
-    }
-
-    @Override
-    public void setRequestProperty(String key, String value) {
-        List<String> values = requestProperties.get(key);
-        if (values == null) {
-            values = new LinkedList<String>();
-            requestProperties.put(key, values);
-        }
-        else {
-            values.clear();
-        }
-        values.add(value);
-        detectHttpUpgrade(key);
-    }
-
-    @Override
-    public boolean usingProxy() {
-        return false;
-    }
-
-    Map<String, List<String>> getRequestProperties(boolean internal) {
-        return internal ? requestPropertiesRO : super.getRequestProperties();
-    }
-
-    HttpHeaderFields getHttpHeaderFields() {
-        return headerFields;
-    }
-
-    int getChunkStreamingMode() {
-        return chunkLength;
-    }
-
-    int getFixedLengthStreamingMode() {
-        return fixedContentLength;
-    }
-
-    void setResponse(int responseCode, String responseMessage) {
-        this.responseCode = responseCode;
-        this.responseMessage = responseMessage;
-    }
-
-    void reset(URL url) {
-        this.url = url;
-        this.responseCode = -1;
-        this.responseMessage = null;
-        this.headerFields.clear();
-    }
-
-    private List<String> getRequestPropertyValues(String key, boolean createIfNull) {
-        List<String> values = requestProperties.get(key);
-        if (values == null && createIfNull) {
-            values = new LinkedList<String>();
-            requestProperties.put(key, values);
-        }
-        return values;
-    }
-
-    private void detectHttpUpgrade(String key) {
-        if ("Upgrade".equalsIgnoreCase(key)) {
-            this.handler = new HttpURLConnectionHandler.Upgradeable(this);
-        }
     }
 
 }

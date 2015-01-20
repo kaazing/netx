@@ -18,10 +18,12 @@ package org.kaazing.netx.http.internal;
 
 import static java.util.Collections.unmodifiableMap;
 
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 final class HttpHeaderFields  {
 
@@ -33,7 +35,7 @@ final class HttpHeaderFields  {
     public HttpHeaderFields() {
         keys = new LinkedList<String>();
         values = new LinkedList<String>();
-        valuesByKey = new HashMap<String, List<String>>();
+        valuesByKey = new TreeMap<String, List<String>>(CASE_INSENSITIVE_ORDER_WITH_NULLS);
         valuesByKeyRO = unmodifiableMap(valuesByKey);
     }
 
@@ -54,6 +56,28 @@ final class HttpHeaderFields  {
             keyValues = new LinkedList<String>();
             valuesByKey.put(key, keyValues);
         }
+        keyValues.add(value);
+    }
+
+    public void set(String key, String value) {
+        for (Iterator<String> k$ = keys.iterator(), v$ = values.iterator(); k$.hasNext() && v$.hasNext();) {
+            String k = k$.next();
+            v$.next();
+            if (k.equals(key)) {
+                k$.remove();
+                v$.remove();
+            }
+        }
+        keys.add(key);
+        values.add(value);
+        List<String> keyValues = valuesByKey.get(key);
+        if (keyValues == null) {
+            keyValues = new LinkedList<String>();
+        }
+        else {
+            valuesByKey.clear();
+        }
+        valuesByKey.put(key, keyValues);
         keyValues.add(value);
     }
 
@@ -86,5 +110,28 @@ final class HttpHeaderFields  {
         keys.clear();
         values.clear();
         valuesByKey.clear();
+    }
+
+    private static final Comparator<String> CASE_INSENSITIVE_ORDER_WITH_NULLS = new CaseInsensitiveComparatorWithNulls();
+
+    private static final class CaseInsensitiveComparatorWithNulls implements Comparator<String> {
+
+        @Override
+        public int compare(String o1, String o2) {
+            if (o1 == null && o2 == null) {
+                return 0;
+            }
+
+            if (o2 == null) {
+                return -1 - o1.length();
+            }
+
+            if (o1 == null) {
+                return o2.length() + 1;
+            }
+
+            return String.CASE_INSENSITIVE_ORDER.compare(o1, o2);
+        }
+
     }
 }
