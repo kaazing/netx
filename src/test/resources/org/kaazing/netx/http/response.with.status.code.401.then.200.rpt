@@ -1,0 +1,25 @@
+accept http://localhost:8080/path
+
+accepted
+connected
+
+read method "POST"
+read header "X-Header" "value"
+read closed
+
+write status "401" "Not Authorized"
+write header "WWW-Authenticate" "Basic realm=\"WallyWorld\""
+write header content-length
+write close
+
+accepted
+connected
+
+read method "POST"
+read header "X-Header" "value"
+read header "Authorization" "Basic am9lMjp3ZWxjb21lM"
+read closed
+
+write status "200" "OK"
+write header content-length
+write close
