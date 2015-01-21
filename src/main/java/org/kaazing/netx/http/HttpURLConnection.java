@@ -16,7 +16,7 @@
 
 package org.kaazing.netx.http;
 
-import static org.kaazing.netx.http.HttpRedirectPolicy.SAME_ORIGIN;
+import static org.kaazing.netx.http.HttpRedirectPolicy.ORIGIN;
 
 import java.net.URL;
 
@@ -35,7 +35,7 @@ public abstract class HttpURLConnection extends java.net.HttpURLConnection {
     protected HttpURLConnection(URL u) {
         super(u);
 
-        this.redirectPolicy = SAME_ORIGIN;
+        this.redirectPolicy = ORIGIN;
     }
 
     public void setRedirectPolicy(HttpRedirectPolicy redirectPolicy) {
