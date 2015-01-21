@@ -16,11 +16,6 @@
 
 package org.kaazing.netx.http.auth;
 
-import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.http.auth.ChallengeRequest;
-import org.kaazing.netx.http.auth.ChallengeResponse;
-import org.kaazing.netx.http.auth.LoginHandler;
-import org.kaazing.netx.http.auth.LoginHandlerProvider;
 
 public class SampleChallengeHandler extends ChallengeHandler implements LoginHandlerProvider{
     public static SampleChallengeHandler create() {
@@ -33,7 +28,7 @@ public class SampleChallengeHandler extends ChallengeHandler implements LoginHan
 
     @Override
     public boolean canHandle(ChallengeRequest challengeRequest) {
-        return challengeRequest != null && "test_challenge".equals(challengeRequest.getAuthenticationScheme());
+        return challengeRequest != null && "Application test_challenge".equals(challengeRequest.getAuthenticationScheme());
     }
 
     @Override
@@ -64,6 +59,7 @@ public class SampleChallengeHandler extends ChallengeHandler implements LoginHan
      *
      * @return a login handler to assist in providing credentials, or {@code null} if none has been established yet.
      */
+    @Override
     public LoginHandler getLoginHandler() {
         return loginHandler;
     }

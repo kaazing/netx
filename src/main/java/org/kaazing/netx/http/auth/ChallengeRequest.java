@@ -16,6 +16,9 @@
 
 package org.kaazing.netx.http.auth;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * An immutable object representing the challenge presented by the server when the client accessed
  * the URI represented by a location.
@@ -33,6 +36,7 @@ package org.kaazing.netx.http.auth;
 public class ChallengeRequest {
 
     private static final String APPLICATION_PREFIX = "Application ";
+    private static final Pattern PATTERN_APPLICATION_CHALLENGE = Pattern.compile("Application ([a-zA-Z_]*)\\s?(.*)");
 
 
     String location;
@@ -51,25 +55,27 @@ public class ChallengeRequest {
         if (location == null) {
             throw new NullPointerException("location");
         }
-        if (challenge == null) {
+
+        if ((challenge == null) || (challenge.length() == 0)) {
             return;
         }
 
-        if (challenge.startsWith(APPLICATION_PREFIX)) {
-            challenge = challenge.substring(APPLICATION_PREFIX.length());
+        Matcher matcher = PATTERN_APPLICATION_CHALLENGE.matcher(challenge);
+        if (matcher.matches()) {
+            this.authenticationScheme = APPLICATION_PREFIX + matcher.group(1);
         }
+
+
+//        if (challenge.startsWith(APPLICATION_PREFIX)) {
+//            challenge = challenge.substring(APPLICATION_PREFIX.length());
+//        }
 
         this.location = location;
         this.authenticationParameters = null;
 
-        int space = challenge.indexOf(' ');
-        if (space == -1) {
-            this.authenticationScheme = challenge;
-        } else {
-            this.authenticationScheme = challenge.substring(0, space);
-            if (challenge.length() > (space + 1)) {
-                this.authenticationParameters = challenge.substring(space + 1);
-            }
+        int len = authenticationScheme.length();
+        if (challenge.length() > len + 1) {
+            this.authenticationParameters = challenge.substring(len + 1);
         }
     }
 

@@ -39,6 +39,8 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLFactory;
+import org.kaazing.netx.http.auth.ApplicationBasicChallengeHandler;
+import org.kaazing.netx.http.auth.LoginHandler;
 
 
 // TODO: verify specification.http scripts instead
@@ -167,6 +169,33 @@ public class HttpIT {
     }
 
     @Test
+    @Specification("response.upgrade.with.status.code.401.then.101.application.basic")
+    public void shouldHandleUpgrade401Then101ApplicationBasic() throws Exception {
+        final AtomicInteger authenticationCalls = new AtomicInteger();
+        ApplicationBasicChallengeHandler challengeHandler = ApplicationBasicChallengeHandler.create();
+        LoginHandler loginHandler = new LoginHandler() {
+            @Override
+            public PasswordAuthentication getCredentials() {
+                authenticationCalls.incrementAndGet();
+                return new PasswordAuthentication("joe2", "welcome2".toCharArray());
+            }
+        };
+        challengeHandler.setLoginHandler(loginHandler);
+
+        URL url = URLFactory.createURL("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Upgrade", "websocket");
+        connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
+        connection.setChallengeHandler(challengeHandler);
+
+        assertEquals(101, connection.getResponseCode());
+        assertEquals(1, authenticationCalls.get());
+
+        k3po.join();
+    }
+
+    @Test
     @Specification("response.upgrade.failed.with.status.code.302")
     public void shouldNotFollow302Redirect() throws Exception {
         URL url = URLFactory.createURL("http://localhost:8080/path?query");
@@ -223,6 +252,28 @@ public class HttpIT {
         k3po.join();
     }
 
+    @Test
+    @Specification("response.with.status.code.401.then.200.application.basic")
+    public void shouldHandle401ApplicationBasicThen200OK() throws Exception {
+        final AtomicInteger authenticationCalls = new AtomicInteger();
+        ApplicationBasicChallengeHandler challengeHandler = ApplicationBasicChallengeHandler.create();
+        LoginHandler loginHandler = new LoginHandler() {
+            @Override
+            public PasswordAuthentication getCredentials() {
+                authenticationCalls.incrementAndGet();
+                return new PasswordAuthentication("joe2", "welcome2".toCharArray());
+            }
+        };
+        challengeHandler.setLoginHandler(loginHandler);
+
+        URL url = URLFactory.createURL("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("X-Header", "value");
+        connection.setChallengeHandler(challengeHandler);
+        assertEquals(200, connection.getResponseCode());
+        k3po.join();
+    }
 
     @Test
     @Specification("response.with.status.code.401.then.200")

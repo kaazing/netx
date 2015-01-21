@@ -16,10 +16,9 @@
 
 package org.kaazing.netx.http.auth;
 
-import org.kaazing.netx.http.auth.ChallengeRequest;
-import org.kaazing.netx.http.internal.auth.RealmUtils;
 import org.junit.Assert;
 import org.junit.Test;
+import org.kaazing.netx.http.internal.auth.RealmUtils;
 
 public class ChallengeRequestTest {
 
@@ -41,40 +40,40 @@ public class ChallengeRequestTest {
     @Test
     public void testEmptyChallenge() throws Exception {
         ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "");
-        Assert.assertEquals("", challengeRequest.getAuthenticationScheme());
+        Assert.assertNull(challengeRequest.getAuthenticationScheme());
         Assert.assertNull(challengeRequest.getAuthenticationParameters());
     }
 
     @Test
     public void testBasicChallenge() throws Exception {
-        ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic");
-        Assert.assertEquals("Basic", challengeRequest.getAuthenticationScheme());
+        ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic");
+        Assert.assertEquals("Application Basic", challengeRequest.getAuthenticationScheme());
         Assert.assertNull(challengeRequest.getAuthenticationParameters());
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic ");
-        Assert.assertEquals("Basic", challengeRequest.getAuthenticationScheme());
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic ");
+        Assert.assertEquals("Application Basic", challengeRequest.getAuthenticationScheme());
         Assert.assertNull(challengeRequest.getAuthenticationParameters());
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic AuthData");
-        Assert.assertEquals("Basic", challengeRequest.getAuthenticationScheme());
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic AuthData");
+        Assert.assertEquals("Application Basic", challengeRequest.getAuthenticationScheme());
         Assert.assertEquals("AuthData", challengeRequest.getAuthenticationParameters());
     }
 
     @Test
     public void testRealmParameter() throws Exception {
-        ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic");
+        ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic");
         Assert.assertNull(RealmUtils.getRealm(challengeRequest));
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic realm=missingQuotes");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic realm=missingQuotes");
         Assert.assertNull(RealmUtils.getRealm(challengeRequest));
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic realm=");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic realm=");
         Assert.assertNull(RealmUtils.getRealm(challengeRequest));
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic realm=\"\"");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic realm=\"\"");
         Assert.assertEquals("", RealmUtils.getRealm(challengeRequest));
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic realm=\"realmValue\"");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic realm=\"realmValue\"");
         Assert.assertEquals("realmValue", RealmUtils.getRealm(challengeRequest));
     }
 }
