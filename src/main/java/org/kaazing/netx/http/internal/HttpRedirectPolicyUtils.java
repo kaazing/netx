@@ -55,7 +55,7 @@ final class HttpRedirectPolicyUtils {
             }
         });
 
-        policyCheckers.put(HttpRedirectPolicy.SAME_ORIGIN, new Comparator<URL>() {
+        policyCheckers.put(HttpRedirectPolicy.ORIGIN, new Comparator<URL>() {
             @Override
             public int compare(URL current, URL redirect) {
                 // origin consists of protocol://host:port
@@ -69,21 +69,13 @@ final class HttpRedirectPolicyUtils {
             }
         });
 
-        policyCheckers.put(HttpRedirectPolicy.SAME_DOMAIN, new Comparator<URL>() {
+        policyCheckers.put(HttpRedirectPolicy.DOMAIN, new Comparator<URL>() {
             @Override
             public int compare(URL current, URL redirect) {
                 // domain consists of host, but not protocol or port
                 if (current.getHost().equalsIgnoreCase(redirect.getHost())) {
                     return 0;
                 }
-
-                return -1;
-            }
-        });
-
-        policyCheckers.put(HttpRedirectPolicy.PEER_DOMAIN, new Comparator<URL>() {
-            @Override
-            public int compare(URL current, URL redirect) {
 
                 // peer domains are both subdomains of the same larger domain
                 // eg. east.example.com and west.example.com are peer domains,
@@ -102,30 +94,9 @@ final class HttpRedirectPolicyUtils {
                     return 0;
                 }
 
-                return -1;
-            }
-        });
-
-        policyCheckers.put(HttpRedirectPolicy.SUB_DOMAIN, new Comparator<URL>() {
-            @Override
-            public int compare(URL current, URL redirect) {
-
-                // subdomain implies domain also
-                if (current.getHost().equalsIgnoreCase(redirect.getHost())) {
-                    return 0;
-                }
-
-                // subdomains are part of a larger domain
-                // eg. east.example.com is a subdomain of the example.com domain
-                // http -> https OK
-                // https -> http NOT OK
-
-                String currentHost = current.getHost();
-                String redirectHost = redirect.getHost();
-
                 if (redirect.getProtocol().startsWith(current.getProtocol()) &&
-                    redirectHost.toLowerCase().endsWith("." + currentHost.toLowerCase())) {
-                    return 0;
+                        redirectHost.toLowerCase().endsWith("." + currentHost.toLowerCase())) {
+                        return 0;
                 }
 
                 return -1;
