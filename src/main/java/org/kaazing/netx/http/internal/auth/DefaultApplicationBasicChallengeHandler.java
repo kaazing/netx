@@ -37,8 +37,9 @@ public class DefaultApplicationBasicChallengeHandler extends ApplicationBasicCha
 
     private static final String CLASS_NAME = DefaultApplicationBasicChallengeHandler.class.getName();
     private static final Logger LOG = Logger.getLogger(CLASS_NAME);
+    private static final String AUTHENTICATION_SCHEME = "Application Basic";
 
-    private Map<String, LoginHandler> loginHandlersByRealm = new ConcurrentHashMap<String, LoginHandler>();
+    private final Map<String, LoginHandler> loginHandlersByRealm = new ConcurrentHashMap<String, LoginHandler>();
 
     @Override
     public void setRealmLoginHandler(String realm, LoginHandler loginHandler) {
@@ -64,6 +65,7 @@ public class DefaultApplicationBasicChallengeHandler extends ApplicationBasicCha
      *
      * @param loginHandler a login handler for credentials.
      */
+    @Override
     public ApplicationBasicChallengeHandler setLoginHandler(LoginHandler loginHandler) {
         this.loginHandler = loginHandler;
         return this;
@@ -75,6 +77,7 @@ public class DefaultApplicationBasicChallengeHandler extends ApplicationBasicCha
      *
      * @return a login handler to assist in providing credentials, or {@code null} if none has been established yet.
      */
+    @Override
     public LoginHandler getLoginHandler() {
         return loginHandler;
     }
@@ -82,7 +85,7 @@ public class DefaultApplicationBasicChallengeHandler extends ApplicationBasicCha
     @Override
     public boolean canHandle(ChallengeRequest challengeRequest) {
         return challengeRequest != null &&
-                "Basic".equals(challengeRequest.getAuthenticationScheme());
+                AUTHENTICATION_SCHEME.equals(challengeRequest.getAuthenticationScheme());
     }
 
     @Override
@@ -95,7 +98,7 @@ public class DefaultApplicationBasicChallengeHandler extends ApplicationBasicCha
 
 
 
-            // Start by using this generic Basic handler
+            // Start by using this generic ApplicationBasic handler
             LoginHandler loginHandler = getLoginHandler();
 
             // Try to delegate to a realm-specific login handler if we can
@@ -103,7 +106,7 @@ public class DefaultApplicationBasicChallengeHandler extends ApplicationBasicCha
             if (realm != null && loginHandlersByRealm.get(realm) != null) {
                 loginHandler = loginHandlersByRealm.get(realm);
             }
-            LOG.finest("BasicChallengeHandler.getResponse: login handler = " + loginHandler);
+            LOG.finest("ApplicationBasicChallengeHandler.getResponse: login handler = " + loginHandler);
             if (loginHandler != null) {
                 PasswordAuthentication creds = loginHandler.getCredentials();
                 if (creds != null && creds.getUserName() != null && creds.getPassword() != null) {

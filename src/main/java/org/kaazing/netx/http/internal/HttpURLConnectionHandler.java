@@ -161,11 +161,13 @@ abstract class HttpURLConnectionHandler {
 
     static class Upgradeable extends HttpURLConnectionHandler {
 
-
         private static final Pattern PATTERN_START = Pattern.compile("HTTP\\/1\\.1\\s+([1-5]\\d\\d)\\s+(.*)");
         private static final Pattern PATTERN_BASIC_CHALLENGE = Pattern.compile("Basic(?: realm=\"([^\"]+)\")?");
+        private static final Pattern PATTERN_APPLICATION_CHALLENGE = Pattern.compile("Application ([a-zA-Z_]*)\\s?(.*)");
 
         private static enum State { INITIAL, HANDSHAKE_SENT, HANDSHAKE_RECEIVED }
+
+        private static final String APPLICATION_PREFIX = "Application ";
 
         private final HttpOriginSecuritySpi security;
 
@@ -315,7 +317,7 @@ abstract class HttpURLConnectionHandler {
                 case HTTP_SEE_OTHER:
                     break;
                 case HTTP_UNAUTHORIZED:
-                    // Note: check maximum redirects
+                    // Note: check maximum attempts
                     processChallenges(challenges);
                     break;
                 default:
@@ -374,8 +376,16 @@ abstract class HttpURLConnectionHandler {
                         String authorization = new String(Base64.encode(credentials), US_ASCII);
                         connection.setRequestProperty("Authorization", format("Basic %s", authorization));
 
-                        // trigger next request
+                        // Trigger next request with "Authorization" header set.
                         getInputStream();
+                    }
+                    else if (PATTERN_APPLICATION_CHALLENGE.matcher(challenge).matches()) {
+                        state = State.INITIAL;
+
+                        // Deal with "Application *" authentication schemes and
+                        // trigger the next request after setting the
+                        // "Authorization" header.
+                        connection.processApplicationChallenge(challenge);
                     }
                 }
             }

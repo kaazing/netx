@@ -16,11 +16,6 @@
 
 package org.kaazing.netx.http.internal.auth;
 
-import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.http.auth.ChallengeRequest;
-import org.kaazing.netx.http.auth.ChallengeResponse;
-import org.kaazing.netx.http.auth.DispatchChallengeHandler;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,10 +26,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.kaazing.netx.http.auth.ChallengeHandler;
+import org.kaazing.netx.http.auth.ChallengeRequest;
+import org.kaazing.netx.http.auth.ChallengeResponse;
+import org.kaazing.netx.http.auth.DispatchChallengeHandler;
+
 /**
- * The DefaultDispatchChallengeHandler is responsible for defining and using appropriate challenge handlers when challenges
- * arrive from specific URI locations.  This allows clients to use specific challenge handlers to handle specific
- * types of challenges at different URI locations.
+ * The DefaultDispatchChallengeHandler is responsible for defining and using
+ * appropriate challenge handlers when challenges arrive from specific URI
+ * locations.  This allows clients to use specific challenge handlers to handle
+ * specific types of challenges at different URI locations.
  * <p/>
  */
 public class DefaultDispatchChallengeHandler extends DispatchChallengeHandler {
@@ -371,30 +372,30 @@ public class DefaultDispatchChallengeHandler extends DispatchChallengeHandler {
          * The name of this Node instance.
          * Must not be <code>null</code> or empty.
          */
-        private String name;
+        private final String name;
 
         /**
          * The parameterized type instances.
          * Optimized for fewer values per node.
          */
-        private List<T> values = new ArrayList<T>(3);
+        private final List<T> values = new ArrayList<T>(3);
 
         /**
          * An up-link to this Node instance's parent.
          */
-        private Node<T, E> parent;
+        private final Node<T, E> parent;
 
         /**
          * An enumerated value representing the "kind" of this node.
          */
-        private E kind;
+        private final E kind;
 
         /**
          * The down-links to children sub-nodes of this node.
          * Each link is accessed through the child Node's name.
          * This means that child names must be unique.
          */
-        private Map<String, Node<T, E>> children = new LinkedHashMap<String, Node<T, E>>();
+        private final Map<String, Node<T, E>> children = new LinkedHashMap<String, Node<T, E>>();
 
         /**
          * A method to access the wildcard character.

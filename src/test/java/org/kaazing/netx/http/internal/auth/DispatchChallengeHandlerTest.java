@@ -27,7 +27,6 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.http.auth.ChallengeRequest;
 import org.kaazing.netx.http.auth.DispatchChallengeHandler;
 import org.kaazing.netx.http.auth.SampleChallengeHandler;
-import org.kaazing.netx.http.internal.auth.DefaultDispatchChallengeHandler;
 
 public class DispatchChallengeHandlerTest {
     DefaultDispatchChallengeHandler dispatch = (DefaultDispatchChallengeHandler) DispatchChallengeHandler.create();
@@ -110,7 +109,7 @@ public class DispatchChallengeHandlerTest {
 
         doesNotMatch("*:admin@*/*", "admin:foo@foo.example.com/path");
     }
-    
+
     @Test
     public void shouldFindChallengerHandlerRegisteredWithSimpleWildCardHost() throws Exception {
 
@@ -152,7 +151,7 @@ public class DispatchChallengeHandlerTest {
         Assert.assertTrue(description, collection.isEmpty());
     }
 
-    
+
     @Test
     public void shouldFindChallengerHandlerRegisteredWithNoSchemeExplicitPortAndPath() throws Exception {
         matches("foo.example.com:80/path", "ws://foo.example.com/path");
@@ -186,7 +185,7 @@ public class DispatchChallengeHandlerTest {
     @Test
     public void testLookupByChallengeExactMatch() throws Exception {
         dispatch.register("http://localhost:8000", sampleHandler);
-        ChallengeHandler ChallengeHandler2 = dispatch.lookup(new ChallengeRequest("http://localhost:8000", "test_challenge foo"));
+        ChallengeHandler ChallengeHandler2 = dispatch.lookup(new ChallengeRequest("http://localhost:8000", "Application test_challenge foo"));
         Assert.assertSame(sampleHandler, ChallengeHandler2);
     }
 
@@ -194,7 +193,7 @@ public class DispatchChallengeHandlerTest {
     public void testLookupByChallengeCloseWildcardMatch() throws Exception {
         dispatch.register("http://*.example.com", sampleHandler);
         ChallengeHandler challengeHandler =
-                dispatch.lookup(new ChallengeRequest("http://foo.example.com", "test_challenge SOME CHALLENGE STRING"));
+                dispatch.lookup(new ChallengeRequest("http://foo.example.com", "Application test_challenge SOME CHALLENGE STRING"));
         Assert.assertSame(sampleHandler, challengeHandler);
     }
 
@@ -202,7 +201,7 @@ public class DispatchChallengeHandlerTest {
     public void testLookupByChallengeNodeAboveWildcardMatch() throws Exception {
         dispatch.register("http://*.example.com", sampleHandler);
         ChallengeHandler challengeHandler =
-                dispatch.lookup(new ChallengeRequest("http://foo.example.com:80", "test_challenge SOME CHALLENGE STRING"));
+                dispatch.lookup(new ChallengeRequest("http://foo.example.com:80", "Application test_challenge SOME CHALLENGE STRING"));
         Assert.assertSame(sampleHandler, challengeHandler);
     }
 
@@ -210,7 +209,7 @@ public class DispatchChallengeHandlerTest {
     public void testPureWildcardRegistration() throws Exception {
         dispatch.register("http://*/", sampleHandler);
         ChallengeHandler challengeHandler =
-                dispatch.lookup(new ChallengeRequest("http://foo.example.com:80", "test_challenge SOME CHALLENGE STRING"));
+                dispatch.lookup(new ChallengeRequest("http://foo.example.com:80", "Application test_challenge SOME CHALLENGE STRING"));
         Assert.assertSame(sampleHandler, challengeHandler);
     }
 

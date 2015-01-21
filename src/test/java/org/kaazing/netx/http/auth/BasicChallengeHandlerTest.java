@@ -21,11 +21,6 @@ import java.net.PasswordAuthentication;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.kaazing.netx.http.auth.ApplicationBasicChallengeHandler;
-import org.kaazing.netx.http.auth.ChallengeRequest;
-import org.kaazing.netx.http.auth.ChallengeResponse;
-import org.kaazing.netx.http.auth.DispatchChallengeHandler;
-import org.kaazing.netx.http.auth.LoginHandler;
 
 public class BasicChallengeHandlerTest {
 
@@ -62,22 +57,22 @@ public class BasicChallengeHandlerTest {
         basicHandler.setRealmLoginHandler("Test Realm", loginHandler2);
         dispatchHandler.register(DEFAULT_LOCATION, basicHandler);
 
-        ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic");
+        ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic");
         Assert.assertTrue(dispatchHandler.canHandle(challengeRequest));
         ChallengeResponse response = dispatchHandler.handle(challengeRequest);
-        Assert.assertEquals("Basic am9lOndlbGNvbWU=", String.valueOf(response.getCredentials()));
+        Assert.assertEquals("Application Basic am9lOndlbGNvbWU=", String.valueOf(response.getCredentials()));
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic realm=\"Not matching\"");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic realm=\"Not matching\"");
         Assert.assertTrue(dispatchHandler.canHandle(challengeRequest));
         response = dispatchHandler.handle(challengeRequest);
-        Assert.assertEquals("Basic am9lOndlbGNvbWU=", String.valueOf(response.getCredentials()));
+        Assert.assertEquals("Application Basic am9lOndlbGNvbWU=", String.valueOf(response.getCredentials()));
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic realm=\"Test Realm\"");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic realm=\"Test Realm\"");
         Assert.assertTrue(dispatchHandler.canHandle(challengeRequest));
         response = dispatchHandler.handle(challengeRequest);
         //NOTE: we should be encoding joe2/welcome2 because the realm handler is handling it
         //      using the loginHandler2.
-        Assert.assertEquals("Basic am9lMjp3ZWxjb21lMg==", String.valueOf(response.getCredentials()));
+        Assert.assertEquals("Application Basic am9lMjp3ZWxjb21lMg==", String.valueOf(response.getCredentials()));
     }
 
     @Test
@@ -94,27 +89,27 @@ public class BasicChallengeHandlerTest {
         basicHandler.setRealmLoginHandler("Test Realm", loginHandler2);
         dispatchHandler.register(DEFAULT_LOCATION, basicHandler);
 
-        ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic");
+        ChallengeRequest challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic");
         Assert.assertTrue(dispatchHandler.canHandle(challengeRequest));
         ChallengeResponse response = dispatchHandler.handle(challengeRequest);
         Assert.assertNull(response);
 
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic realm=\"Not Matching\"");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic realm=\"Not Matching\"");
         Assert.assertTrue(dispatchHandler.canHandle(challengeRequest));
         response = dispatchHandler.handle(challengeRequest);
         Assert.assertNull(response);
 
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic realm=\"Test Realm\"");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic realm=\"Test Realm\"");
         Assert.assertTrue(dispatchHandler.canHandle(challengeRequest));
         response = dispatchHandler.handle(challengeRequest);
-        Assert.assertEquals("Basic am9lMjp3ZWxjb21lMg==", String.valueOf(response.getCredentials()));
+        Assert.assertEquals("Application Basic am9lMjp3ZWxjb21lMg==", String.valueOf(response.getCredentials()));
 
         // Test for case insensitivity of realm parameter name
-        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Basic Realm=\"Test Realm\"");
+        challengeRequest = new ChallengeRequest(DEFAULT_LOCATION, "Application Basic Realm=\"Test Realm\"");
         Assert.assertTrue(dispatchHandler.canHandle(challengeRequest));
         response = dispatchHandler.handle(challengeRequest);
-        Assert.assertEquals("Basic am9lMjp3ZWxjb21lMg==", String.valueOf(response.getCredentials()));
+        Assert.assertEquals("Application Basic am9lMjp3ZWxjb21lMg==", String.valueOf(response.getCredentials()));
     }
 
 }

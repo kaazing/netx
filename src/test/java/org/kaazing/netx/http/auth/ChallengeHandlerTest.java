@@ -20,11 +20,6 @@ import java.net.PasswordAuthentication;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.kaazing.netx.http.auth.ApplicationBasicChallengeHandler;
-import org.kaazing.netx.http.auth.ChallengeRequest;
-import org.kaazing.netx.http.auth.ChallengeResponse;
-import org.kaazing.netx.http.auth.DispatchChallengeHandler;
-import org.kaazing.netx.http.auth.LoginHandler;
 
 
 public class ChallengeHandlerTest {
@@ -52,14 +47,14 @@ public class ChallengeHandlerTest {
         // know about the code below - it simulates what happens.
 
         // Imagine we get this string back from the server as a www-authenticate (401) challenge.
-        String challenge = "Basic realm=\"Example realm\"";
+        String challenge = "Application Basic realm=\"Example realm\"";
 
         // The web socket code will lookup the challenge handler factory by location.
         ChallengeRequest challengeRequest = new ChallengeRequest("ws://my.server.com", challenge);
 
         // ...and then use the challenge handler to respond to the server challenge
         ChallengeResponse response = dispatchChallengeHandler.handle(challengeRequest);
-        Assert.assertEquals("Basic am9lOndlbGNvbWU=", String.valueOf(response.getCredentials()));
+        Assert.assertEquals("Application Basic am9lOndlbGNvbWU=", String.valueOf(response.getCredentials()));
     }
 
 }
