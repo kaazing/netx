@@ -32,7 +32,20 @@ public final class HttpOriginSecurityImpl extends HttpOriginSecuritySpi {
 
     @Override
     protected HttpURLConnection openConnection0(URL url) throws IOException {
-        return (HttpURLConnection) new URL(url.toString()).openConnection();
+        URL connectionURL = new URL(url.toString());
+
+        String connectionHost = connectionURL.getHost();
+        int connectionPort = connectionURL.getPort();
+        if (connectionPort == -1) {
+            connectionPort = connectionURL.getDefaultPort();
+        }
+
+        SecurityManager security = System.getSecurityManager();
+        if (security != null) {
+            security.checkConnect(connectionHost, connectionPort);
+        }
+
+        return (HttpURLConnection) connectionURL.openConnection();
     }
 
     @Override

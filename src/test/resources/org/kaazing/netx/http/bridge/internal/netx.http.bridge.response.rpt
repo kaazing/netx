@@ -1,0 +1,15 @@
+property netxHttpBridgePath "target/netx.http.bridge.jar"
+
+accept http://localhost:8081/;resource/netx.http.bridge/2.0
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "200" "OK"
+write header "Content-Type" "application/x-java-archive"
+write header "Content-Length" ${file:length(netxHttpBridgePath)}
+
+write ${file:bytes(netxHttpBridgePath)}
+write close
