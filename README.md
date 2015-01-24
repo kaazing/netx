@@ -1,5 +1,4 @@
-Kaazing netx.bbosh
-==================
+#netx.bbosh
 [![Build Status][build-status-image]][build-status]
 
 [build-status-image]: https://travis-ci.org/kaazing/netx.bbosh.svg?branch=develop
