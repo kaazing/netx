@@ -35,9 +35,9 @@ import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.WsURLConnectionHandler;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValuesSpi;
 import org.kaazing.netx.ws.internal.util.Base64Util;
@@ -54,8 +54,8 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
     private static final String HEADER_SEC_KEY = "Sec-WebSocket-Key";
     private static final String HEADER_SEC_VERSION = "Sec-WebSocket-Version";
     private static final String HEADER_UPGRADE = "Upgrade";
-    // private static final String HTTP_101_MESSAGE = "Switching Protocols";
-    private static final String HTTP_101_MESSAGE = "Web Socket Protocol Handshake";
+    private static final String HTTP_101_MESSAGE = "Switching Protocols";
+    // private static final String HTTP_101_MESSAGE = "Web Socket Protocol Handshake";
 
 
     private final WsURLConnection _connection;
@@ -263,7 +263,7 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
 
         for (String protocol : protocols) {
             if (buffer.length() > 0) {
-                buffer.append(",");
+                buffer.append(", ");
             }
 
             buffer.append(protocol);
