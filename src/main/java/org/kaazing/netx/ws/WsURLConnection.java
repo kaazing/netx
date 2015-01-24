@@ -28,6 +28,7 @@ import java.util.Collection;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WebSocketFactory;
 
 /**
  * A URLConnection with support for WebSocket-specific features. See

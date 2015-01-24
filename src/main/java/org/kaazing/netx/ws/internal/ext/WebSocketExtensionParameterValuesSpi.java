@@ -18,9 +18,9 @@ package org.kaazing.netx.ws.internal.ext;
 
 import java.util.Collection;
 
-import org.kaazing.netx.ws.WebSocket;
 import org.kaazing.netx.ws.WebSocketExtension;
 import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WebSocket;
 import org.kaazing.netx.ws.WsURLConnection;
 
 /**

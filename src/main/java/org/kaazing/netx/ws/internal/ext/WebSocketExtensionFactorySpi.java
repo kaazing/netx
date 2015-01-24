@@ -16,7 +16,7 @@
 
 package org.kaazing.netx.ws.internal.ext;
 
-import org.kaazing.netx.ws.WebSocket;
+import org.kaazing.netx.ws.internal.WebSocket;
 
 
 /**

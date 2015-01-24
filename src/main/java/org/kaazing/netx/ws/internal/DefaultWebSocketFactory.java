@@ -32,8 +32,6 @@ import java.util.ServiceLoader;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.WebSocket;
-import org.kaazing.netx.ws.WebSocketFactory;
 import org.kaazing.netx.ws.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 
