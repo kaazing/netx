@@ -16,35 +16,21 @@
 
 package org.kaazing.netx.http.internal;
 
-import static java.util.Arrays.asList;
-
 import java.io.IOException;
-import java.net.URI;
+import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
-import java.util.Collection;
-import java.util.List;
 
-import org.kaazing.netx.URLConnectionHelperSpi;
-
-public final class HttpURLConnectionHelper extends URLConnectionHelperSpi {
-
-    private static final List<String> SUPPORTED_PROTOCOLS = asList("http");
+public final class HttpsURLStreamHandler extends URLStreamHandler {
 
     @Override
-    public URLStreamHandler newStreamHandler() throws IOException {
-        return new HttpURLStreamHandler();
+    protected URLConnection openConnection(URL url) throws IOException {
+        return new HttpURLConnectionImpl(url);
     }
 
     @Override
-    public URLConnection openConnection(URI location) throws IOException {
-        assert SUPPORTED_PROTOCOLS.contains(location.getScheme());
-        return new HttpURLConnectionImpl(location.toURL());
-    }
-
-    @Override
-    public Collection<String> getSupportedProtocols() {
-        return SUPPORTED_PROTOCOLS;
+    public int getDefaultPort() {
+        return 443;
     }
 
 }

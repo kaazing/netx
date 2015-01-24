@@ -21,6 +21,7 @@ import static java.util.Arrays.asList;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLConnection;
+import java.net.URLStreamHandler;
 import java.util.Collection;
 import java.util.List;
 
@@ -31,14 +32,14 @@ public final class HttpsURLConnectionHelper extends URLConnectionHelperSpi {
     private static final List<String> SUPPORTED_PROTOCOLS = asList("https");
 
     @Override
-    public URLConnection openConnection(URI location) throws IOException {
-        assert SUPPORTED_PROTOCOLS.contains(location.getScheme());
-        return new HttpURLConnectionImpl(location.toURL());
+    public URLStreamHandler newStreamHandler() throws IOException {
+        return new HttpsURLStreamHandler();
     }
 
     @Override
-    public int getDefaultPort() {
-        return 443;
+    public URLConnection openConnection(URI location) throws IOException {
+        assert SUPPORTED_PROTOCOLS.contains(location.getScheme());
+        return new HttpURLConnectionImpl(location.toURL());
     }
 
     @Override
