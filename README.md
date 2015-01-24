@@ -1,5 +1,4 @@
-Kaazing netx
-============
+#netx
 [![Build Status][build-status-image]][build-status]
 
 [build-status-image]: https://travis-ci.org/kaazing/netx.svg?branch=develop
