@@ -14,5 +14,5 @@
 # limitations under the License.
 #
 
-org.kaazing.netx.http.internal.HttpURLStreamHandlerFactorySpi
-org.kaazing.netx.http.internal.HttpsURLStreamHandlerFactorySpi
+org.kaazing.netx.http.internal.HttpURLConnectionHelper
+org.kaazing.netx.http.internal.HttpsURLConnectionHelper
