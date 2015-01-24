@@ -19,7 +19,6 @@ package org.kaazing.netx;
 import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -33,11 +32,11 @@ public final class URLConnectionHelper {
 
     private final Map<String, URLConnectionHelperSpi> helpers;
 
-    public URL toURL(URI location) throws MalformedURLException {
+    public URL toURL(URI location) throws IOException {
         String scheme = location.getScheme();
         URLConnectionHelperSpi helper = helpers.get(scheme);
         if (helper != null) {
-            URLStreamHandler handler = new HelperHandler(helper);
+            URLStreamHandler handler = helper.newStreamHandler();
             return new URL(null, location.toString(), handler);
         }
         return location.toURL();
@@ -84,24 +83,4 @@ public final class URLConnectionHelper {
         return new URLConnectionHelper(unmodifiableMap(helpers));
     }
 
-    private static final class HelperHandler extends URLStreamHandler {
-
-        private final URLConnectionHelperSpi helper;
-
-        private HelperHandler(URLConnectionHelperSpi helper) {
-            this.helper = helper;
-        }
-
-        @Override
-        protected URLConnection openConnection(URL url) throws IOException {
-            // note: we lose the original URL here, may need a better hook
-            return helper.openConnection(URI.create(url.toString()));
-        }
-
-        @Override
-        protected int getDefaultPort() {
-            return helper.getDefaultPort();
-        }
-
-    }
 }

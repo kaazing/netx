@@ -19,6 +19,7 @@ package org.kaazing.netx;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLConnection;
+import java.net.URLStreamHandler;
 import java.util.Collection;
 
 public abstract class URLConnectionHelperSpi {
@@ -33,7 +34,5 @@ public abstract class URLConnectionHelperSpi {
 
     public abstract URLConnection openConnection(URI location) throws IOException;
 
-    public int getDefaultPort() {
-        return -1;
-    }
+    public abstract URLStreamHandler newStreamHandler() throws IOException;
 }
