@@ -32,13 +32,12 @@ import java.util.Map;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.WebSocketMessageReader;
 import org.kaazing.netx.ws.WebSocketMessageWriter;
-import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter;
 
 public class WebSocketImpl extends WebSocket {
-    private WsURLConnection   _connection;
+    private WsURLConnectionImpl   _connection;
 
     /**
      * Creates a WebSocket that opens up a full-duplex connection to the target
@@ -59,8 +58,8 @@ public class WebSocketImpl extends WebSocket {
             URLConnectionHelper helper = URLConnectionHelper.newInstance();
             URL locationURL = helper.toURL(location);
 
-            _connection = (WsURLConnection) locationURL.openConnection();
-            ((WsURLConnectionImpl) _connection).setEnabledParameters(enabledParameters);
+            _connection = (WsURLConnectionImpl) locationURL.openConnection();
+            _connection.setEnabledParameters(enabledParameters);
         }
         catch (MalformedURLException e) {
             throw new IllegalStateException(e);

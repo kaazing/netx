@@ -27,8 +27,6 @@ import java.util.Collection;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.internal.WebSocketFactory;
 
 /**
  * A URLConnection with support for WebSocket-specific features. See
@@ -47,9 +45,6 @@ import org.kaazing.netx.ws.internal.WebSocketFactory;
  * </pre>
  */
 public abstract class WsURLConnection extends URLConnection {
-
-    private int    responseCode;
-    private String responseMessage;
 
     protected WsURLConnection(URL url) {
         super(url);
@@ -107,37 +102,6 @@ public abstract class WsURLConnection extends URLConnection {
      * @return ChallengeHandler
      */
     public abstract ChallengeHandler getChallengeHandler();
-
-    /**
-     * Gets the names of all the extensions that have been enabled for this
-     * connection. The enabled extensions are negotiated between the client
-     * and the server during the handshake. The names of the negotiated
-     * extensions can be obtained using {@link #getNegotiatedExtensions()} API.
-     * An empty Collection is returned if no extensions have been enabled for
-     * this connection. The enabled extensions will be a subset of the
-     * supported extensions.
-     *
-     * @return Collection<String>     names of the enabled extensions for this
-     *                                connection
-     */
-    public abstract Collection<String> getEnabledExtensions();
-
-    /**
-     * Gets the value of the specified {@link Parameter} defined in an enabled
-     * extension. If the parameter is not defined for this connection but a
-     * default value for the parameter is set using the method
-     * {@link WebSocketFactory#setDefaultParameter(Parameter, Object)},
-     * then the default value is returned.
-     * <p>
-     * Setting the parameter value when the connection is successfully
-     * established will result in an IllegalStateException.
-     * </p>
-     * @param <T>          Generic type of the value of the Parameter
-     * @param parameter    Parameter whose value needs to be set
-     * @return the value of the specified parameter
-     * @throw IllegalStateException   if this method is invoked after connect()
-     */
-    public abstract <T> T getEnabledParameter(Parameter<T> parameter);
 
     /**
      * Gets the names of all the protocols that are enabled for this
@@ -213,40 +177,6 @@ public abstract class WsURLConnection extends URLConnection {
     public abstract WebSocketMessageWriter getMessageWriter() throws IOException;
 
     /**
-     * Gets names of all the enabled extensions that have been successfully
-     * negotiated between the client and the server during the initial
-     * handshake.
-     * <p>
-     * Returns an empty Collection if no extensions were negotiated between the
-     * client and the server. The negotiated extensions will be a subset of the
-     * enabled extensions.
-     * <p>
-     * If this method is invoked before a connection is successfully established,
-     * an IllegalStateException is thrown.
-     *
-     * @return Collection<String>      successfully negotiated using this
-     *                                 connection
-     * @throws IllegalStateException   if invoked before the {@link #connect()}
-     *                                 completes
-     */
-    public abstract Collection<String> getNegotiatedExtensions();
-
-    /**
-     * Returns the value of the specified {@link Parameter} of a negotiated
-     * extension.
-     * <p>
-     * If this method is invoked before the connection is successfully
-     * established, an IllegalStateException is thrown.
-     *
-     * @param <T>          parameter type
-     * @param parameter    parameter of a negotiated extension
-     * @return T           value of the specified parameter
-     * @throws IllegalStateException   if invoked before the {@link #connect()}
-     *                                 completes
-     */
-    public abstract <T> T getNegotiatedParameter(Parameter<T> parameter);
-
-    /**
      * Gets the protocol that the client and the server have successfully
      * negotiated.
      * <p>
@@ -300,16 +230,6 @@ public abstract class WsURLConnection extends URLConnection {
     public abstract Reader getReader() throws IOException;
 
     /**
-     * Returns the names of extensions that have been discovered for this
-     * connection. An empty Collection is returned if no extensions were
-     * discovered for this connection.
-     *
-     * @return Collection<String>    extension names discovered for this
-     *                               connection
-     */
-    public abstract Collection<String> getSupportedExtensions();
-
-    /**
      * Returns a {@link Writer} to send <b>text</b> messages from this
      * connection. The message is put on the wire only when
      * {@link Writer#flush()} is invoked.
@@ -337,46 +257,6 @@ public abstract class WsURLConnection extends URLConnection {
     public abstract void setChallengeHandler(ChallengeHandler challengeHandler);
 
     /**
-     * Registers the names of all the extensions that must be negotiated between
-     * the client and the server during the handshake. This method must be
-     * invoked before invoking the {@link #connect()} method. The
-     * enabled extensions should be a subset of the supported extensions. Only
-     * the extensions that are explicitly enabled are put on the wire even
-     * though there could be more supported extensions on this connection.
-     * <p>
-     * If this method is invoked after connection is successfully established,
-     * an IllegalStateException is thrown. If an enabled extension is not
-     * discovered as a supported extension, then IllegalStateException is thrown.
-     * <p>
-     * @param extensions    list of extensions to be negotiated with the server
-     *                      during the handshake
-     * @throw IllegalStateException   if this method is invoked after successful
-     *                                connection or any of the specified
-     *                                extensions is not a supported extension
-     */
-    public abstract void setEnabledExtensions(Collection<String> extensions);
-
-    /**
-     * Sets the value of the specified {@link Parameter} defined in an enabled
-     * extension. The application developer should set the extension parameters
-     * of the enabled extensions before invoking the {@link #connect()} method.
-     * <p>
-     * Setting the parameter value when the connection is successfully
-     * established will result in an IllegalStateException.
-     * </p>
-     * If the parameter has a default value that was specified using
-     * {@link WebSocketFactory#setDefaultParameter(Parameter, Object)},
-     * then setting the same parameter using this method will override the
-     * default value.
-     * <p>
-     * @param <T>          extension parameter type
-     * @param parameter    Parameter whose value needs to be set
-     * @param value        of the specified parameter
-     * @throw IllegalStateException   if this method is invoked after connect()
-     */
-    public abstract <T> void setEnabledParameter(Parameter<T> parameter, T value);
-
-    /**
      * Registers the protocols to be negotiated with the server during the
      * handshake. This method must be invoked before {@link #connect()} is
      * called.
@@ -398,20 +278,4 @@ public abstract class WsURLConnection extends URLConnection {
      *                   redirects
      */
     public abstract void setRedirectPolicy(HttpRedirectPolicy policy);
-
-    public int getResponseCode() {
-        return responseCode;
-    }
-
-    public void setResponseCode(int responseCode) {
-        this.responseCode = responseCode;
-    }
-
-    public String getResponseMessage() {
-        return responseMessage;
-    }
-
-    public void setResponseMessage(String responseMessage) {
-        this.responseMessage = responseMessage;
-    }
 }

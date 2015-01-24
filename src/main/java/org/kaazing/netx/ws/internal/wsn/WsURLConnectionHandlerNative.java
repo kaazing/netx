@@ -34,8 +34,8 @@ import java.util.Random;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.WebSocketExtension;
-import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WsURLConnectionHandler;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
@@ -133,7 +133,7 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
         validateProtocol(protocol, protocols);
 
         String extensions = _delegate.getHeaderField(HEADER_SEC_EXTENSIONS);
-        validateExtensions(extensions, _connection.getEnabledExtensions());
+        validateExtensions(extensions, getConnectionImpl().getEnabledExtensions());
 
         // At this point, the handshake response has been validated and the
         // connection has been upgraded. Transfer the headers to the
@@ -154,8 +154,8 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
         // response/status code with message.
         getConnectionImpl().setNegotiatedProtocol(protocol);
         getConnectionImpl().setNegotiatedExtensions(extensions);
-        _connection.setResponseCode(_delegate.getResponseCode());
-        _connection.setResponseMessage(_delegate.getResponseMessage());
+        getConnectionImpl().setResponseCode(_delegate.getResponseCode());
+        getConnectionImpl().setResponseMessage(_delegate.getResponseMessage());
     }
 
     @Override
@@ -277,7 +277,7 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
         StringBuffer extensionsHeader = new StringBuffer("");
         Map<String, WebSocketExtensionFactorySpi> factories = getConnectionImpl().getExtensionFactories();
 
-        for (String extensionName : _connection.getEnabledExtensions()) {
+        for (String extensionName : getConnectionImpl().getEnabledExtensions()) {
             WebSocketExtensionFactorySpi extensionFactory = factories.get(extensionName);
             WebSocketExtensionParameterValuesSpi paramValues = getConnectionImpl().getEnabledParameters().get(extensionName);
 

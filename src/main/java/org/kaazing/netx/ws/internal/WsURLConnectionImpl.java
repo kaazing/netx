@@ -44,11 +44,11 @@ import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.WebSocketException;
 import org.kaazing.netx.ws.WebSocketExtension;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter.Metadata;
 import org.kaazing.netx.ws.WebSocketMessageReader;
 import org.kaazing.netx.ws.WebSocketMessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter.Metadata;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.io.WsInputStreamImpl;
 import org.kaazing.netx.ws.internal.io.WsMessageReaderAdapter;
@@ -86,6 +86,9 @@ public class WsURLConnectionImpl extends WsURLConnection {
     private InterruptibleBlockingQueue<Object>             _sharedQueue;
     private HttpRedirectPolicy                             _redirectPolicy;
     private ChallengeHandler                               _challengeHandler;
+    private int                                            _responseCode;
+    private String                                         _responseMessage;
+
 
     private ReadyState                                     _readyState;
     private Exception                                      _exception;
@@ -200,13 +203,38 @@ public class WsURLConnectionImpl extends WsURLConnection {
         return super.getConnectTimeout();
     }
 
-    @Override
+    /**
+     * Gets the names of all the extensions that have been enabled for this
+     * connection. The enabled extensions are negotiated between the client
+     * and the server during the handshake. The names of the negotiated
+     * extensions can be obtained using {@link #getNegotiatedExtensions()} API.
+     * An empty Collection is returned if no extensions have been enabled for
+     * this connection. The enabled extensions will be a subset of the
+     * supported extensions.
+     *
+     * @return Collection<String>     names of the enabled extensions for this
+     *                                connection
+     */
     public Collection<String> getEnabledExtensions() {
         return (_enabledExtensions == null) ? Collections.<String>emptySet() :
             unmodifiableCollection(_enabledExtensions);
     }
 
-    @Override
+    /**
+     * Gets the value of the specified {@link Parameter} defined in an enabled
+     * extension. If the parameter is not defined for this connection but a
+     * default value for the parameter is set using the method
+     * {@link WebSocketFactory#setDefaultParameter(Parameter, Object)},
+     * then the default value is returned.
+     * <p>
+     * Setting the parameter value when the connection is successfully
+     * established will result in an IllegalStateException.
+     * </p>
+     * @param <T>          Generic type of the value of the Parameter
+     * @param parameter    Parameter whose value needs to be set
+     * @return the value of the specified parameter
+     * @throw IllegalStateException   if this method is invoked after connect()
+     */
     public <T> T getEnabledParameter(Parameter<T> parameter) {
         String                            extName = parameter.extension().name();
         WsExtensionParameterValuesSpiImpl paramValues = _enabledParameters.get(extName);
@@ -290,7 +318,23 @@ public class WsURLConnectionImpl extends WsURLConnection {
         return _messageWriter;
     }
 
-    @Override
+    /**
+     * Gets names of all the enabled extensions that have been successfully
+     * negotiated between the client and the server during the initial
+     * handshake.
+     * <p>
+     * Returns an empty Collection if no extensions were negotiated between the
+     * client and the server. The negotiated extensions will be a subset of the
+     * enabled extensions.
+     * <p>
+     * If this method is invoked before a connection is successfully established,
+     * an IllegalStateException is thrown.
+     *
+     * @return Collection<String>      successfully negotiated using this
+     *                                 connection
+     * @throws IllegalStateException   if invoked before the {@link #connect()}
+     *                                 completes
+     */
     public Collection<String> getNegotiatedExtensions() {
         if (_readyState != ReadyState.OPEN) {
             String s = "Extensions have not been negotiated as the handshake " +
@@ -302,7 +346,19 @@ public class WsURLConnectionImpl extends WsURLConnection {
                                                  unmodifiableCollection(_negotiatedExtensions);
     }
 
-    @Override
+    /**
+     * Returns the value of the specified {@link Parameter} of a negotiated
+     * extension.
+     * <p>
+     * If this method is invoked before the connection is successfully
+     * established, an IllegalStateException is thrown.
+     *
+     * @param <T>          parameter type
+     * @param parameter    parameter of a negotiated extension
+     * @return T           value of the specified parameter
+     * @throws IllegalStateException   if invoked before the {@link #connect()}
+     *                                 completes
+     */
     public <T> T getNegotiatedParameter(Parameter<T> parameter) {
         if (_readyState != ReadyState.OPEN) {
             String s = "Extensions have not been negotiated as the handshake " +
@@ -370,7 +426,14 @@ public class WsURLConnectionImpl extends WsURLConnection {
         return _reader;
     }
 
-    @Override
+    /**
+     * Returns the names of extensions that have been discovered for this
+     * connection. An empty Collection is returned if no extensions were
+     * discovered for this connection.
+     *
+     * @return Collection<String>    extension names discovered for this
+     *                               connection
+     */
     public Collection<String> getSupportedExtensions() {
         return (_supportedExtensions == null) ? Collections.<String>emptySet() :
             unmodifiableCollection(_supportedExtensions);
@@ -415,7 +478,24 @@ public class WsURLConnectionImpl extends WsURLConnection {
         super.setConnectTimeout(timeout);
     }
 
-    @Override
+    /**
+     * Registers the names of all the extensions that must be negotiated between
+     * the client and the server during the handshake. This method must be
+     * invoked before invoking the {@link #connect()} method. The
+     * enabled extensions should be a subset of the supported extensions. Only
+     * the extensions that are explicitly enabled are put on the wire even
+     * though there could be more supported extensions on this connection.
+     * <p>
+     * If this method is invoked after connection is successfully established,
+     * an IllegalStateException is thrown. If an enabled extension is not
+     * discovered as a supported extension, then IllegalStateException is thrown.
+     * <p>
+     * @param extensions    list of extensions to be negotiated with the server
+     *                      during the handshake
+     * @throw IllegalStateException   if this method is invoked after successful
+     *                                connection or any of the specified
+     *                                extensions is not a supported extension
+     */
     public void setEnabledExtensions(Collection<String> extensions) {
         if (_readyState != ReadyState.CLOSED) {
             String s = "Extensions can be enabled only when the connection is closed";
@@ -442,7 +522,24 @@ public class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    @Override
+    /**
+     * Sets the value of the specified {@link Parameter} defined in an enabled
+     * extension. The application developer should set the extension parameters
+     * of the enabled extensions before invoking the {@link #connect()} method.
+     * <p>
+     * Setting the parameter value when the connection is successfully
+     * established will result in an IllegalStateException.
+     * </p>
+     * If the parameter has a default value that was specified using
+     * {@link WebSocketFactory#setDefaultParameter(Parameter, Object)},
+     * then setting the same parameter using this method will override the
+     * default value.
+     * <p>
+     * @param <T>          extension parameter type
+     * @param parameter    Parameter whose value needs to be set
+     * @param value        of the specified parameter
+     * @throw IllegalStateException   if this method is invoked after connect()
+     */
     public <T> void setEnabledParameter(Parameter<T> parameter, T value) {
         if (_readyState != ReadyState.CLOSED) {
             String s = "Parameters can be set only when the connection is closed";
@@ -803,6 +900,22 @@ public class WsURLConnectionImpl extends WsURLConnection {
 
         // ### TODO: Add the extension handlers for the negotiated extensions
         //           to the pipeline.
+    }
+
+    public int getResponseCode() {
+        return _responseCode;
+    }
+
+    public void setResponseCode(int responseCode) {
+        this._responseCode = responseCode;
+    }
+
+    public String getResponseMessage() {
+        return _responseMessage;
+    }
+
+    public void setResponseMessage(String responseMessage) {
+        this._responseMessage = responseMessage;
     }
 
     // --------------------- Private Implementation --------------------------
