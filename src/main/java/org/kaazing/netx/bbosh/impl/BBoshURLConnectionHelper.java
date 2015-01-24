@@ -19,6 +19,7 @@ package org.kaazing.netx.bbosh.impl;
 import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
@@ -26,9 +27,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.kaazing.netx.URLStreamHandlerFactorySpi;
+import org.kaazing.netx.URLConnectionHelperSpi;
 
-public final class BBoshURLStreamHandlerFactorySpi extends URLStreamHandlerFactorySpi {
+public final class BBoshURLConnectionHelper extends URLConnectionHelperSpi {
 
     private static final Map<String, String> HTTP_PROTOCOLS;
 
@@ -45,10 +46,17 @@ public final class BBoshURLStreamHandlerFactorySpi extends URLStreamHandlerFacto
     }
 
     @Override
-    public URLStreamHandler createURLStreamHandler(String protocol) {
-        if (!HTTP_PROTOCOLS.containsKey(protocol)) {
+    public URLConnection openConnection(URI location) throws IOException {
+        String protocol = location.getScheme();
+        String httpOrHttps = HTTP_PROTOCOLS.get(protocol);
+        if (httpOrHttps == null) {
             throw new IllegalArgumentException("Unsupported protocol: " + protocol);
         }
+        return new BBoshURLConnectionImpl(location, httpOrHttps);
+    }
+
+    @Override
+    public URLStreamHandler newStreamHandler() throws IOException {
         return new BBoshURLStreamHandler();
     }
 

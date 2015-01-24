@@ -19,6 +19,7 @@ package org.kaazing.netx.bbosh.impl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
@@ -39,6 +40,12 @@ final class BBoshURLConnectionImpl extends BBoshURLConnection {
     BBoshURLConnectionImpl(URL url, String httpScheme) throws IOException {
         super(url);
         URL factoryURL = new URL(httpScheme, url.getHost(), url.getPort(), url.getFile());
+        socketFactory = new BBoshSocketFactory(factoryURL);
+    }
+
+    BBoshURLConnectionImpl(URI location, String httpScheme) throws IOException {
+        super(null);
+        URL factoryURL = new URL(httpScheme, location.getHost(), location.getPort(), location.getPath());
         socketFactory = new BBoshSocketFactory(factoryURL);
     }
 
