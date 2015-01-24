@@ -1,0 +1,76 @@
+property appletPath "target/netx.http.bridge.itest-shaded.jar"
+
+accept http://localhost:8080/
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "200" "OK"
+write header "Content-Type" "text/html"
+write header content-length
+
+write "<html>"
+write "<body>"
+write "<applet width=600 height=600"
+write " code=\"org.kaazing.netx.http.bridge.itest.TestApplet.class\""
+write " archive=\"/applet\""
+write ">"
+write " <param name=location value=\"http://localhost:8081/path\" >"
+write " <param name=codebase_lookup value=\"false\" >"
+write "</applet>"
+write "</body>"
+write "</html>"
+
+write close
+
+accept http://localhost:8080/favicon.ico
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "404" "Not Found"
+write header content-length
+write close
+
+accept http://localhost:8080/applet
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "200" "OK"
+write header "Content-Type" "application/x-java-archive"
+write header "Content-Length" ${file:length(appletPath)}
+
+write ${file:bytes(appletPath)}
+write close
+
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "200" "OK"
+write header "Content-Type" "application/x-java-archive"
+write header "Content-Length" ${file:length(appletPath)}
+
+write ${file:bytes(appletPath)}
+write close
+
+accept http://localhost:8080/crossdomain.xml
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "404" "Not Found"
+write header content-length
+write close
+

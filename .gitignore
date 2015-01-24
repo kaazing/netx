@@ -1,11 +1,7 @@
-target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
+target
+dependency-reduced-pom.xml
 
-.project
 .classpath
+.project
 .settings
-/target
+
