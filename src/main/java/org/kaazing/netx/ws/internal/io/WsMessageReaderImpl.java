@@ -21,9 +21,9 @@ import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.kaazing.netx.ws.WebSocketException;
 import org.kaazing.netx.ws.WebSocketMessageReader;
 import org.kaazing.netx.ws.WebSocketMessageType;
+import org.kaazing.netx.ws.internal.WebSocketException;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.util.InterruptibleBlockingQueue;
 

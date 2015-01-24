@@ -26,11 +26,10 @@ import java.util.Collection;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.WebSocketExtension;
 import org.kaazing.netx.ws.WebSocketMessageReader;
 import org.kaazing.netx.ws.WebSocketMessageType;
 import org.kaazing.netx.ws.WebSocketMessageWriter;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 
 
 /**

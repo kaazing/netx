@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.CharBuffer;
 
-import org.kaazing.netx.ws.WebSocketException;
 import org.kaazing.netx.ws.WebSocketMessageType;
+import org.kaazing.netx.ws.internal.WebSocketException;
 
 public class WsReaderImpl extends Reader {
     private final WsMessageReaderAdapter    _adapter;

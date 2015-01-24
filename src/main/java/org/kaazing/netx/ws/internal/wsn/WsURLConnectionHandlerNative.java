@@ -33,11 +33,11 @@ import java.util.Random;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
-import org.kaazing.netx.ws.WebSocketExtension;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.WebSocketExtension;
 import org.kaazing.netx.ws.internal.WsURLConnectionHandler;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValuesSpi;
 import org.kaazing.netx.ws.internal.util.Base64Util;

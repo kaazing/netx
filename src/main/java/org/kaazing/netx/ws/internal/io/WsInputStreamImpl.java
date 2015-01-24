@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.WebSocketException;
 import org.kaazing.netx.ws.WebSocketMessageType;
+import org.kaazing.netx.ws.internal.WebSocketException;
 import org.kaazing.netx.ws.internal.util.DynamicByteBuffer;
 
 public class WsInputStreamImpl extends InputStream {

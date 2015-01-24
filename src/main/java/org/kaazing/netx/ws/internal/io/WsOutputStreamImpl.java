@@ -21,8 +21,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.WebSocketException;
 import org.kaazing.netx.ws.WebSocketMessageWriter;
+import org.kaazing.netx.ws.internal.WebSocketException;
 
 public class WsOutputStreamImpl extends OutputStream {
     private final WsMessageWriterImpl    _writer;

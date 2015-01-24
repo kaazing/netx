@@ -42,13 +42,11 @@ import java.util.logging.Logger;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.WebSocketException;
-import org.kaazing.netx.ws.WebSocketExtension;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter.Metadata;
 import org.kaazing.netx.ws.WebSocketMessageReader;
 import org.kaazing.netx.ws.WebSocketMessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter.Metadata;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.io.WsInputStreamImpl;
 import org.kaazing.netx.ws.internal.io.WsMessageReaderAdapter;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws;
+package org.kaazing.netx.ws.internal;
 
 import java.io.IOException;
 import java.util.HashMap;

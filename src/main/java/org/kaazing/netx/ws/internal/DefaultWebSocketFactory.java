@@ -32,7 +32,7 @@ import java.util.ServiceLoader;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 
 public final class DefaultWebSocketFactory extends WebSocketFactory {

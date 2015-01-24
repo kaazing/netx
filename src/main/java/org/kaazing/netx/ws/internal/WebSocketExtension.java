@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws;
+package org.kaazing.netx.ws.internal;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,7 +23,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.kaazing.netx.ws.WebSocketExtension.Parameter.Metadata;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter.Metadata;
 
 /**
  * {@link WebSocketExtension} should be extended to define or register

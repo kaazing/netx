@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.WebSocketException;
 import org.kaazing.netx.ws.WebSocketMessageWriter;
+import org.kaazing.netx.ws.internal.WebSocketException;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public class WsMessageWriterImpl extends WebSocketMessageWriter {

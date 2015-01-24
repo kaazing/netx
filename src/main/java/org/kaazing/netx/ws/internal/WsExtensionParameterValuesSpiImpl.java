@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValuesSpi;
 
 public final class WsExtensionParameterValuesSpiImpl extends WebSocketExtensionParameterValuesSpi {
