@@ -17,23 +17,39 @@
 package org.kaazing.netx.data.impl;
 
 import static org.junit.Assert.assertEquals;
-import static org.kaazing.netx.URLFactory.createURL;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 
 import org.junit.Test;
+import org.kaazing.netx.URLConnectionHelper;
 
-public class DataURLStreamHandlerFactorySpiTest {
+public class DataURLConnectionHelperTest {
+
+    @Test
+    public void shouldCreateImagePngBase64DataURI() throws IOException {
+        // see http://en.wikipedia.org/wiki/Data_URI_scheme#Examples
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI uri = URI.create("data:image/png;charset=US-ASCII;base64," +
+                             "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12" +
+                             "P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==");
+
+        URLConnection connection = helper.openConnection(uri);
+        assertEquals("image/png", connection.getContentType());
+        assertEquals(85, connection.getContentLength());
+    }
 
     @Test
     public void shouldCreateImagePngBase64DataURL() throws IOException {
         // see http://en.wikipedia.org/wiki/Data_URI_scheme#Examples
-        URL url = createURL("data:image/png;charset=US-ASCII;base64," +
-                                 "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12" +
-                                 "P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==");
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI uri = URI.create("data:image/png;charset=US-ASCII;base64," +
+                             "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12" +
+                             "P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==");
 
+        URL url = helper.toURL(uri);
         URLConnection connection = url.openConnection();
         assertEquals("image/png", connection.getContentType());
         assertEquals(85, connection.getContentLength());

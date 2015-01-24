@@ -14,4 +14,4 @@
 # limitations under the License.
 #
 
-org.kaazing.netx.data.impl.DataURLStreamHandlerFactorySpi
+org.kaazing.netx.data.impl.DataURLConnectionHelper
