@@ -18,20 +18,27 @@ package org.kaazing.netx.http.internal;
 
 import static java.util.Arrays.asList;
 
-import java.net.URLStreamHandler;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URLConnection;
 import java.util.Collection;
 import java.util.List;
 
-import org.kaazing.netx.URLStreamHandlerFactorySpi;
+import org.kaazing.netx.URLConnectionHelperSpi;
 
-public final class HttpsURLStreamHandlerFactorySpi extends URLStreamHandlerFactorySpi {
+public final class HttpsURLConnectionHelper extends URLConnectionHelperSpi {
 
     private static final List<String> SUPPORTED_PROTOCOLS = asList("https");
 
     @Override
-    public URLStreamHandler createURLStreamHandler(String protocol) {
-        assert SUPPORTED_PROTOCOLS.contains(protocol);
-        return new HttpsURLStreamHandlerImpl();
+    public URLConnection openConnection(URI location) throws IOException {
+        assert SUPPORTED_PROTOCOLS.contains(location.getScheme());
+        return new HttpURLConnectionImpl(location.toURL());
+    }
+
+    @Override
+    public int getDefaultPort() {
+        return 443;
     }
 
     @Override

@@ -48,17 +48,19 @@ public abstract class HttpOriginSecuritySpi {
         catch (SecurityException e) {
             try {
                 URL bridge = new URL(url, BRIDGE_RESOURCE_PATH);
-                ClassLoader parent = HttpOriginSecuritySpi.class.getClassLoader();
+                ClassLoader parent = getClass().getClassLoader();
                 URLClassLoader loader = URLClassLoader.newInstance(new URL[] { bridge }, parent);
                 for (HttpOriginSecuritySpi security : load(HttpOriginSecuritySpi.class, loader)) {
                     return security.openConnection(url);
                 }
                 String message = format("%s not found: %s", BRIDGE_RESOURCE_NAME, bridge);
-                e.initCause(new IllegalStateException(message).fillInStackTrace());
+                e.addSuppressed(new IllegalStateException(message).fillInStackTrace());
                 throw e;
             }
             catch (Exception e0) {
-                e.initCause(e0);
+                if (e0 != e) {
+                    e.addSuppressed(e0);
+                }
                 throw e;
             }
         }
@@ -171,7 +173,21 @@ public abstract class HttpOriginSecuritySpi {
 
         @Override
         protected HttpURLConnection openConnection0(URL url) throws IOException {
-            return (HttpURLConnection) new URL(url.toString()).openConnection();
+
+            URL connectionURL = new URL(url.toString());
+
+            final String connectionHost = connectionURL.getHost();
+            int connectionPort = connectionURL.getPort();
+            if (connectionPort == -1) {
+                connectionPort = connectionURL.getDefaultPort();
+            }
+
+            SecurityManager security = System.getSecurityManager();
+            if (security != null) {
+                security.checkConnect(connectionHost, connectionPort);
+            }
+
+            return (HttpURLConnection) connectionURL.openConnection();
         }
 
         @Override
@@ -202,6 +218,7 @@ public abstract class HttpOriginSecuritySpi {
     static {
         Method close = null;
         try {
+            // note: access denied in Applet (!)
             close = URLClassLoader.class.getDeclaredMethod("close");
         }
         catch (Exception e) {

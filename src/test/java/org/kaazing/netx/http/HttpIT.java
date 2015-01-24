@@ -27,6 +27,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,7 +39,8 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
-import org.kaazing.netx.URLFactory;
+import org.kaazing.net.URLFactory;
+import org.kaazing.netx.URLConnectionHelper;
 
 
 // TODO: verify specification.http scripts instead
@@ -52,14 +54,16 @@ public class HttpIT {
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
 
+    private final URLConnectionHelper helper = URLConnectionHelper.newInstance();
+
     @Rule
     public final TestRule chain = outerRule(k3po).around(reset).around(timeout);
 
     @Test
     @Specification("response.with.status.code.200")
     public void shouldHandle200() throws Exception {
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("POST");
         connection.setRequestProperty("X-Header", "value");
         assertEquals(200, connection.getResponseCode());
@@ -69,8 +73,8 @@ public class HttpIT {
     @Test
     @Specification("response.with.status.code.302")
     public void shouldNotFollow302WithPolicyNever() throws Exception {
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("X-Header", "value");
         connection.setRedirectPolicy(NEVER);
@@ -81,8 +85,8 @@ public class HttpIT {
     @Test
     @Specification("response.with.status.code.401")
     public void shouldHandle401() throws Exception {
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("POST");
         connection.setRequestProperty("X-Header", "value");
         assertEquals(401, connection.getResponseCode());
@@ -92,8 +96,8 @@ public class HttpIT {
     @Test
     @Specification("response.with.status.code.101")
     public void shouldHandle101() throws Exception {
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Upgrade", "websocket");
         connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
@@ -127,8 +131,8 @@ public class HttpIT {
         };
         Authenticator.setDefault(authenticator);
 
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Upgrade", "websocket");
         connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
@@ -154,8 +158,8 @@ public class HttpIT {
         };
         Authenticator.setDefault(authenticator);
 
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Upgrade", "websocket");
         connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
@@ -169,8 +173,8 @@ public class HttpIT {
     @Test
     @Specification("response.upgrade.failed.with.status.code.302")
     public void shouldNotFollow302Redirect() throws Exception {
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Upgrade", "websocket");
         connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
@@ -185,8 +189,8 @@ public class HttpIT {
     @Test
     @Specification("response.with.status.code.302.then.200")
     public void shouldFollow302RedirectThenHandle200OK() throws Exception {
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("X-Header", "value");
 
@@ -198,8 +202,8 @@ public class HttpIT {
     @Test
     @Specification("response.upgrade.failed.with.status.code.302.then.200")
     public void shouldFollow302RedirectThenHandleUpgradeFailed200OK() throws Exception {
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Upgrade", "websocket");
         connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
@@ -212,8 +216,8 @@ public class HttpIT {
     @Test
     @Specification("response.upgrade.with.status.code.302.then.101")
     public void shouldFollow302RedirectThenHandleUpgrade101OK() throws Exception {
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Upgrade", "websocket");
         connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
@@ -227,19 +231,17 @@ public class HttpIT {
     @Test
     @Specification("response.with.status.code.401.then.200")
     public void shouldHandle401BasicThen200OK() throws Exception {
-        final AtomicInteger authenticationCalls = new AtomicInteger();
         Authenticator authenticator = new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                authenticationCalls.incrementAndGet();
                 return new PasswordAuthentication("joe2", "welcome2".toCharArray());
             }
 
         };
         Authenticator.setDefault(authenticator);
 
-        URL url = URLFactory.createURL("http://localhost:8080/path?query");
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("POST");
         connection.setRequestProperty("X-Header", "value");
         assertEquals(200, connection.getResponseCode());
