@@ -1,6 +1,4 @@
-Kaazing netx.tcp
-==================
-
+#netx.tcp
 [![Build Status][build-status-image]][build-status]
 
 [build-status-image]: https://travis-ci.org/kaazing/netx.tcp.svg?branch=develop
