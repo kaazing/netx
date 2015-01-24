@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.spi;
+package org.kaazing.netx.ws.internal.ext;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public abstract class WebSocketHandlerSpi {
+public abstract class WebSocketExtensionHandlerSpi {
 
     public abstract void connect() throws IOException;
 

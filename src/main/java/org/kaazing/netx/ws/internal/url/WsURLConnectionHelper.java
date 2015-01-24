@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.ServiceLoader;
 
 import org.kaazing.netx.URLConnectionHelperSpi;
-import org.kaazing.netx.ws.extension.spi.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 
 public class WsURLConnectionHelper extends URLConnectionHelperSpi {
     private static final Collection<String> SUPPORTED_PROTOCOLS = unmodifiableList(asList("ws", "wse", "wsn"));

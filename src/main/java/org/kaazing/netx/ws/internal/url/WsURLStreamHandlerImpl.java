@@ -23,8 +23,8 @@ import java.net.URLStreamHandler;
 import java.util.Map;
 
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.extension.spi.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 
 class WsURLStreamHandlerImpl extends URLStreamHandler {
 

@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.extension.spi;
+package org.kaazing.netx.ws.internal.ext;
 
 import java.util.Collection;
 
 import org.kaazing.netx.ws.WebSocket;
-import org.kaazing.netx.ws.extension.WebSocketExtension;
-import org.kaazing.netx.ws.extension.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.WebSocketExtension;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.WsURLConnection;
 
 /**

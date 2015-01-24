@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.extension.spi;
+package org.kaazing.netx.ws.internal.ext;
 
 import org.kaazing.netx.ws.WebSocket;
 

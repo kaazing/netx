@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.extension.spi;
+package org.kaazing.netx.ws.internal.ext;
 
-import org.kaazing.netx.ws.spi.WebSocketHandlerSpi;
 
 
 /**
@@ -45,5 +44,5 @@ import org.kaazing.netx.ws.spi.WebSocketHandlerSpi;
  */
 public abstract class WebSocketExtensionSpi {
 
-    public abstract WebSocketHandlerSpi createHandler();
+    public abstract WebSocketExtensionHandlerSpi createHandler();
 }

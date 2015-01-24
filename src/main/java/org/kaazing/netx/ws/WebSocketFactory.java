@@ -23,7 +23,7 @@ import java.util.ServiceLoader;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.extension.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter;
 
 /**
  * {@link WebSocketFactory} is an abstract class that can be used to create

@@ -43,13 +43,13 @@ import java.util.logging.Logger;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.WebSocketException;
+import org.kaazing.netx.ws.WebSocketExtension;
 import org.kaazing.netx.ws.WebSocketMessageReader;
 import org.kaazing.netx.ws.WebSocketMessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.extension.WebSocketExtension;
-import org.kaazing.netx.ws.extension.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.extension.WebSocketExtension.Parameter.Metadata;
-import org.kaazing.netx.ws.extension.spi.WebSocketExtensionFactorySpi;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter.Metadata;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.io.WsInputStreamImpl;
 import org.kaazing.netx.ws.internal.io.WsMessageReaderAdapter;
 import org.kaazing.netx.ws.internal.io.WsMessageReaderImpl;
@@ -58,8 +58,7 @@ import org.kaazing.netx.ws.internal.io.WsOutputStreamImpl;
 import org.kaazing.netx.ws.internal.io.WsReaderImpl;
 import org.kaazing.netx.ws.internal.io.WsWriterImpl;
 import org.kaazing.netx.ws.internal.util.InterruptibleBlockingQueue;
-import org.kaazing.netx.ws.spi.WebSocketConnectionStrategySpi;
-import org.kaazing.netx.ws.spi.WebSocketHandlerSpi;
+import org.kaazing.netx.ws.internal.wsn.WsURLConnectionHandlerNative;
 
 public class WsURLConnectionImpl extends WsURLConnection {
     private static final String _CLASS_NAME = WsURLConnectionImpl.class.getName();
@@ -70,9 +69,8 @@ public class WsURLConnectionImpl extends WsURLConnection {
     private final Map<String, WsExtensionParameterValuesSpiImpl> _negotiatedParameters;
     private final Map<String, WebSocketExtensionFactorySpi>      _extensionFactories;
     private final URL                                            _location;
-//    private final WebSocketCompositeHandler                      _handler;
-//    private final WebSocketCompositeChannel                      _channel;
 
+    private WsURLConnectionHandlerNative                   _handler;
     private Map<String, WsExtensionParameterValuesSpiImpl> _enabledParameters;
     private Collection<String>                             _enabledExtensions;
     private Collection<String>                             _negotiatedExtensions;
@@ -187,37 +185,8 @@ public class WsURLConnectionImpl extends WsURLConnection {
             // queue ready to be consumed.
             _sharedQueue = new InterruptibleBlockingQueue<Object>();
 
-            String scheme = null;
-            try {
-                scheme = _location.toURI().getScheme();
-            }
-            catch (Exception e) {
-                throw new WebSocketException(e);
-            }
-
-            Exception exception = null;
-            WebSocketConnectionStrategyHelper helper = WebSocketConnectionStrategyHelper.newInstance();
-            List<WebSocketConnectionStrategySpi> strategies = helper.getConnectionStrategies(scheme);
-
-            for (WebSocketConnectionStrategySpi strategy : strategies) {
-                WebSocketHandlerSpi connHandler = strategy.createHandler(this);
-
-                try {
-                    connHandler.connect();
-
-                    // If we are successful, then break out of the loop as there
-                    // is no need to fallback.
-                    break;
-                }
-                catch (Exception ex) {
-                    // Otherwise, we need to try connecting using the next
-                    // strategy.
-                    exception = ex;
-                }
-            }
-
-            // #### TODO: If we are not successful connecting with any of the
-            //            strategies, throw an IOException.
+            _handler = new WsURLConnectionHandlerNative(this);
+            _handler.connect();
         }
     }
 

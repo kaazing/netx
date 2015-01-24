@@ -33,16 +33,16 @@ import java.util.Random;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
+import org.kaazing.netx.ws.WebSocketExtension;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.extension.WebSocketExtension;
-import org.kaazing.netx.ws.extension.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.extension.spi.WebSocketExtensionFactorySpi;
-import org.kaazing.netx.ws.extension.spi.WebSocketExtensionParameterValuesSpi;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WsURLConnectionHandler;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValuesSpi;
 import org.kaazing.netx.ws.internal.util.Base64Util;
-import org.kaazing.netx.ws.spi.WebSocketHandlerSpi;
 
-public final class WsURLConnectionHandlerNative extends WebSocketHandlerSpi {
+public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";

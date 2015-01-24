@@ -36,7 +36,7 @@ import org.kaazing.netx.ws.WebSocket;
 import org.kaazing.netx.ws.WebSocketMessageReader;
 import org.kaazing.netx.ws.WebSocketMessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.extension.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.WebSocketExtension.Parameter;
 
 public class WebSocketImpl extends WebSocket {
     private WsURLConnection   _connection;
