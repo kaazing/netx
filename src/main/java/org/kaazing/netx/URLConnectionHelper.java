@@ -16,9 +16,12 @@
 
 package org.kaazing.netx;
 
+import static java.lang.Character.isUpperCase;
 import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -80,7 +83,45 @@ public final class URLConnectionHelper {
             }
         }
 
-        return new URLConnectionHelper(unmodifiableMap(helpers));
+        URLConnectionHelper helper = new URLConnectionHelper(unmodifiableMap(helpers));
+
+        for (URLConnectionHelperSpi factory : helpers.values()) {
+            inject(factory, URLConnectionHelper.class, helper);
+        }
+
+        return helper;
+    }
+
+    private static <T> void inject(Object target, Class<T> type, T instance) {
+        try {
+            Class<? extends Object> targetClass = target.getClass();
+            Method[] targetMethods = targetClass.getMethods();
+            for (Method targetMethod : targetMethods) {
+                String targetMethodName = targetMethod.getName();
+                if (targetMethodName.length() == 3 && "set".equals(targetMethodName) ||
+                        targetMethodName.length() > 3 && targetMethodName.startsWith("set") &&
+                        isUpperCase(targetMethodName.charAt(3))) {
+                    Class<?>[] targetMethodParameterTypes = targetMethod.getParameterTypes();
+                    if (targetMethodParameterTypes.length == 1 && targetMethodParameterTypes[0] == type) {
+                        try {
+                            targetMethod.invoke(target, instance);
+                        }
+                        catch (IllegalArgumentException e) {
+                            // failed to inject
+                        }
+                        catch (IllegalAccessException e) {
+                            // failed to inject
+                        }
+                        catch (InvocationTargetException e) {
+                            // failed to inject
+                        }
+                    }
+                }
+            }
+        }
+        catch (SecurityException e) {
+            // failed to reflect
+        }
     }
 
 }
