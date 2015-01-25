@@ -188,9 +188,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         case INITIAL:
             doConnect();
             break;
-        case OPEN:
-        case CLOSED:
-            break;
+        default:
+            throw new IOException("Already connected");
         }
     }
 
@@ -255,8 +254,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public InputStream getInputStream() throws IOException {
 
         if (inputStream == null) {
-            // TODO: trigger lazy connect, same as HTTP
-            throw new UnsupportedOperationException();
+            ensureConnected();
+            inputStream = new WsInputStreamImpl(connection.getInputStream());
         }
 
         return inputStream;
@@ -301,7 +300,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      * @throws IOException 
      */
     public Collection<String> getNegotiatedExtensions() throws IOException {
-        connect();
+        ensureConnected();
         return negotiatedExtensionsRO.keySet();
     }
 
@@ -319,7 +318,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      */
     public <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException {
 
-        connect();
+        ensureConnected();
 
         WebSocketExtension extension = parameter.extension();
         String extensionName = extension.name();
@@ -329,7 +328,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public String getNegotiatedProtocol() throws IOException {
-        connect();
+        ensureConnected();
         return negotiatedProtocol;
     }
 
@@ -337,9 +336,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public OutputStream getOutputStream() throws IOException {
 
         if (outputStream == null) {
-            // TODO: trigger lazy connect, same as HTTP
-            connect();
-            throw new UnsupportedOperationException();
+            ensureConnected();
+            outputStream = new WsOutputStreamImpl(connection.getOutputStream());
         }
 
         return outputStream;
@@ -350,7 +348,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
-            connect();
+            ensureConnected();
             throw new UnsupportedOperationException();
         }
 
@@ -374,7 +372,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (writer == null) {
             // TODO: trigger lazy connect, same as HTTP
-            connect();
+            ensureConnected();
             throw new UnsupportedOperationException();
         }
 
@@ -497,6 +495,18 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
         this.enabledExtensions.clear();
         this.enabledExtensions.putAll(enabledExtensions);
+    }
+
+    private void ensureConnected() throws IOException {
+
+        switch (readyState) {
+        case INITIAL:
+            doConnect();
+            break;
+        case OPEN:
+        case CLOSED:
+            break;
+        }
     }
 
     private void doConnect() throws IOException {

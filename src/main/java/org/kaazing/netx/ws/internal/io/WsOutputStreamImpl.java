@@ -16,76 +16,91 @@
 
 package org.kaazing.netx.ws.internal.io;
 
-import java.io.ByteArrayOutputStream;
+import static java.lang.Integer.highestOneBit;
+
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
+import java.util.Random;
 
-import org.kaazing.netx.ws.MessageWriter;
-import org.kaazing.netx.ws.internal.WebSocketException;
+public final class WsOutputStreamImpl extends FilterOutputStream {
 
-public class WsOutputStreamImpl extends OutputStream {
-    private final WsMessageWriterImpl    _writer;
-    private ByteArrayOutputStream  _byteStream;
-    private boolean                _streamClosed;
-
-    public WsOutputStreamImpl(MessageWriter writer) {
-        _writer = (WsMessageWriterImpl) writer;
-        _byteStream = new ByteArrayOutputStream();
-        _streamClosed = false;
-    }
-
-    @Override
-    public void close() throws IOException {
-        synchronized (this) {
-            if (isClosed()) {
-                return;
-            }
-
-            _streamClosed = true;
-            _byteStream.close();
-            _byteStream = null;
-        }
-    }
-
-    @Override
-    public void flush() throws IOException {
-        synchronized (this) {
-            _checkStreamClosed();
-
-            if (_byteStream.size() > 0) {
-                byte[] bytes = _byteStream.toByteArray();
-                _writer.writeBinary(ByteBuffer.wrap(bytes));
-
-                _byteStream.reset();
-            }
-        }
+    public WsOutputStreamImpl(OutputStream out) {
+        super(out);
     }
 
     @Override
     public void write(int b) throws IOException {
-        synchronized (this) {
-            _checkStreamClosed();
+        write (new byte[] { (byte) b });
+    }
 
-            // The general contract for write(int) is that one byte is written to
-            // the output stream. The byte to be written is the eight low-order
-            // bits of the argument b. The 24 high-order bits of b are ignored.
-            byte a = (byte)(b & 0xff);
-            _byteStream.write(a);
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        out.write(0x82);
+
+        switch (highestOneBit(len)) {
+        case 0x0000:
+        case 0x0001:
+        case 0x0002:
+        case 0x0004:
+        case 0x0008:
+        case 0x0010:
+        case 0x0020:
+            out.write(0x80 | len);
+            break;
+        case 0x0040:
+            switch (len) {
+            case 126:
+                out.write(0x80 | 126);
+                out.write(0x00);
+                out.write(126);
+                break;
+            case 127:
+                out.write(0x80 | 126);
+                out.write(0x00);
+                out.write(127);
+                break;
+            default:
+                out.write(0x80 | len);
+                break;
+            }
+            break;
+        case 0x0080:
+        case 0x0100:
+        case 0x0200:
+        case 0x0400:
+        case 0x0800:
+        case 0x1000:
+        case 0x2000:
+        case 0x4000:
+        case 0x8000:
+            out.write(0x80 | 126);
+            out.write((len >> 8) & 0xff);
+            out.write((len >> 0) & 0xff);
+            break;
+        default:
+            // 65536+
+            out.write(0x80 | 127);
+            out.write((len >> 24) & 0xff);
+            out.write((len >> 16) & 0xff);
+            out.write((len >> 8) & 0xff);
+            out.write((len >> 0) & 0xff);
+            break;
         }
-    }
 
-    // ------------------------ Internal Methods -----------------------------
-    public boolean isClosed() {
-        return _streamClosed;
-    }
+        // hoist and re-use a SecureRandom instead
+        Random random = new Random();
+        byte[] mask = new byte[4];
+        random.nextBytes(mask);
+        out.write(mask);
 
-    // ------------------------ Private Methods ------------------------------
-    private void _checkStreamClosed() throws IOException {
-        String s = "Cannot perform the operation on the OutputStream as it " +
-                   "is closed";
-        if (_streamClosed ) {
-            throw new WebSocketException(s);
+        byte[] masked = new byte[len - off];
+        for (int i = 0; i < len; i++) {
+            int index = off + i;
+            masked[index] = (byte) (b[i] ^ mask[i % mask.length]);
         }
+
+        out.write(masked);
     }
+
 }
