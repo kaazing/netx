@@ -19,6 +19,8 @@ package org.kaazing.netx.ws.specification;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.net.CookieHandler;
+import java.net.CookieManager;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
@@ -65,9 +67,11 @@ public class OpeningHandshakeIT {
     }
 
     @Test
-    @Ignore
     @Specification("request.header.cookie/handshake.response")
     public void shouldEstablishConnectionWithCookieRequestHeader() throws Exception {
+        CookieManager handler = new CookieManager();
+        CookieHandler.setDefault(handler);
+
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI preflight = URI.create("http://localhost:8080/preflight");
         HttpURLConnection connection = (HttpURLConnection) helper.toURL(preflight).openConnection();
