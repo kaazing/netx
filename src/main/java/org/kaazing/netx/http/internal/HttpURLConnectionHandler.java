@@ -34,7 +34,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.Authenticator;
 import java.net.CookieHandler;
-import java.net.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.Socket;
@@ -167,8 +166,6 @@ abstract class HttpURLConnectionHandler {
 
         private static enum State { INITIAL, HANDSHAKE_SENT, HANDSHAKE_RECEIVED }
 
-        private static final String APPLICATION_PREFIX = "Application ";
-
         private final HttpOriginSecuritySpi security;
 
         private State state;
@@ -259,6 +256,9 @@ abstract class HttpURLConnectionHandler {
                 String start = reader.readLine();
                 connection.addHeaderField(null, start);
 
+                if (start == null) {
+                    throw new IllegalStateException("Bad HTTP/1.1 syntax");
+                }
                 Matcher startMatcher = PATTERN_START.matcher(start);
                 if (!startMatcher.matches()) {
                     throw new IllegalStateException("Bad HTTP/1.1 syntax");
@@ -301,11 +301,9 @@ abstract class HttpURLConnectionHandler {
 
                 if (cookies != null && !cookies.isEmpty()) {
                     CookieHandler handler = CookieHandler.getDefault();
-                    if (handler == null) {
-                        handler = new CookieManager();
-                        CookieHandler.setDefault(handler);
+                    if (handler != null) {
+                        connection.storeCookies(handler);
                     }
-                    connection.storeCookies(handler);
                 }
 
                 state = State.HANDSHAKE_RECEIVED;
