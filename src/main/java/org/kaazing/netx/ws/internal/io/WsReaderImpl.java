@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.CharBuffer;
 
-import org.kaazing.netx.ws.WebSocketMessageType;
+import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.WebSocketException;
 
 public class WsReaderImpl extends Reader {
@@ -83,8 +83,8 @@ public class WsReaderImpl extends Reader {
                 _charBuffer = CharBuffer.wrap(((String)text).toCharArray());
             }
             catch (IOException ex) {
-                WebSocketMessageType type = _adapter.getType();
-                if ((type == WebSocketMessageType.EOS) || (type == null)) {
+                MessageType type = _adapter.getType();
+                if ((type == MessageType.EOS) || (type == null)) {
                     // End of stream. Return -1 as per the javadoc.
                     return -1;
                 }

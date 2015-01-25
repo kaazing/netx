@@ -16,24 +16,61 @@
 
 package org.kaazing.netx.ws.internal.url;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableMap;
+import static org.kaazing.netx.ws.internal.util.Util.changeScheme;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
-public class WssURLConnectionHelper extends WsURLConnectionHelper {
-    private static final Collection<String> SUPPORTED_PROTOCOLS = unmodifiableList(asList("wss", "wse+ssl", "wssn"));
+import javax.annotation.Resource;
+
+import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.URLConnectionHelperSpi;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
+
+public final class WssURLConnectionHelper extends URLConnectionHelperSpi {
+
+    private final Map<String, String> supportedProtocols;
+    private final WebSocketExtensionFactory extensionFactory;
+
+    private URLConnectionHelper helper = URLConnectionHelper.newInstance(); // TODO: inject
+
+    public WssURLConnectionHelper() {
+        Map<String, String> supportedProtocols = new HashMap<String, String>();
+        supportedProtocols.put("wss", "https");
+        supportedProtocols.put("wsn+ssl", "https"); // TODO: remove?
+        supportedProtocols.put("wse+ssl", "https"); // TODO
+        this.supportedProtocols = unmodifiableMap(supportedProtocols);
+        this.extensionFactory = WebSocketExtensionFactory.newInstance();
+    }
+
+    @Resource
+    public void setHelper(URLConnectionHelper helper) {
+        this.helper = helper;
+    }
 
     @Override
     public Collection<String> getSupportedProtocols() {
-        return SUPPORTED_PROTOCOLS;
+        return supportedProtocols.keySet();
     }
 
+    @Override
+    public URLConnection openConnection(URI location) throws IOException {
+        String scheme = location.getScheme();
+        assert supportedProtocols.containsKey(scheme);
+        String httpScheme = supportedProtocols.get(scheme);
+        URI httpLocation = changeScheme(URI.create(location.toString()), httpScheme);
+        return new WsURLConnectionImpl(helper, location, httpLocation, extensionFactory);
+    }
 
     @Override
     public URLStreamHandler newStreamHandler() throws IOException {
-        return new WssURLStreamHandlerImpl(super.getExtensionFactories());
+        return new WssURLStreamHandlerImpl(helper, supportedProtocols, extensionFactory);
     }
 }

@@ -16,68 +16,62 @@
 
 package org.kaazing.netx.ws.internal.url;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
+import static org.kaazing.netx.ws.internal.util.Util.changeScheme;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.ServiceLoader;
 
+import javax.annotation.Resource;
+
+import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.URLConnectionHelperSpi;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 
-public class WsURLConnectionHelper extends URLConnectionHelperSpi {
-    private static final Collection<String> SUPPORTED_PROTOCOLS = unmodifiableList(asList("ws", "wse", "wsn"));
-    private static final Map<String, WebSocketExtensionFactorySpi>  _extensionFactories;
+public final class WsURLConnectionHelper extends URLConnectionHelperSpi {
 
-    static {
-        Class<WebSocketExtensionFactorySpi> clazz = WebSocketExtensionFactorySpi.class;
-        ServiceLoader<WebSocketExtensionFactorySpi> loader = ServiceLoader.load(clazz);
-        Map<String, WebSocketExtensionFactorySpi> factories = new HashMap<String, WebSocketExtensionFactorySpi>();
+    private final Map<String, String> supportedProtocols;
+    private final WebSocketExtensionFactory extensionFactory;
 
-        for (WebSocketExtensionFactorySpi factory: loader) {
-            String extensionName = factory.getExtensionName();
+    private URLConnectionHelper helper = URLConnectionHelper.newInstance(); // TODO: inject
 
-            if (extensionName != null)
-            {
-                factories.put(extensionName, factory);
-            }
-        }
-        _extensionFactories = unmodifiableMap(factories);
+    public WsURLConnectionHelper() {
+        Map<String, String> supportedProtocols = new HashMap<String, String>();
+        supportedProtocols.put("ws", "http");
+        supportedProtocols.put("wsn", "http"); // TODO: remove?
+        supportedProtocols.put("wse", "http"); // TODO
+        this.supportedProtocols = unmodifiableMap(supportedProtocols);
+        this.extensionFactory = WebSocketExtensionFactory.newInstance();
+    }
+
+    @Resource
+    public void setHelper(URLConnectionHelper helper) {
+        this.helper = helper;
     }
 
     @Override
     public Collection<String> getSupportedProtocols() {
-        return SUPPORTED_PROTOCOLS;
+        return supportedProtocols.keySet();
     }
 
     @Override
     public URLConnection openConnection(URI location) throws IOException {
-        assert SUPPORTED_PROTOCOLS.contains(location.getScheme());
-        return new WsURLConnectionImpl(location.toURL(), _extensionFactories);
+        String scheme = location.getScheme();
+        assert supportedProtocols.containsKey(scheme);
+        String httpScheme = supportedProtocols.get(scheme);
+        URI httpLocation = changeScheme(URI.create(location.toString()), httpScheme);
+        return new WsURLConnectionImpl(helper, location, httpLocation, extensionFactory);
     }
 
     @Override
     public URLStreamHandler newStreamHandler() throws IOException {
-        return new WsURLStreamHandlerImpl(_extensionFactories);
+        return new WsURLStreamHandlerImpl(helper, supportedProtocols, extensionFactory);
     }
 
-
-    // ----------------- Package Private Methods -----------------------------
-    Map<String, WebSocketExtensionFactorySpi> getExtensionFactories() {
-        return _extensionFactories != null ? _extensionFactories :
-                                             Collections.<String, WebSocketExtensionFactorySpi>emptyMap();
-    }
-
-
-
-    // ----------------- Private Methods -------------------------------------
 }

@@ -22,73 +22,73 @@ import java.nio.ByteBuffer;
 import org.kaazing.netx.ws.internal.WebSocket;
 
 /**
- * {@link WebSocketMessageReader} is used to receive binary and text messages.
- * A reference to {@link WebSocketMessageReader} can be obtained by using
+ * {@link MessageReader} is used to receive binary and text messages.
+ * A reference to {@link MessageReader} can be obtained by using
  * {@link WebSocket#getMessageReader()} or
  * {@link WsURLConnection#getMessageReader()} methods only <b>after</b> a
- * connection has been successfully established. {@link WebSocketMessageReader}
- * allows looking at {@link WebSocketMessageType} to figure out whether it's a
+ * connection has been successfully established. {@link MessageReader}
+ * allows looking at {@link MessageType} to figure out whether it's a
  * text or a binary message so that appropriate getter methods can be
  * subsequently invoked to retrieve the message.
  * <p>
- * Trying to get a reference to {@link WebSocketMessageReader} before the
+ * Trying to get a reference to {@link MessageReader} before the
  * connection is established will result in an IOException.
  * <p>
- * Once the connection is closed, a new {@link WebSocketMessageReader} should
+ * Once the connection is closed, a new {@link MessageReader} should
  * be obtained using the aforementioned methods after the connection has been
  * established. Using the old reader will result in IOException.
  */
-public abstract class WebSocketMessageReader {
+public abstract class MessageReader {
     /**
      * Returns the payload of the last received message. This method should
      * be invoked after {@link #next()} only if the type of the received
-     * message is {@link WebSocketMessageType#BINARY}. This is not a blocking
+     * message is {@link MessageType#BINARY}. This is not a blocking
      * call.
      * <p>
      * A null is returned if this method is invoked before invoking
      * {@link #next()} method.
      * <p>
      * If the type of the last received message is not
-     * {@link WebSocketMessageType#BINARY}, then invoking this method to obtain
+     * {@link MessageType#BINARY}, then invoking this method to obtain
      * the payload of the message as ByteBuffer will result in an IOException.
      * <p>
      * @return ByteBuffer      binary payload of the message
      * @throws IOException     if the type of the last received message is not
-     *                         {@link WebSocketMessageType#BINARY}
+     *                         {@link MessageType#BINARY}
      */
-    public abstract ByteBuffer getBinary() throws IOException;
+    public abstract ByteBuffer readBinary() throws IOException;
 
     /**
      * Returns the payload of the last received message. This method should
      * be invoked after {@link #next()} only if the type of the received
-     * message is {@link WebSocketMessageType#TEXT}. This is not a blocking
+     * message is {@link MessageType#TEXT}. This is not a blocking
      * call.
      * <p>
      * A null is returned if this method is invoked before invoking
      * {@link #next()} method.
      * <p>
      * If the type of the last received message is not
-     * {@link WebSocketMessageType#TEXT}, then invoking this method to obtain
+     * {@link MessageType#TEXT}, then invoking this method to obtain
      * the payload of the message as CharSequence will result in an IOException.
      * <p>
      * @return CharSequence    text payload of the message
      * @throws IOException     if the type of the last received message is not
-     *                         {@link WebSocketMessageType#TEXT}
+     *                         {@link MessageType#TEXT}
      */
-    public abstract CharSequence getText() throws IOException;
+    public abstract CharSequence readText() throws IOException;
 
     /**
-     * Returns the {@link WebSocketMessageType} of the already received message.
+     * Returns the {@link MessageType} of the already received message.
      * This method returns a null until the first message is received.  Note
      * that this is not a blocking call. When connected, if this method is
      * invoked immediately after {@link #next()}, then they will return the same
      * value.
      * <p>
-     * Based on the returned {@link WebSocketMessageType}, appropriate read
+     * Based on the returned {@link MessageType}, appropriate read
      * methods can be used to receive the message. This method will continue to
-     * return the same {@link WebSocketMessageType} till the next message
+     * return the same {@link MessageType} till the next message
      * arrives. When the next message arrives, this method will return the
-     * the {@link WebSocketMessageType} associated with that message.
+     * the {@link MessageType} associated with that message.
      * <p>
 
      * @return WebSocketMessageType    WebSocketMessageType.TEXT for a text
@@ -97,15 +97,15 @@ public abstract class WebSocketMessageReader {
      *                                 if the connection is closed; null before
      *                                 the first message
      */
-    public abstract WebSocketMessageType getType();
+    public abstract MessageType readType();
 
     /**
      * Invoking this method will cause the thread to block until a message is
      * received. When the message is received, this method returns the type of
      * the newly received message. Based on the returned
-     * {@link WebSocketMessageType}, appropriate getter methods can be used to
+     * {@link MessageType}, appropriate getter methods can be used to
      * retrieve the binary or text message. When the connection is closed, this
-     * method returns {@link WebSocketMessageType#EOS}.
+     * method returns {@link MessageType#EOS}.
      * <p>
      * An IOException is thrown if this method is invoked before the connection
      * has been established.
@@ -116,5 +116,5 @@ public abstract class WebSocketMessageReader {
      *                         if the connection is closed
      * @throws IOException     if invoked before the connection is established
      */
-    public abstract WebSocketMessageType next() throws IOException;
+    public abstract MessageType next() throws IOException;
 }

@@ -57,5 +57,5 @@ public abstract class WebSocketExtensionFactorySpi {
      * @param parameters    name-value pairs
      * @return WebSocketExtensionSpi   singleton instance for the extension
      */
-    public abstract WebSocketExtensionSpi createWsExtension(WebSocketExtensionParameterValuesSpi parameters);
+    public abstract WebSocketExtensionSpi createExtension(WebSocketExtensionParameterValues parameters);
 }

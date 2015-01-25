@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 
-import org.kaazing.netx.ws.WebSocketMessageWriter;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WebSocketException;
 
 public class WsWriterImpl extends Writer {
@@ -28,7 +28,7 @@ public class WsWriterImpl extends Writer {
     private StringBuffer          _stringBuffer;
     private boolean               _closed;
 
-    public WsWriterImpl(WebSocketMessageWriter writer) {
+    public WsWriterImpl(MessageWriter writer) {
         _writer = (WsMessageWriterImpl) writer;
         _stringBuffer = new StringBuffer("");
         _closed = false;

@@ -34,11 +34,12 @@ import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 
 public final class DefaultWebSocketFactory extends WebSocketFactory {
     private static final Map<String, WebSocketExtensionFactorySpi>  _extensionFactories;
 
-    private final Map<String, WsExtensionParameterValuesSpiImpl> _parameters;
+    private final Map<String, WsExtensionParameterValuesImpl> _parameters;
     private final Collection<String>  _supportedExtensions;
 
     private HttpRedirectPolicy        _redirectPolicy;
@@ -63,7 +64,7 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
     }
 
     public DefaultWebSocketFactory() {
-        _parameters = new HashMap<String, WsExtensionParameterValuesSpiImpl>();
+        _parameters = new HashMap<String, WsExtensionParameterValuesImpl>();
 
         _supportedExtensions = new HashSet<String>();
         _supportedExtensions.addAll(_extensionFactories.keySet());
@@ -98,8 +99,8 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
 
         // Clone the map of default parameters maintained at the
         // WebSocketFactory level to pass into the WebSocket instance.
-        Map<String, WsExtensionParameterValuesSpiImpl> enabledParams =
-                      new HashMap<String, WsExtensionParameterValuesSpiImpl>();
+        Map<String, WebSocketExtensionParameterValues> enabledParams =
+                      new HashMap<String, WebSocketExtensionParameterValues>();
         enabledParams.putAll(_parameters);
 
         // Create a WebSocket instance that inherits the enabled protocols,
@@ -107,7 +108,7 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
         // the extension factories(ie. the supported extensions).
         WebSocketImpl   ws = new WebSocketImpl(location, enabledParams);
         ws.setRedirectPolicy(_redirectPolicy);
-        ws.setEnabledExtensions(enabledExtensions);
+//        ws.setEnabledExtensions(enabledExtensions);
         ws.setEnabledProtocols(enabledProtocols);
         ws.setChallengeHandler(_challengeHandler);
         ws.setConnectTimeout(_connectTimeout);
@@ -139,7 +140,7 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
     @Override
     public <T> T getDefaultParameter(Parameter<T> parameter) {
         String                            extName = parameter.extension().name();
-        WsExtensionParameterValuesSpiImpl paramValues = _parameters.get(extName);
+        WsExtensionParameterValuesImpl paramValues = _parameters.get(extName);
 
         if (paramValues == null) {
             return null;
@@ -195,9 +196,9 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
     public <T> void setDefaultParameter(Parameter<T> parameter, T value) {
         String extensionName = parameter.extension().name();
 
-        WsExtensionParameterValuesSpiImpl parameterValues = _parameters.get(extensionName);
+        WsExtensionParameterValuesImpl parameterValues = _parameters.get(extensionName);
         if (parameterValues == null) {
-            parameterValues = new WsExtensionParameterValuesSpiImpl();
+            parameterValues = new WsExtensionParameterValuesImpl();
             _parameters.put(extensionName, parameterValues);
         }
 

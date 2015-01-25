@@ -44,5 +44,5 @@ package org.kaazing.netx.ws.internal.ext;
  */
 public abstract class WebSocketExtensionSpi {
 
-    public abstract WebSocketExtensionHandlerSpi createHandler();
+    public abstract WebSocketExtensionHandler createHandler();
 }

@@ -36,26 +36,24 @@ import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WsExtensionParameterValuesImpl;
 import org.kaazing.netx.ws.internal.WsURLConnectionHandler;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValuesSpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     private static final String HEADER_CONNECTION = "Connection";
-    private static final String HEADER_PROTOCOL = "WebSocket-Protocol";
     private static final String HEADER_SEC_ACCEPT = "Sec-WebSocket-Accept";
     private static final String HEADER_SEC_PROTOCOL = "Sec-WebSocket-Protocol";
     private static final String HEADER_SEC_EXTENSIONS = "Sec-WebSocket-Extensions";
     private static final String HEADER_SEC_KEY = "Sec-WebSocket-Key";
     private static final String HEADER_SEC_VERSION = "Sec-WebSocket-Version";
     private static final String HEADER_UPGRADE = "Upgrade";
-    private static final String HTTP_101_MESSAGE = "Switching Protocols";
-    // private static final String HTTP_101_MESSAGE = "Web Socket Protocol Handshake";
 
 
     private final WsURLConnection _connection;
@@ -111,11 +109,6 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
             throw new IOException(format("Upgrade to WebSocket failed with response code (%d)", responseCode));
         }
 
-        String responseMessage = _delegate.getResponseMessage();
-        if (!responseMessage.equals(HTTP_101_MESSAGE)) {
-            throw new IOException(format("Upgrade to WebSocket failed with invalid message '%s'", responseMessage));
-        }
-
         String upgrade = _delegate.getHeaderField(HEADER_UPGRADE);
         if ((upgrade == null) || !upgrade.equalsIgnoreCase("websocket")) {
             throw new IOException("Upgrade failed: Invalid 'Upgrade' header " + upgrade);
@@ -152,10 +145,10 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
 
         // Set up the negotiated protocol, negotiated extensions, and the
         // response/status code with message.
-        getConnectionImpl().setNegotiatedProtocol(protocol);
-        getConnectionImpl().setNegotiatedExtensions(extensions);
-        getConnectionImpl().setResponseCode(_delegate.getResponseCode());
-        getConnectionImpl().setResponseMessage(_delegate.getResponseMessage());
+//        getConnectionImpl().setNegotiatedProtocol(protocol);
+//        getConnectionImpl().setNegotiatedExtensions(extensions);
+//        getConnectionImpl().setResponseCode(_delegate.getResponseCode());
+//        getConnectionImpl().setResponseMessage(_delegate.getResponseMessage());
     }
 
     @Override
@@ -192,7 +185,7 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
 
 
     private String formattedExtension(String                               extensionName,
-                                      WebSocketExtensionParameterValuesSpi paramValues) {
+                                      WebSocketExtensionParameterValues paramValues) {
         if (extensionName == null) {
             return "";
         }
@@ -275,33 +268,32 @@ public final class WsURLConnectionHandlerNative extends WsURLConnectionHandler {
     private String getEnabledExtensionsWithParamsAsRFC3864FormattedString() {
         // Iterate over enabled extensions.
         StringBuffer extensionsHeader = new StringBuffer("");
-        Map<String, WebSocketExtensionFactorySpi> factories = getConnectionImpl().getExtensionFactories();
 
-        for (String extensionName : getConnectionImpl().getEnabledExtensions()) {
-            WebSocketExtensionFactorySpi extensionFactory = factories.get(extensionName);
-            WebSocketExtensionParameterValuesSpi paramValues = getConnectionImpl().getEnabledParameters().get(extensionName);
-
-            // Get the RFC-3864 formatted string representation of the
-            // WebSocketExtension.
-            String formatted = formattedExtension(extensionName, paramValues);
-
-            if (formatted.length() > 0) {
-                if (extensionsHeader.length() > 0) {
-                    // Add the ',' separator between strings representing
-                    // different extensions.
-                    extensionsHeader.append(",");
-                }
-
-                extensionsHeader.append(formatted);
-            }
-        }
+//        for (String extensionName : getConnectionImpl().getEnabledExtensions()) {
+//            Map<String, WebSocketExtensionParameterValues> enabledParameters = getConnectionImpl().getEnabledExtensions();
+//            WebSocketExtensionParameterValues paramValues = enabledParameters.get(extensionName);
+//
+//            // Get the RFC-3864 formatted string representation of the
+//            // WebSocketExtension.
+//            String formatted = formattedExtension(extensionName, paramValues);
+//
+//            if (formatted.length() > 0) {
+//                if (extensionsHeader.length() > 0) {
+//                    // Add the ',' separator between strings representing
+//                    // different extensions.
+//                    extensionsHeader.append(",");
+//                }
+//
+//                extensionsHeader.append(formatted);
+//            }
+//        }
 
         return extensionsHeader.toString();
     }
 
     private String getHttpUrl() {
-        String scheme = getConnectionImpl().getLocation().getScheme();
-        String location = getConnectionImpl().getLocation().toString();
+        String scheme = getConnectionImpl().getURL().getProtocol();
+        String location = getConnectionImpl().getURL().toString();
         int    index = location.indexOf(':');
         String newScheme = null;
 

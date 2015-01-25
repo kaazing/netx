@@ -22,18 +22,18 @@ import java.nio.ByteBuffer;
 import org.kaazing.netx.ws.internal.WebSocket;
 
 /**
- * {@link WebSocketMessageWriter} is used to send binary and text messages. A
- * reference to {@link WebSocketMessageWriter} is obtained by invoking either
+ * {@link MessageWriter} is used to send binary and text messages. A
+ * reference to {@link MessageWriter} is obtained by invoking either
  * {@link WebSocket#getMessageWriter()} or
  * {@link WsURLConnection#getMessageWriter() methods after the connection has
- * been established. Trying to get a reference to {@link WebSocketMessageWriter}
+ * been established. Trying to get a reference to {@link MessageWriter}
  * before the connection is established will result in an IOException.
  * <p>
- * Once the connection is closed, a new {@link WebSocketMessageReader} should
+ * Once the connection is closed, a new {@link MessageReader} should
  * be obtained using the aforementioned methods after the connection has been
  * established. Using the old reader will result in IOException.
  */
-public abstract class WebSocketMessageWriter {
+public abstract class MessageWriter {
 
     /**
      * Sends a text message using the specified payload. Trying to write

@@ -16,24 +16,32 @@
 
 package org.kaazing.netx.ws.internal.url;
 
+import static org.kaazing.netx.ws.internal.util.Util.changeScheme;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLStreamHandler;
 import java.util.Map;
 
+import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 
-class WsURLStreamHandlerImpl extends URLStreamHandler {
+final class WsURLStreamHandlerImpl extends URLStreamHandler {
 
-    private final Map<String, WebSocketExtensionFactorySpi> _extensionFactories;
+    private final URLConnectionHelper helper;
+    private final Map<String, String> supportedProtocols;
+    private final WebSocketExtensionFactory extensionFactory;
 
-    private String    _scheme;
-
-    public WsURLStreamHandlerImpl(Map<String, WebSocketExtensionFactorySpi> extensionFactories) {
-        _extensionFactories = extensionFactories;
+    public WsURLStreamHandlerImpl(
+            URLConnectionHelper helper,
+            Map<String, String> supportedProtocols,
+            WebSocketExtensionFactory extensionFactory) {
+        this.helper = helper;
+        this.supportedProtocols = supportedProtocols;
+        this.extensionFactory = extensionFactory;
     }
 
     @Override
@@ -43,50 +51,12 @@ class WsURLStreamHandlerImpl extends URLStreamHandler {
 
     @Override
     protected WsURLConnection openConnection(URL location) throws IOException {
-        return new WsURLConnectionImpl(location, _extensionFactories);
+        URI locationURI = URI.create(location.toString());
+        String scheme = locationURI.getScheme();
+        String httpScheme = supportedProtocols.get(scheme);
+        assert httpScheme != null;
+        URI httpLocation = changeScheme(locationURI, httpScheme);
+        return new WsURLConnectionImpl(helper, location, httpLocation, extensionFactory);
     }
 
-    @Override
-    protected void parseURL(URL location, String spec, int start, int limit) {
-        _scheme = spec.substring(0, spec.indexOf("://"));
-
-        // start needs to be adjusted for schemes that include a ':' such as
-        // java:wse, etc.
-        // int index = spec.indexOf(":/");
-        // start = index + 1;
-
-        URI    specURI = _getSpecURI(spec);
-        String host = specURI.getHost();
-        int    port = specURI.getPort();
-        String authority = specURI.getAuthority();
-        String userInfo = specURI.getUserInfo();
-        String path = specURI.getPath();
-        String query = specURI.getQuery();
-
-        setURL(location, _scheme, host, port, authority, userInfo, path, query, null);
-        // super.parseURL(location, spec, start, limit);
-    }
-
-    // ### TODO:
-    // This method is no longer needed as we are not supporting 'java:'
-    // prefixes. Keeping it for time being.
-    @Override
-    protected String toExternalForm(URL location) {
-        return super.toExternalForm(location);
-    }
-
-    // ----------------- Private Methods -----------------------------------
-    // Creates a URI that can be used to retrieve various parts such as host,
-    // port, etc. Based on whether the scheme includes ':', the method returns
-    // the appropriate URI that can be used to retrieve the needed parts.
-    private URI _getSpecURI(String spec) {
-        URI specURI = URI.create(spec);
-
-        if (_scheme.indexOf(':') == -1) {
-            return specURI;
-        }
-
-        String schemeSpecificPart = specURI.getSchemeSpecificPart();
-        return URI.create(schemeSpecificPart);
-    }
 }

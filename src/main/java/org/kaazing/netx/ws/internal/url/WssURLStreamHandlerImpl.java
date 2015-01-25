@@ -16,19 +16,47 @@
 
 package org.kaazing.netx.ws.internal.url;
 
+import static org.kaazing.netx.ws.internal.util.Util.changeScheme;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLStreamHandler;
 import java.util.Map;
 
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
+import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 
-public class WssURLStreamHandlerImpl extends WsURLStreamHandlerImpl {
+final class WssURLStreamHandlerImpl extends URLStreamHandler {
+
+    private final URLConnectionHelper helper;
+    private final Map<String, String> supportedProtocols;
+    private final WebSocketExtensionFactory extensionFactory;
 
     public WssURLStreamHandlerImpl(
-            Map<String, WebSocketExtensionFactorySpi> extensionFactories) {
-        super(extensionFactories);
+            URLConnectionHelper helper,
+            Map<String, String> supportedProtocols,
+            WebSocketExtensionFactory extensionFactory) {
+        this.helper = helper;
+        this.supportedProtocols = supportedProtocols;
+        this.extensionFactory = extensionFactory;
     }
 
     @Override
     protected int getDefaultPort() {
         return 443;
     }
+
+    @Override
+    protected WsURLConnection openConnection(URL location) throws IOException {
+        URI locationURI = URI.create(location.toString());
+        String scheme = locationURI.getScheme();
+        String httpScheme = supportedProtocols.get(scheme);
+        assert httpScheme != null;
+        URI httpLocation = changeScheme(locationURI, httpScheme);
+        return new WsURLConnectionImpl(helper, location, httpLocation, extensionFactory);
+    }
+
 }

@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-public abstract class WebSocketExtensionHandlerSpi {
+public abstract class WebSocketExtensionHandler {
 
     public abstract void connect() throws IOException;
 

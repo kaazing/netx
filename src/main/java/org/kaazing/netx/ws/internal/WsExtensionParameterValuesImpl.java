@@ -25,13 +25,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValuesSpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 
-public final class WsExtensionParameterValuesSpiImpl extends WebSocketExtensionParameterValuesSpi {
+public final class WsExtensionParameterValuesImpl extends WebSocketExtensionParameterValues {
 
     private final Map<Parameter<?>, Object> values;
 
-    public WsExtensionParameterValuesSpiImpl() {
+    public WsExtensionParameterValuesImpl() {
         values = new HashMap<Parameter<?>, Object>();
     }
 

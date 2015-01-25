@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.WebSocketMessageType;
+import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.WebSocketException;
 import org.kaazing.netx.ws.internal.util.DynamicByteBuffer;
 
@@ -78,8 +78,8 @@ public class WsInputStreamImpl extends InputStream {
             prepareBuffer();
         }
         catch (IOException ex) {
-            WebSocketMessageType type = _adapter.getType();
-            if ((type == WebSocketMessageType.EOS) || (type == null)) {
+            MessageType type = _adapter.getType();
+            if ((type == MessageType.EOS) || (type == null)) {
                 // End of stream. Return -1 as per the javadoc.
                 return -1;
             }
@@ -106,8 +106,8 @@ public class WsInputStreamImpl extends InputStream {
             prepareBuffer();
         }
         catch (IOException ex) {
-            WebSocketMessageType type = _adapter.getType();
-            if ((type == WebSocketMessageType.EOS) || (type == null)) {
+            MessageType type = _adapter.getType();
+            if ((type == MessageType.EOS) || (type == null)) {
                 // End of stream. Return -1 as per the javadoc.
                 return -1;
             }

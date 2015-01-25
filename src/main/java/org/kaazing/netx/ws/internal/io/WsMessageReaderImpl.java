@@ -21,20 +21,20 @@ import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.kaazing.netx.ws.WebSocketMessageReader;
-import org.kaazing.netx.ws.WebSocketMessageType;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.WebSocketException;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.util.InterruptibleBlockingQueue;
 
-public class WsMessageReaderImpl extends WebSocketMessageReader {
+public class WsMessageReaderImpl extends MessageReader {
     private static final String _CLASS_NAME = WsMessageReaderImpl.class.getName();
     private static final Logger _LOG = Logger.getLogger(_CLASS_NAME);
 
     private final InterruptibleBlockingQueue<Object>    _sharedQueue;
     private final WsURLConnectionImpl          _urlConnection;
     private       Object                       _payload;
-    private       WebSocketMessageType         _messageType;
+    private       MessageType         _messageType;
     private       boolean                      _closed;
 
     public WsMessageReaderImpl(WsURLConnectionImpl                urlConnection,
@@ -55,17 +55,17 @@ public class WsMessageReaderImpl extends WebSocketMessageReader {
 
     // --------------------- WebSocketMessageReader Implementation -----------
     @Override
-    public ByteBuffer getBinary() throws IOException {
+    public ByteBuffer readBinary() throws IOException {
         if (_messageType == null) {
             return null;
         }
 
-        if (_messageType == WebSocketMessageType.EOS){
+        if (_messageType == MessageType.EOS){
             String s = "End of stream has reached as the connection has been closed";
             throw new WebSocketException(s);
         }
 
-        if (_messageType != WebSocketMessageType.BINARY) {
+        if (_messageType != MessageType.BINARY) {
             String s = "Invalid WebSocketMessageType: Cannot decode the payload " +
                        "as a binary message";
             throw new WebSocketException(s);
@@ -75,17 +75,17 @@ public class WsMessageReaderImpl extends WebSocketMessageReader {
     }
 
     @Override
-    public CharSequence getText() throws IOException {
+    public CharSequence readText() throws IOException {
         if (_messageType == null) {
             return null;
         }
 
-        if (_messageType == WebSocketMessageType.EOS){
+        if (_messageType == MessageType.EOS){
             String s = "End of stream has reached as the connection has been closed";
             throw new WebSocketException(s);
         }
 
-        if (_messageType != WebSocketMessageType.TEXT) {
+        if (_messageType != MessageType.TEXT) {
             String s = "Invalid WebSocketMessageType: Cannot decode the payload " +
                        "as a text message";
             throw new WebSocketException(s);
@@ -95,22 +95,22 @@ public class WsMessageReaderImpl extends WebSocketMessageReader {
     }
 
     @Override
-    public WebSocketMessageType getType() {
+    public MessageType readType() {
         return _messageType;
     }
 
     @Override
-    public WebSocketMessageType next() throws IOException {
+    public MessageType next() throws IOException {
         if (isClosed()) {
             String s = "Cannot read as the MessageReader is closed";
             throw new WebSocketException(s);
         }
 
         synchronized (this) {
-            if (!_urlConnection.isConnected()) {
-                _messageType = WebSocketMessageType.EOS;
-                return _messageType;
-            }
+//            if (!_urlConnection.isConnected()) {
+//                _messageType = MessageType.EOS;
+//                return _messageType;
+//            }
 
             try {
                 _payload = null;
@@ -126,15 +126,15 @@ public class WsMessageReaderImpl extends WebSocketMessageReader {
                 // throw new WebSocketException(s);
                 _LOG.log(Level.FINE, _CLASS_NAME, s);
 
-                _messageType = WebSocketMessageType.EOS;
+                _messageType = MessageType.EOS;
                 return _messageType;
             }
 
             if (_payload.getClass() == String.class) {
-                _messageType = WebSocketMessageType.TEXT;
+                _messageType = MessageType.TEXT;
             }
             else {
-                _messageType = WebSocketMessageType.BINARY;
+                _messageType = MessageType.BINARY;
             }
         }
 
@@ -149,10 +149,10 @@ public class WsMessageReaderImpl extends WebSocketMessageReader {
             return;
         }
 
-        if (!_urlConnection.isDisconnected()) {
-            String s = "Can't close the MessageReader if still connected";
-            throw new WebSocketException(s);
-        }
+//        if (!_urlConnection.isDisconnected()) {
+//            String s = "Can't close the MessageReader if still connected";
+//            throw new WebSocketException(s);
+//        }
 
         _sharedQueue.done();
         _payload = null;

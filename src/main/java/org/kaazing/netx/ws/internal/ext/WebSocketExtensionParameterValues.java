@@ -30,11 +30,11 @@ import org.kaazing.netx.ws.WsURLConnection;
  * WsExtensionParameterValues is used to cache extension parameters as
  * name-value pairs in a very generic type-safe way. The implementations of
  * {@link WebSocket#connect()} and {@link WsURLConnection#connect()} invoke
- * {@link WebSocketExtensionFactorySpi#createWsExtension(WebSocketExtensionParameterValuesSpi)}
+ * {@link WebSocketExtensionFactorySpi#createExtension(WebSocketExtensionParameterValuesSpi)}
  * method and pass in all the extension parameters that have been earlier set
  * by the developer for the enabled extensions.
  */
-public abstract class WebSocketExtensionParameterValuesSpi {
+public abstract class WebSocketExtensionParameterValues {
     /**
      * Returns the collection of {@link Parameter} objects of a
      * {@link WebSocketExtension} that have been set. Returns an empty

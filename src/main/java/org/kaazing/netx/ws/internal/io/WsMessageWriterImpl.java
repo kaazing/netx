@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.WebSocketMessageWriter;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WebSocketException;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
-public class WsMessageWriterImpl extends WebSocketMessageWriter {
+public class WsMessageWriterImpl extends MessageWriter {
     private WsURLConnectionImpl    _urlConnection;
     private boolean  _closed;
 
@@ -46,7 +46,7 @@ public class WsMessageWriterImpl extends WebSocketMessageWriter {
             throw new IOException(s);
         }
 
-        _urlConnection.send(src.toString());
+//        _urlConnection.send(src.toString());
     }
 
     @Override
@@ -56,7 +56,7 @@ public class WsMessageWriterImpl extends WebSocketMessageWriter {
             throw new WebSocketException(s);
         }
 
-        _urlConnection.send(src);
+//        _urlConnection.send(src);
     }
 
     // ----------------- Internal Implementation ----------------------------
