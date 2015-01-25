@@ -75,7 +75,6 @@ public class URLConnectionHelperTest {
 
         @Override
         public void connect() throws IOException {
-            
         }
 
         public URLConnectionHelper getHelper() {
