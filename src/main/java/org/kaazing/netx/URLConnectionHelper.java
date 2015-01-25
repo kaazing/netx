@@ -16,7 +16,8 @@
 
 package org.kaazing.netx;
 
-import static java.lang.Character.isUpperCase;
+import static java.lang.reflect.Modifier.isPublic;
+import static java.lang.reflect.Modifier.isStatic;
 import static java.util.Collections.unmodifiableMap;
 
 import java.io.IOException;
@@ -30,6 +31,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+
+import javax.annotation.Resource;
 
 public final class URLConnectionHelper {
 
@@ -97,25 +100,31 @@ public final class URLConnectionHelper {
             Class<? extends Object> targetClass = target.getClass();
             Method[] targetMethods = targetClass.getMethods();
             for (Method targetMethod : targetMethods) {
-                String targetMethodName = targetMethod.getName();
-                if (targetMethodName.length() == 3 && "set".equals(targetMethodName) ||
-                        targetMethodName.length() > 3 && targetMethodName.startsWith("set") &&
-                        isUpperCase(targetMethodName.charAt(3))) {
-                    Class<?>[] targetMethodParameterTypes = targetMethod.getParameterTypes();
-                    if (targetMethodParameterTypes.length == 1 && targetMethodParameterTypes[0] == type) {
-                        try {
-                            targetMethod.invoke(target, instance);
-                        }
-                        catch (IllegalArgumentException e) {
-                            // failed to inject
-                        }
-                        catch (IllegalAccessException e) {
-                            // failed to inject
-                        }
-                        catch (InvocationTargetException e) {
-                            // failed to inject
-                        }
-                    }
+
+                if (targetMethod.getAnnotation(Resource.class) == null) {
+                    continue;
+                }
+
+                if (!isPublic(targetMethod.getModifiers()) || isStatic(targetMethod.getModifiers())) {
+                    continue;
+                }
+
+                Class<?>[] targetMethodParameterTypes = targetMethod.getParameterTypes();
+                if (targetMethodParameterTypes.length != 1 || targetMethodParameterTypes[0] != type) {
+                    continue;
+                }
+
+                try {
+                    targetMethod.invoke(target, instance);
+                }
+                catch (IllegalArgumentException e) {
+                    // failed to inject
+                }
+                catch (IllegalAccessException e) {
+                    // failed to inject
+                }
+                catch (InvocationTargetException e) {
+                    // failed to inject
                 }
             }
         }
