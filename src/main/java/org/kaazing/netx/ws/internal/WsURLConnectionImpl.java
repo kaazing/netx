@@ -17,6 +17,8 @@
 package org.kaazing.netx.ws.internal;
 
 import static java.lang.String.format;
+import static java.util.Collections.unmodifiableCollection;
+import static java.util.Collections.unmodifiableMap;
 import static java.util.logging.Logger.getLogger;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 
@@ -78,8 +80,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final WebSocketExtensionFactory extensionFactory;
     private final HttpURLConnection connection;
     private final Collection<String> enabledProtocols;
+    private final Collection<String> enabledProtocolsRO;
     private final Map<String, WebSocketExtensionParameterValues> enabledExtensions;
+    private final Map<String, WebSocketExtensionParameterValues> enabledExtensionsRO;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensions;
+    private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensionsRO;
 
     private ReadyState readyState;
     private String negotiatedProtocol;
@@ -109,8 +114,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.readyState = ReadyState.INITIAL;
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
+        this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
         this.enabledExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        this.enabledExtensionsRO = unmodifiableMap(enabledExtensions);
         this.negotiatedExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        this.negotiatedExtensionsRO = unmodifiableMap(negotiatedExtensions);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -125,8 +133,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.readyState = ReadyState.INITIAL;
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
+        this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
         this.enabledExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        this.enabledExtensionsRO = unmodifiableMap(enabledExtensions);
         this.negotiatedExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        this.negotiatedExtensionsRO = unmodifiableMap(negotiatedExtensions);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -206,7 +217,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      *                                connection
      */
     public Collection<String> getEnabledExtensions() {
-        return enabledExtensions.keySet();
+        return enabledExtensionsRO.keySet();
     }
 
     /**
@@ -232,7 +243,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public Collection<String> getEnabledProtocols() {
-        return enabledProtocols;
+        return enabledProtocolsRO;
     }
 
     @Override
@@ -291,7 +302,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      */
     public Collection<String> getNegotiatedExtensions() throws IOException {
         connect();
-        return negotiatedExtensions.keySet();
+        return negotiatedExtensionsRO.keySet();
     }
 
     /**
@@ -503,9 +514,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_EXTENSIONS, formattedExtensions);
         }
 
-        Collection<String> protocols = getEnabledProtocols();
-        if (!protocols.isEmpty()) {
-            String formattedProtocols = formatAsRFC3864(protocols);
+        if (!enabledProtocols.isEmpty()) {
+            String formattedProtocols = formatAsRFC3864(enabledProtocols);
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_PROTOCOL, formattedProtocols);
         }
 
@@ -517,7 +527,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             throw new IOException("Connection failed");
         }
 
-        negotiateProtocol(protocols, connection.getHeaderField(HEADER_SEC_WEBSOCKET_PROTOCOL));
+        negotiateProtocol(enabledProtocols, connection.getHeaderField(HEADER_SEC_WEBSOCKET_PROTOCOL));
         negotiateExtensions(enabledExtensions, connection.getHeaderField(HEADER_SEC_WEBSOCKET_EXTENSIONS));
 
         this.readyState = ReadyState.OPEN;
