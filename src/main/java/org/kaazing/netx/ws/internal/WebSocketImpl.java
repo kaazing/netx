@@ -32,12 +32,14 @@ import java.util.Map;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.WebSocketMessageReader;
-import org.kaazing.netx.ws.WebSocketMessageWriter;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 
 public class WebSocketImpl extends WebSocket {
-    private WsURLConnectionImpl   _connection;
+
+    private final WsURLConnectionImpl connection;
 
     /**
      * Creates a WebSocket that opens up a full-duplex connection to the target
@@ -47,19 +49,18 @@ public class WebSocketImpl extends WebSocket {
      * @param location        URI of the WebSocket service for the connection
      * @throws Exception      if connection could not be established
      */
-    public WebSocketImpl(URI  location) throws URISyntaxException {
-        this(location, Collections.<String, WsExtensionParameterValuesSpiImpl>emptyMap());
+    public WebSocketImpl(URI location) throws URISyntaxException {
+        this(location, Collections.<String, WebSocketExtensionParameterValues>emptyMap());
     }
 
-    public WebSocketImpl(URI                                            location,
-                         Map<String, WsExtensionParameterValuesSpiImpl> enabledParameters)
+    public WebSocketImpl(URI location, Map<String, WebSocketExtensionParameterValues> enabledExtensions)
            throws URISyntaxException {
         try {
             URLConnectionHelper helper = URLConnectionHelper.newInstance();
             URL locationURL = helper.toURL(location);
 
-            _connection = (WsURLConnectionImpl) locationURL.openConnection();
-            _connection.setEnabledParameters(enabledParameters);
+            connection = (WsURLConnectionImpl) locationURL.openConnection();
+            connection.setEnabledExtensions(enabledExtensions);
         }
         catch (MalformedURLException e) {
             throw new IllegalStateException(e);
@@ -82,121 +83,121 @@ public class WebSocketImpl extends WebSocket {
 
     @Override
     public synchronized void close(int code, String reason) throws IOException {
-        _connection.close(code, reason);
+        connection.close(code, reason);
     }
 
     @Override
     public void connect() throws IOException {
-        _connection.connect();
+        connection.connect();
     }
 
     @Override
     public ChallengeHandler getChallengeHandler() {
-        return _connection.getChallengeHandler();
+        return connection.getChallengeHandler();
     }
 
     @Override
     public int getConnectTimeout() {
-        return _connection.getConnectTimeout();
+        return connection.getConnectTimeout();
     }
 
     @Override
     public Collection<String> getEnabledExtensions() {
-        return _connection.getEnabledExtensions();
+        return connection.getEnabledExtensions();
     }
 
     @Override
     public <T> T getEnabledParameter(Parameter<T> parameter) {
-        return _connection.getEnabledParameter(parameter);
+        return connection.getEnabledParameter(parameter);
     }
 
     @Override
     public Collection<String> getEnabledProtocols() {
-        return _connection.getEnabledProtocols();
+        return connection.getEnabledProtocols();
     }
 
     @Override
     public HttpRedirectPolicy getRedirectPolicy() {
-        return _connection.getRedirectPolicy();
+        return connection.getRedirectPolicy();
     }
 
     @Override
     public InputStream getInputStream() throws IOException {
-        return _connection.getInputStream();
+        return connection.getInputStream();
     }
 
     @Override
-    public WebSocketMessageReader getMessageReader() throws IOException {
-        return _connection.getMessageReader();
+    public MessageReader getMessageReader() throws IOException {
+        return connection.getMessageReader();
     }
 
     @Override
-    public WebSocketMessageWriter getMessageWriter() throws IOException {
-        return _connection.getMessageWriter();
+    public MessageWriter getMessageWriter() throws IOException {
+        return connection.getMessageWriter();
     }
 
     @Override
-    public Collection<String> getNegotiatedExtensions() {
-        return _connection.getNegotiatedExtensions();
+    public Collection<String> getNegotiatedExtensions() throws IOException {
+        return connection.getNegotiatedExtensions();
     }
 
     @Override
-    public <T> T getNegotiatedParameter(Parameter<T> parameter) {
-        return _connection.getNegotiatedParameter(parameter);
+    public <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException {
+        return connection.getNegotiatedParameter(parameter);
     }
 
     @Override
-    public String getNegotiatedProtocol() {
-        return _connection.getNegotiatedProtocol();
+    public String getNegotiatedProtocol() throws IOException {
+        return connection.getNegotiatedProtocol();
     }
 
     @Override
     public OutputStream getOutputStream() throws IOException {
-        return _connection.getOutputStream();
+        return connection.getOutputStream();
     }
 
     @Override
     public Reader getReader() throws IOException {
-        return _connection.getReader();
+        return connection.getReader();
     }
 
     @Override
     public Collection<String> getSupportedExtensions() {
-        return _connection.getSupportedExtensions();
+        return connection.getSupportedExtensions();
     }
 
     @Override
     public Writer getWriter() throws IOException {
-        return _connection.getWriter();
+        return connection.getWriter();
     }
 
     @Override
     public void setChallengeHandler(ChallengeHandler challengeHandler) {
-        _connection.setChallengeHandler(challengeHandler);
+        connection.setChallengeHandler(challengeHandler);
     }
 
     @Override
     public void setConnectTimeout(int connectTimeout) {
-        _connection.setConnectTimeout(connectTimeout);
+        connection.setConnectTimeout(connectTimeout);
     }
 
-    @Override
-    public void setEnabledExtensions(Collection<String> extensions) {
-        _connection.setEnabledExtensions(extensions);
-    }
-
-    @Override
-    public <T> void setEnabledParameter(Parameter<T> parameter, T value) {
-        _connection.setEnabledParameter(parameter, value);
-    }
-
+//    @Override
+//    public void setEnabledExtensions(Collection<String> extensions) {
+//        connection.setEnabledExtensions(extensions);
+//    }
+//
+//    @Override
+//    public <T> void setEnabledParameter(Parameter<T> parameter, T value) {
+//        connection.setEnabledParameter(parameter, value);
+//    }
+//
     @Override
     public void setEnabledProtocols(Collection<String> protocols) {
-        _connection.setEnabledProtocols(protocols);
+        connection.setEnabledProtocols(protocols);
     }
 
     @Override
     public void setRedirectPolicy(HttpRedirectPolicy policy) {
-        _connection.setRedirectPolicy(policy);
+        connection.setRedirectPolicy(policy);
     }
 }

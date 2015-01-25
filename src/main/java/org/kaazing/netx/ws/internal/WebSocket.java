@@ -26,9 +26,9 @@ import java.util.Collection;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.WebSocketMessageReader;
-import org.kaazing.netx.ws.WebSocketMessageType;
-import org.kaazing.netx.ws.WebSocketMessageWriter;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 
 
@@ -189,14 +189,14 @@ public abstract class WebSocket implements Closeable {
     public abstract InputStream getInputStream() throws IOException;
 
     /**
-     * Returns a {@link WebSocketMessageReader} that can be used to receive
+     * Returns a {@link MessageReader} that can be used to receive
      * <b>binary</b> and <b>text</b> messages based on the
-     * {@link WebSocketMessageType}.
+     * {@link MessageType}.
      * <p>
      * If this method is invoked before a connection is established successfully,
      * then an IOException is thrown.
      * <p>
-     * Once the connection is closed, a new {@link WebSocketMessageReader}
+     * Once the connection is closed, a new {@link MessageReader}
      * should be obtained using this method after the connection has been
      * established. Using the old WebSocketMessageReader will result in an
      * IOException.
@@ -204,16 +204,16 @@ public abstract class WebSocket implements Closeable {
      * @return WebSocketMessageReader   to receive binary and text messages
      * @throws IOException       if invoked before the connection is opened
      */
-    public abstract WebSocketMessageReader getMessageReader() throws IOException;
+    public abstract MessageReader getMessageReader() throws IOException;
 
     /**
-     * Returns a {@link WebSocketMessageWriter} that can be used to send
+     * Returns a {@link MessageWriter} that can be used to send
      * <b>binary</b> and <b>text</b> messages.
      * <p>
      * If this method is invoked before a connection is established
      * successfully, then an IOException is thrown.
      * <p>
-     * Once the connection is closed, a new {@link WebSocketMessageWriter}
+     * Once the connection is closed, a new {@link MessageWriter}
      * should be obtained using this method after the connection has been
      * established. Using the old WebSocketMessageWriter will result in an
      * IOException.
@@ -221,7 +221,7 @@ public abstract class WebSocket implements Closeable {
      * @return WebSocketMessageWriter   to send binary and text messages
      * @throws IOException       if invoked before the connection is opened
      */
-    public abstract WebSocketMessageWriter getMessageWriter() throws IOException;
+    public abstract MessageWriter getMessageWriter() throws IOException;
 
     /**
      * Gets names of all the enabled extensions that have been successfully
@@ -237,10 +237,9 @@ public abstract class WebSocket implements Closeable {
      *
      * @return Collection<String>      successfully negotiated using this
      *                                 connection
-     * @throws IllegalStateException   if invoked before the {@link #connect()}
-     *                                 completes
+     * @throws IOException 
      */
-    public abstract Collection<String> getNegotiatedExtensions();
+    public abstract Collection<String> getNegotiatedExtensions() throws IOException;
 
     /**
      * Returns the value of the specified {@link Parameter} of a negotiated
@@ -255,10 +254,9 @@ public abstract class WebSocket implements Closeable {
      * @param <T>          parameter type
      * @param parameter    parameter of a negotiated extension
      * @return T           value of the specified parameter
-     * @throws IllegalStateException   if invoked before the {@link #connect()}
-     *                                 completes
+     * @throws IOException 
      */
-    public abstract <T> T getNegotiatedParameter(Parameter<T> parameter);
+    public abstract <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException;
 
     /**
      * Gets the protocol that the client and the server have successfully
@@ -271,10 +269,9 @@ public abstract class WebSocket implements Closeable {
      * protocol will result in an IllegalStateException.
      * <p>
      * @return protocol                negotiated by the client and the server
-     * @throws IllegalStateException   if invoked before the {@link #connect()}
-     *                                 completes
+     * @throws IOException 
      */
-    public abstract String getNegotiatedProtocol();
+    public abstract String getNegotiatedProtocol() throws IOException;
 
     /**
      * Returns the {@link OutputStream} to send <b>binary</b> messages. The
@@ -382,7 +379,7 @@ public abstract class WebSocket implements Closeable {
      *                                connection or any of the specified
      *                                extensions is not a supported extension
      */
-    public abstract void setEnabledExtensions(Collection<String> extensions);
+//    public abstract void setEnabledExtensions(Collection<String> extensions);
 
     /**
      * Sets the value of the specified {@link Parameter} defined in an enabled
@@ -403,8 +400,8 @@ public abstract class WebSocket implements Closeable {
      * @param value        of the specified parameter
      * @throw IllegalStateException   if this method is invoked after connect()
      */
-    public abstract <T> void setEnabledParameter(Parameter<T> parameter,
-                                                 T            value);
+//    public abstract <T> void setEnabledParameter(Parameter<T> parameter,
+//                                                 T            value);
 
     /**
      * Registers the protocols to be negotiated with the server during the

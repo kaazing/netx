@@ -142,14 +142,14 @@ public abstract class WsURLConnection extends URLConnection {
     public abstract InputStream getInputStream() throws IOException;
 
     /**
-     * Returns a {@link WebSocketMessageReader} that can be used to receive
+     * Returns a {@link MessageReader} that can be used to receive
      * <b>binary</b> and <b>text</b> messages based on the
-     * {@link WebSocketMessageType}.
+     * {@link MessageType}.
      * <p>
      * If this method is invoked before a connection is established successfully,
      * then an IOException is thrown.
      * <p>
-     * Once the connection is closed, a new {@link WebSocketMessageReader}
+     * Once the connection is closed, a new {@link MessageReader}
      * should be obtained using this method after the connection has been
      * established. Using the old WebSocketMessageReader will result in an
      * IOException.
@@ -157,16 +157,16 @@ public abstract class WsURLConnection extends URLConnection {
      * @return WebSocketMessageReader   to receive binary and text messages
      * @throws IOException       if invoked before the connection is opened
      */
-    public abstract WebSocketMessageReader getMessageReader() throws IOException;
+    public abstract MessageReader getMessageReader() throws IOException;
 
     /**
-     * Returns a {@link WebSocketMessageWriter} that can be used to send
+     * Returns a {@link MessageWriter} that can be used to send
      * <b>binary</b> and <b>text</b> messages.
      * <p>
      * If this method is invoked before a connection is established
      * successfully, then an IOException is thrown.
      * <p>
-     * Once the connection is closed, a new {@link WebSocketMessageWriter}
+     * Once the connection is closed, a new {@link MessageWriter}
      * should be obtained using this method after the connection has been
      * established. Using the old WebSocketMessageWriter will result in an
      * IOException.
@@ -174,7 +174,7 @@ public abstract class WsURLConnection extends URLConnection {
      * @return WebSocketMessageWriter   to send binary and text messages
      * @throws IOException       if invoked before the connection is opened
      */
-    public abstract WebSocketMessageWriter getMessageWriter() throws IOException;
+    public abstract MessageWriter getMessageWriter() throws IOException;
 
     /**
      * Gets the protocol that the client and the server have successfully
@@ -184,10 +184,11 @@ public abstract class WsURLConnection extends URLConnection {
      * established, an IllegalStateException is thrown.
      * <p>
      * @return protocol                negotiated by the client and the server
+     * @throws IOException 
      * @throws IllegalStateException   if invoked before the {@link #connect()}
      *                                 completes
      */
-    public abstract String getNegotiatedProtocol();
+    public abstract String getNegotiatedProtocol() throws IOException;
 
     /**
      * Returns the {@link OutputStream} to send <b>binary</b> messages. The

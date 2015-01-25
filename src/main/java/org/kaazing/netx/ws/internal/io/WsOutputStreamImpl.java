@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.WebSocketMessageWriter;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WebSocketException;
 
 public class WsOutputStreamImpl extends OutputStream {
@@ -29,7 +29,7 @@ public class WsOutputStreamImpl extends OutputStream {
     private ByteArrayOutputStream  _byteStream;
     private boolean                _streamClosed;
 
-    public WsOutputStreamImpl(WebSocketMessageWriter writer) {
+    public WsOutputStreamImpl(MessageWriter writer) {
         _writer = (WsMessageWriterImpl) writer;
         _byteStream = new ByteArrayOutputStream();
         _streamClosed = false;

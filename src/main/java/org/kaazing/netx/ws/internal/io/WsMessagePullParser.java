@@ -19,8 +19,8 @@ package org.kaazing.netx.ws.internal.io;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.WebSocketMessageReader;
-import org.kaazing.netx.ws.WebSocketMessageType;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
 
 /**
  * The inspiration of this class is the XmlPullParser. Eventually, we may
@@ -29,9 +29,9 @@ import org.kaazing.netx.ws.WebSocketMessageType;
  * naming convention for publicly exposed classes.
  */
 public class WsMessagePullParser {
-    private final WebSocketMessageReader    _messageReader;
+    private final MessageReader    _messageReader;
 
-    public WsMessagePullParser(WebSocketMessageReader messageReader) {
+    public WsMessagePullParser(MessageReader messageReader) {
         _messageReader = messageReader;
     }
 
@@ -47,11 +47,11 @@ public class WsMessagePullParser {
      * @throws IOException    if the connection has not been established
      */
     public CharSequence nextText() throws IOException {
-        WebSocketMessageType msgType = null;
+        MessageType msgType = null;
 
-        while ((msgType = _messageReader.next()) != WebSocketMessageType.EOS) {
-            if (msgType == WebSocketMessageType.TEXT) {
-                return _messageReader.getText();
+        while ((msgType = _messageReader.next()) != MessageType.EOS) {
+            if (msgType == MessageType.TEXT) {
+                return _messageReader.readText();
             }
         }
 
@@ -70,11 +70,11 @@ public class WsMessagePullParser {
      * @throws IOException    if the connection has not been established
      */
     public ByteBuffer nextBinary() throws IOException {
-        WebSocketMessageType msgType = null;
+        MessageType msgType = null;
 
-        while ((msgType = _messageReader.next()) != WebSocketMessageType.EOS) {
-            if (msgType == WebSocketMessageType.BINARY) {
-                return _messageReader.getBinary();
+        while ((msgType = _messageReader.next()) != MessageType.EOS) {
+            if (msgType == MessageType.BINARY) {
+                return _messageReader.readBinary();
             }
         }
 

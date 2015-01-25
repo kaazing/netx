@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.WebSocketMessageReader;
-import org.kaazing.netx.ws.WebSocketMessageType;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
 
 /**
  * This is an internal adapter that will be used by our {@link InputStream} and
@@ -30,9 +30,9 @@ import org.kaazing.netx.ws.WebSocketMessageType;
  * respectively.
  */
 public class WsMessageReaderAdapter {
-    private final WebSocketMessageReader    _messageReader;
+    private final MessageReader    _messageReader;
 
-    public WsMessageReaderAdapter(WebSocketMessageReader messageReader) {
+    public WsMessageReaderAdapter(MessageReader messageReader) {
         if (messageReader == null) {
             String s = "Null WebSocketMessageReader passed in";
             throw new IllegalArgumentException(s);
@@ -42,12 +42,12 @@ public class WsMessageReaderAdapter {
     }
 
     /**
-     * Returns the {@link WebSocketMessageType} of the last received message.
+     * Returns the {@link MessageType} of the last received message.
      *
      * @return WebSocketMessageType
      */
-    public WebSocketMessageType getType() {
-        return _messageReader.getType();
+    public MessageType getType() {
+        return _messageReader.readType();
     }
 
     /**
@@ -60,7 +60,7 @@ public class WsMessageReaderAdapter {
      */
     public ByteBuffer readBinary() throws IOException {
         _messageReader.next();
-        return _messageReader.getBinary();
+        return _messageReader.readBinary();
     }
 
     /**
@@ -73,6 +73,6 @@ public class WsMessageReaderAdapter {
      */
     public CharSequence readText() throws IOException {
         _messageReader.next();
-        return _messageReader.getText();
+        return _messageReader.readText();
     }
 }
