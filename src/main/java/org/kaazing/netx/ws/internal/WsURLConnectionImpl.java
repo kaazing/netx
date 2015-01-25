@@ -509,7 +509,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_PROTOCOL, formattedProtocols);
         }
 
-        if (HTTP_SWITCHING_PROTOCOLS == connection.getResponseCode() ||
+        if (HTTP_SWITCHING_PROTOCOLS != connection.getResponseCode() ||
             !"websocket".equalsIgnoreCase(connection.getHeaderField(HEADER_UPGRADE)) ||
             !"Upgrade".equalsIgnoreCase(connection.getHeaderField(HEADER_CONNECTION)) ||
             !validateAccept(websocketKey, connection.getHeaderField(HEADER_SEC_WEBSOCKET_ACCEPT))) {

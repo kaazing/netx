@@ -39,7 +39,7 @@ public final class WssURLConnectionHelper extends URLConnectionHelperSpi {
     private final Map<String, String> supportedProtocols;
     private final WebSocketExtensionFactory extensionFactory;
 
-    private URLConnectionHelper helper = URLConnectionHelper.newInstance(); // TODO: inject
+    private URLConnectionHelper helper;
 
     public WssURLConnectionHelper() {
         Map<String, String> supportedProtocols = new HashMap<String, String>();
@@ -66,11 +66,13 @@ public final class WssURLConnectionHelper extends URLConnectionHelperSpi {
         assert supportedProtocols.containsKey(scheme);
         String httpScheme = supportedProtocols.get(scheme);
         URI httpLocation = changeScheme(URI.create(location.toString()), httpScheme);
+        assert helper != null;
         return new WsURLConnectionImpl(helper, location, httpLocation, extensionFactory);
     }
 
     @Override
     public URLStreamHandler newStreamHandler() throws IOException {
+        assert helper != null;
         return new WssURLStreamHandlerImpl(helper, supportedProtocols, extensionFactory);
     }
 }
