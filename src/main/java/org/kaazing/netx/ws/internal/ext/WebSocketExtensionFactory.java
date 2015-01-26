@@ -27,7 +27,7 @@ import java.util.ServiceLoader;
 
 public final class WebSocketExtensionFactory {
 
-    private final Map<String, WebSocketExtensionFactorySpi> factories;
+    private final Map<String, WebSocketExtensionFactorySpi> factoriesRO;
 
     /**
      * Creates and returns the singleton{@link WebSocketExtensionSpi} instance for the
@@ -41,7 +41,7 @@ public final class WebSocketExtensionFactory {
      * @return WebSocketExtension   the parameterized extension
      */
     public final WebSocketExtensionSpi createExtension(String name, WebSocketExtensionParameterValues parameters) {
-        WebSocketExtensionFactorySpi factory = factories.get(name);
+        WebSocketExtensionFactorySpi factory = factoriesRO.get(name);
         if (factory == null) {
             throw new IllegalArgumentException("Unsupported extension: " + name);
         }
@@ -49,7 +49,7 @@ public final class WebSocketExtensionFactory {
     }
 
     public Collection<String> getExtensionNames() {
-        return factories.keySet();
+        return factoriesRO.keySet();
     }
 
     public static WebSocketExtensionFactory newInstance() {
@@ -63,7 +63,7 @@ public final class WebSocketExtensionFactory {
     }
 
     private WebSocketExtensionFactory(Map<String, WebSocketExtensionFactorySpi> factories) {
-        this.factories = factories;
+        this.factoriesRO = factories;
     }
 
     private static WebSocketExtensionFactory newInstance(ServiceLoader<WebSocketExtensionFactorySpi> services) {

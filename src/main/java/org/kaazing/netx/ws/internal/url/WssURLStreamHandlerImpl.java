@@ -23,6 +23,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLStreamHandler;
 import java.util.Map;
+import java.util.Random;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.WsURLConnection;
@@ -34,14 +35,17 @@ final class WssURLStreamHandlerImpl extends URLStreamHandler {
     private final URLConnectionHelper helper;
     private final Map<String, String> supportedProtocols;
     private final WebSocketExtensionFactory extensionFactory;
+    private final Random random;
 
     public WssURLStreamHandlerImpl(
             URLConnectionHelper helper,
             Map<String, String> supportedProtocols,
+            Random random, 
             WebSocketExtensionFactory extensionFactory) {
         this.helper = helper;
         this.supportedProtocols = supportedProtocols;
         this.extensionFactory = extensionFactory;
+        this.random = random;
     }
 
     @Override
@@ -56,7 +60,7 @@ final class WssURLStreamHandlerImpl extends URLStreamHandler {
         String httpScheme = supportedProtocols.get(scheme);
         assert httpScheme != null;
         URI httpLocation = changeScheme(locationURI, httpScheme);
-        return new WsURLConnectionImpl(helper, location, httpLocation, extensionFactory);
+        return new WsURLConnectionImpl(helper, location, httpLocation, random, extensionFactory);
     }
 
 }

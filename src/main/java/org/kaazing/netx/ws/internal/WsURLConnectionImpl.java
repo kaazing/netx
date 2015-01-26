@@ -17,6 +17,8 @@
 package org.kaazing.netx.ws.internal;
 
 import static java.lang.String.format;
+import static java.util.Collections.unmodifiableCollection;
+import static java.util.Collections.unmodifiableMap;
 import static java.util.logging.Logger.getLogger;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 
@@ -75,11 +77,15 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
+    private final Random random;
     private final WebSocketExtensionFactory extensionFactory;
     private final HttpURLConnection connection;
     private final Collection<String> enabledProtocols;
+    private final Collection<String> enabledProtocolsRO;
     private final Map<String, WebSocketExtensionParameterValues> enabledExtensions;
+    private final Map<String, WebSocketExtensionParameterValues> enabledExtensionsRO;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensions;
+    private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensionsRO;
 
     private ReadyState readyState;
     private String negotiatedProtocol;
@@ -102,15 +108,20 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             URLConnectionHelper helper,
             URL location,
             URI httpLocation,
+            Random random,
             WebSocketExtensionFactory extensionFactory) throws IOException {
 
         super(location);
 
+        this.random = random;
         this.readyState = ReadyState.INITIAL;
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
+        this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
         this.enabledExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        this.enabledExtensionsRO = unmodifiableMap(enabledExtensions);
         this.negotiatedExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        this.negotiatedExtensionsRO = unmodifiableMap(negotiatedExtensions);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -118,15 +129,20 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             URLConnectionHelper helper, 
             URI location, 
             URI httpLocation,
+            Random random,
             WebSocketExtensionFactory extensionFactory) throws IOException {
 
         super(null);
 
+        this.random = random;
         this.readyState = ReadyState.INITIAL;
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
+        this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
         this.enabledExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        this.enabledExtensionsRO = unmodifiableMap(enabledExtensions);
         this.negotiatedExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        this.negotiatedExtensionsRO = unmodifiableMap(negotiatedExtensions);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -177,9 +193,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         case INITIAL:
             doConnect();
             break;
-        case OPEN:
-        case CLOSED:
-            break;
+        default:
+            throw new IOException("Already connected");
         }
     }
 
@@ -206,7 +221,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      *                                connection
      */
     public Collection<String> getEnabledExtensions() {
-        return enabledExtensions.keySet();
+        return enabledExtensionsRO.keySet();
     }
 
     /**
@@ -232,7 +247,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public Collection<String> getEnabledProtocols() {
-        return enabledProtocols;
+        return enabledProtocolsRO;
     }
 
     @Override
@@ -244,8 +259,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public InputStream getInputStream() throws IOException {
 
         if (inputStream == null) {
-            // TODO: trigger lazy connect, same as HTTP
-            throw new UnsupportedOperationException();
+            ensureConnected();
+            inputStream = new WsInputStreamImpl(connection.getInputStream());
         }
 
         return inputStream;
@@ -290,8 +305,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      * @throws IOException 
      */
     public Collection<String> getNegotiatedExtensions() throws IOException {
-        connect();
-        return negotiatedExtensions.keySet();
+        ensureConnected();
+        return negotiatedExtensionsRO.keySet();
     }
 
     /**
@@ -308,7 +323,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      */
     public <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException {
 
-        connect();
+        ensureConnected();
 
         WebSocketExtension extension = parameter.extension();
         String extensionName = extension.name();
@@ -318,7 +333,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public String getNegotiatedProtocol() throws IOException {
-        connect();
+        ensureConnected();
         return negotiatedProtocol;
     }
 
@@ -326,9 +341,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public OutputStream getOutputStream() throws IOException {
 
         if (outputStream == null) {
-            // TODO: trigger lazy connect, same as HTTP
-            connect();
-            throw new UnsupportedOperationException();
+            ensureConnected();
+            outputStream = new WsOutputStreamImpl(connection.getOutputStream(), random);
         }
 
         return outputStream;
@@ -339,7 +353,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
-            connect();
+            ensureConnected();
             throw new UnsupportedOperationException();
         }
 
@@ -363,7 +377,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (writer == null) {
             // TODO: trigger lazy connect, same as HTTP
-            connect();
+            ensureConnected();
             throw new UnsupportedOperationException();
         }
 
@@ -488,6 +502,18 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.enabledExtensions.putAll(enabledExtensions);
     }
 
+    private void ensureConnected() throws IOException {
+
+        switch (readyState) {
+        case INITIAL:
+            doConnect();
+            break;
+        case OPEN:
+        case CLOSED:
+            break;
+        }
+    }
+
     private void doConnect() throws IOException {
 
         String websocketKey = base64Encode(randomBytes(16));
@@ -503,9 +529,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_EXTENSIONS, formattedExtensions);
         }
 
-        Collection<String> protocols = getEnabledProtocols();
-        if (!protocols.isEmpty()) {
-            String formattedProtocols = formatAsRFC3864(protocols);
+        if (!enabledProtocols.isEmpty()) {
+            String formattedProtocols = formatAsRFC3864(enabledProtocols);
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_PROTOCOL, formattedProtocols);
         }
 
@@ -517,7 +542,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             throw new IOException("Connection failed");
         }
 
-        negotiateProtocol(protocols, connection.getHeaderField(HEADER_SEC_WEBSOCKET_PROTOCOL));
+        negotiateProtocol(enabledProtocols, connection.getHeaderField(HEADER_SEC_WEBSOCKET_PROTOCOL));
         negotiateExtensions(enabledExtensions, connection.getHeaderField(HEADER_SEC_WEBSOCKET_EXTENSIONS));
 
         this.readyState = ReadyState.OPEN;
@@ -529,10 +554,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return connection;
     }
 
-    private static byte[] randomBytes(int size) {
+    private byte[] randomBytes(int size) {
         byte[] bytes = new byte[size];
-        Random r = new Random();  // TODO: hoist Random as SecureRandom in WsURLConnectionHelper
-        r.nextBytes(bytes);
+        random.nextBytes(bytes);
         return bytes;
     }
 
