@@ -84,10 +84,16 @@ public final class WsOutputStreamImpl extends FilterOutputStream {
         default:
             // 65536+
             out.write(0x80 | 127);
-            out.write((len >> 24) & 0xff);
-            out.write((len >> 16) & 0xff);
-            out.write((len >> 8) & 0xff);
-            out.write((len >> 0) & 0xff);
+
+            long length = len;
+            out.write((int) ((length >> 56) & 0xff));
+            out.write((int) ((length >> 48) & 0xff));
+            out.write((int) ((length >> 40) & 0xff));
+            out.write((int) ((length >> 32) & 0xff));
+            out.write((int) ((length >> 24) & 0xff));
+            out.write((int) ((length >> 16) & 0xff));
+            out.write((int) ((length >> 8) & 0xff));
+            out.write((int) ((length >> 0) & 0xff));
             break;
         }
 

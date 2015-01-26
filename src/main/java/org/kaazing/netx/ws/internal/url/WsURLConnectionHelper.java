@@ -47,8 +47,7 @@ public final class WsURLConnectionHelper extends URLConnectionHelperSpi {
     public WsURLConnectionHelper() {
         Map<String, String> supportedProtocols = new HashMap<String, String>();
         supportedProtocols.put("ws", "http");
-        supportedProtocols.put("wsn", "http"); // TODO: remove?
-        supportedProtocols.put("wse", "http"); // TODO
+
         this.supportedProtocols = unmodifiableMap(supportedProtocols);
         this.extensionFactory = WebSocketExtensionFactory.newInstance();
         this.random = new SecureRandom();

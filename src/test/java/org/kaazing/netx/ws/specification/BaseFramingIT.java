@@ -51,10 +51,27 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
-        "echo.binary.payload.length.0/handshake.request.and.frame",
         "echo.binary.payload.length.0/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength0() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        byte[] writeBytes = new byte[0];
+        random.nextBytes(writeBytes);
+        out.write(writeBytes);
+
+        byte[] readBytes = new byte[0];
+        in.read(readBytes);
+
         k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
     }
 
     @Test
@@ -84,42 +101,127 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
-        "echo.binary.payload.length.126/handshake.request.and.frame",
         "echo.binary.payload.length.126/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength126() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        byte[] writeBytes = new byte[126];
+        random.nextBytes(writeBytes);
+        out.write(writeBytes);
+
+        byte[] readBytes = new byte[126];
+        in.read(readBytes);
+
         k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.binary.payload.length.127/handshake.request.and.frame",
         "echo.binary.payload.length.127/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength127() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        byte[] writeBytes = new byte[127];
+        random.nextBytes(writeBytes);
+        out.write(writeBytes);
+
+        byte[] readBytes = new byte[127];
+        in.read(readBytes);
+
         k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.binary.payload.length.128/handshake.request.and.frame",
         "echo.binary.payload.length.128/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength128() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        byte[] writeBytes = new byte[128];
+        random.nextBytes(writeBytes);
+        out.write(writeBytes);
+
+        byte[] readBytes = new byte[128];
+        in.read(readBytes);
+
         k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.binary.payload.length.65535/handshake.request.and.frame",
         "echo.binary.payload.length.65535/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength65535() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        byte[] writeBytes = new byte[65535];
+        random.nextBytes(writeBytes);
+        out.write(writeBytes);
+
+        byte[] readBytes = new byte[65535];
+        in.read(readBytes);
+
         k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.binary.payload.length.65536/handshake.request.and.frame",
         "echo.binary.payload.length.65536/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength65536() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        byte[] writeBytes = new byte[65536];
+        random.nextBytes(writeBytes);
+        out.write(writeBytes);
+
+        byte[] readBytes = new byte[65536];
+        in.read(readBytes);
+
         k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
     }
 
     @Test

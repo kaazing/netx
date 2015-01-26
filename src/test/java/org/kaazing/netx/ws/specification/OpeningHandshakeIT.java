@@ -103,7 +103,7 @@ public class OpeningHandshakeIT {
     @Specification("response.headers.random.case/handshake.response")
     public void shouldEstablishConnectionWithRandomCaseResponseHeaders() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("wsn://localhost:8080/path?query");
+        URI location = URI.create("ws://localhost:8080/path?query");
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 

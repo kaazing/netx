@@ -45,11 +45,11 @@ public final class WsInputStreamImpl extends InputStream {
 
         while (payloadLength == 0) {
             while (payloadOffset == -1) {
-                byte headerByte = (byte) in.read();
+                int headerByte = in.read();
                 if (headerByte == -1) {
                     return -1;
                 }
-                header[headerOffset++] = headerByte;
+                header[headerOffset++] = (byte) headerByte;
                 switch (headerOffset) {
                 case 1:
                     int opcode = header[0] & 0x07;
@@ -135,10 +135,14 @@ public final class WsInputStreamImpl extends InputStream {
         case 126:
             return (header[2] & 0xff) << 8 | (header[3] & 0xff);
         case 127:
-            return (header[2] & 0xff) << 56 | (header[3] & 0xff) << 48 |
-                   (header[4] & 0xff) << 40 | (header[4] & 0xff) << 32 |
-                   (header[6] & 0xff) << 24 | (header[5] & 0xff) << 16 |
-                   (header[8] & 0xff) << 8  | (header[9] & 0xff);
+            return (header[2] & 0xff) << 56 |
+                   (header[3] & 0xff) << 48 |
+                   (header[4] & 0xff) << 40 |
+                   (header[5] & 0xff) << 32 |
+                   (header[6] & 0xff) << 24 |
+                   (header[7] & 0xff) << 16 |
+                   (header[8] & 0xff) << 8  |
+                   (header[9] & 0xff);
         default:
             return length;
         }
