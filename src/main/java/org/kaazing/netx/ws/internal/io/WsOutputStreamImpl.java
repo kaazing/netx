@@ -94,10 +94,10 @@ public final class WsOutputStreamImpl extends FilterOutputStream {
         random.nextBytes(mask);
         out.write(mask);
 
-        byte[] masked = new byte[len - off];
+        byte[] masked = new byte[len];
         for (int i = 0; i < len; i++) {
-            int index = off + i;
-            masked[index] = (byte) (b[i] ^ mask[i % mask.length]);
+            int ioff = off + i;
+            masked[i] = (byte) (b[ioff] ^ mask[i % mask.length]);
         }
 
         out.write(masked);

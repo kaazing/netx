@@ -31,6 +31,7 @@ public final class WsInputStreamImpl extends InputStream {
     public WsInputStreamImpl(InputStream in) {
         this.in = in;
         this.header = new byte[10];
+        this.payloadOffset = -1;
     }
 
     @Override
@@ -129,15 +130,15 @@ public final class WsInputStreamImpl extends InputStream {
     }
 
     private static int payloadLength(byte[] header) {
-        int length = header[2] & 0x7f;
+        int length = header[1] & 0x7f;
         switch (length) {
         case 126:
-            return (header[3] & 0xff) << 8 | (header[4] & 0xff);
+            return (header[2] & 0xff) << 8 | (header[3] & 0xff);
         case 127:
-            return (header[3] & 0xff) << 56 | (header[4] & 0xff) << 48 |
-                   (header[5] & 0xff) << 40 | (header[6] & 0xff) << 32 |
-                   (header[7] & 0xff) << 24 | (header[8] & 0xff) << 16 |
-                   (header[9] & 0xff) << 8  | (header[10] & 0xff);
+            return (header[2] & 0xff) << 56 | (header[3] & 0xff) << 48 |
+                   (header[4] & 0xff) << 40 | (header[4] & 0xff) << 32 |
+                   (header[6] & 0xff) << 24 | (header[5] & 0xff) << 16 |
+                   (header[8] & 0xff) << 8  | (header[9] & 0xff);
         default:
             return length;
         }
