@@ -23,9 +23,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
+import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import javax.annotation.Resource;
 
@@ -36,6 +38,7 @@ import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 
 public final class WsURLConnectionHelper extends URLConnectionHelperSpi {
 
+    private final Random random;
     private final Map<String, String> supportedProtocols;
     private final WebSocketExtensionFactory extensionFactory;
 
@@ -48,6 +51,7 @@ public final class WsURLConnectionHelper extends URLConnectionHelperSpi {
         supportedProtocols.put("wse", "http"); // TODO
         this.supportedProtocols = unmodifiableMap(supportedProtocols);
         this.extensionFactory = WebSocketExtensionFactory.newInstance();
+        this.random = new SecureRandom();
     }
 
     @Resource
@@ -67,13 +71,13 @@ public final class WsURLConnectionHelper extends URLConnectionHelperSpi {
         String httpScheme = supportedProtocols.get(scheme);
         URI httpLocation = changeScheme(URI.create(location.toString()), httpScheme);
         assert helper != null;
-        return new WsURLConnectionImpl(helper, location, httpLocation, extensionFactory);
+        return new WsURLConnectionImpl(helper, location, httpLocation, random, extensionFactory);
     }
 
     @Override
     public URLStreamHandler newStreamHandler() throws IOException {
         assert helper != null;
-        return new WsURLStreamHandlerImpl(helper, supportedProtocols, extensionFactory);
+        return new WsURLStreamHandlerImpl(helper, supportedProtocols, random, extensionFactory);
     }
 
 }

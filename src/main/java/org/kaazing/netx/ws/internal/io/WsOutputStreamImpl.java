@@ -25,8 +25,11 @@ import java.util.Random;
 
 public final class WsOutputStreamImpl extends FilterOutputStream {
 
-    public WsOutputStreamImpl(OutputStream out) {
+    private final Random random;
+
+    public WsOutputStreamImpl(OutputStream out, Random random) {
         super(out);
+        this.random = random;
     }
 
     @Override
@@ -88,8 +91,6 @@ public final class WsOutputStreamImpl extends FilterOutputStream {
             break;
         }
 
-        // hoist and re-use a SecureRandom instead
-        Random random = new Random();
         byte[] mask = new byte[4];
         random.nextBytes(mask);
         out.write(mask);

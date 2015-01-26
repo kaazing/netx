@@ -77,6 +77,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
+    private final Random random;
     private final WebSocketExtensionFactory extensionFactory;
     private final HttpURLConnection connection;
     private final Collection<String> enabledProtocols;
@@ -107,10 +108,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             URLConnectionHelper helper,
             URL location,
             URI httpLocation,
+            Random random,
             WebSocketExtensionFactory extensionFactory) throws IOException {
 
         super(location);
 
+        this.random = random;
         this.readyState = ReadyState.INITIAL;
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
@@ -126,10 +129,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             URLConnectionHelper helper, 
             URI location, 
             URI httpLocation,
+            Random random,
             WebSocketExtensionFactory extensionFactory) throws IOException {
 
         super(null);
 
+        this.random = random;
         this.readyState = ReadyState.INITIAL;
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
@@ -337,7 +342,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (outputStream == null) {
             ensureConnected();
-            outputStream = new WsOutputStreamImpl(connection.getOutputStream());
+            outputStream = new WsOutputStreamImpl(connection.getOutputStream(), random);
         }
 
         return outputStream;
@@ -549,10 +554,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return connection;
     }
 
-    private static byte[] randomBytes(int size) {
+    private byte[] randomBytes(int size) {
         byte[] bytes = new byte[size];
-        Random r = new Random();  // TODO: hoist Random as SecureRandom in WsURLConnectionHelper
-        r.nextBytes(bytes);
+        random.nextBytes(bytes);
         return bytes;
     }
 
