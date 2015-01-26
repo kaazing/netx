@@ -76,7 +76,7 @@ public final class WsInputStreamImpl extends InputStream {
                         payloadLength = payloadLength(header);
                     }
                     break;
-                case 6:
+                case 4:
                     switch (header[1] & 0x7f) {
                     case 126:
                         payloadOffset = 0;
