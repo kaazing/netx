@@ -18,151 +18,130 @@ package org.kaazing.netx.ws.internal.io;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.MessageType;
-import org.kaazing.netx.ws.internal.WebSocketException;
-import org.kaazing.netx.ws.internal.util.DynamicByteBuffer;
+public final class WsInputStreamImpl extends InputStream {
 
-public class WsInputStreamImpl extends InputStream {
+    private final InputStream in;
+    private final byte[] header;
 
-    private final WsMessageReaderAdapter    _adapter;
-    private DynamicByteBuffer         _buffer;
-    private boolean                   _closed;
+    private int headerOffset;
+    private int payloadOffset;
+    private int payloadLength;
 
-    public WsInputStreamImpl(WsMessageReaderAdapter adapter) throws IOException {
-        _adapter = adapter;
-        _closed = false;
+    public WsInputStreamImpl(InputStream in) {
+        this.in = in;
+        this.header = new byte[10];
+        this.payloadOffset = -1;
     }
 
     @Override
-    public synchronized int available() throws IOException {
-        checkStreamClosed();
+    public int available() throws IOException {
+        // TODO:
+        return in.available();
+    }
 
-        if (_buffer == null) {
-            return 0;
+    @Override
+    public int read() throws IOException {
+
+        while (payloadLength == 0) {
+            while (payloadOffset == -1) {
+                byte headerByte = (byte) in.read();
+                if (headerByte == -1) {
+                    return -1;
+                }
+                header[headerOffset++] = headerByte;
+                switch (headerOffset) {
+                case 1:
+                    int opcode = header[0] & 0x07;
+                    switch (opcode) {
+                    case 0x00:
+                    case 0x02:
+                        break;
+                    default:
+                        // TODO: skip
+                        throw new IOException("Non-binary frame");
+                    }
+                    break;
+                case 2:
+                    boolean masked = (header[1] & 0x80) != 0x00;
+                    if (masked) {
+                        throw new IOException("Masked server-to-client frame");
+                    }
+                    switch (header[1] & 0x7f) {
+                    case 126:
+                    case 127:
+                        break;
+                    default:
+                        payloadOffset = 0;
+                        payloadLength = payloadLength(header);
+                    }
+                    break;
+                case 6:
+                    switch (header[1] & 0x7f) {
+                    case 126:
+                        payloadOffset = 0;
+                        payloadLength = payloadLength(header);
+                    default:
+                        break;
+                    }
+                    break;
+                case 10:
+                    switch (header[1] & 0x7f) {
+                    case 127:
+                        payloadOffset = 0;
+                        payloadLength = payloadLength(header);
+                    default:
+                        break;
+                    }
+                    break;
+                }
+            }
         }
 
-        return _buffer.remaining();
+        int b = in.read();
+
+        if (payloadOffset++ == payloadLength) {
+            headerOffset = 0;
+            payloadOffset = -1;
+            payloadLength = 0;
+        }
+
+        return b;
+    }
+
+    @Override
+    public int read(byte[] b) throws IOException {
+        return super.read(b);
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+        return super.read(b, off, len);
+    }
+
+    @Override
+    public long skip(long n) throws IOException {
+        return super.skip(n);
     }
 
     @Override
     public void close() throws IOException {
-        if (_closed) {
-            return;
-        }
-
-        if (_buffer != null) {
-            _buffer.clear();
-        }
-
-        _buffer = null;
-        _closed = true;
+        in.close();
     }
 
-    @Override
-    public void mark(int readLimit) {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
-    public boolean markSupported() {
-        return false;
-    }
-
-    @Override
-    public synchronized int read() throws IOException {
-        checkStreamClosed();
-
-        try {
-            prepareBuffer();
-        }
-        catch (IOException ex) {
-            MessageType type = _adapter.getType();
-            if ((type == MessageType.EOS) || (type == null)) {
-                // End of stream. Return -1 as per the javadoc.
-                return -1;
-            }
-
-            // InputStream is used to read a text message.
-            String s = "InvalidMessageType: InputStream must be used to only " +
-                       "receive binary messages";
-            throw new WebSocketException(s, ex);
-        }
-
-        return _buffer.get();
-    }
-
-    @Override
-    public synchronized int read(byte[] b) throws IOException {
-        return read(b, 0, b.length);
-    }
-
-    @Override
-    public synchronized int read(byte[] b, int off, int len) throws IOException {
-        checkStreamClosed();
-
-        try {
-            prepareBuffer();
-        }
-        catch (IOException ex) {
-            MessageType type = _adapter.getType();
-            if ((type == MessageType.EOS) || (type == null)) {
-                // End of stream. Return -1 as per the javadoc.
-                return -1;
-            }
-
-            // InputStream is used to read a text message.
-            String s = "InvalidMessageType: InputStream must be used to only " +
-                       "receive binary messages";
-            throw new WebSocketException(s, ex);
-        }
-
-        int remaining = _buffer.remaining();
-        int retval = (remaining < len) ? remaining : len;
-        _buffer.get(b, off, retval);
-
-        return retval;
-    }
-
-    @Override
-    public void reset() throws IOException {
-        checkStreamClosed();
-        _buffer.clear();
-        _buffer = null;
-    }
-
-    // ---------------------- Internal Implementation -----------------------
-    public boolean isClosed() {
-        return _closed;
-    }
-
-    // ---------------------- Private Methods -------------------------------
-    private void checkStreamClosed() throws IOException {
-        if (!_closed) {
-            return;
-        }
-
-        String s = "Cannot perform the operation as the InputStream is closed";
-        throw new WebSocketException(s);
-    }
-
-    private void prepareBuffer() throws IOException {
-        if ((_buffer == null) || (!_buffer.hasRemaining())) {
-            ByteBuffer byteBuf = _adapter.readBinary();
-
-            if (_buffer == null) {
-                _buffer = new DynamicByteBuffer(byteBuf);
-            }
-            else {
-                int pos = _buffer.position();
-                int remaining = byteBuf.remaining();
-                byte[] bytes = new byte[remaining];
-                byteBuf.get(bytes);
-                _buffer.putBytes(bytes);
-                _buffer.limit(_buffer.position());
-                _buffer.position(pos);
-            }
+    private static int payloadLength(byte[] header) {
+        int length = header[1] & 0x7f;
+        switch (length) {
+        case 126:
+            return (header[2] & 0xff) << 8 | (header[3] & 0xff);
+        case 127:
+            return (header[2] & 0xff) << 56 | (header[3] & 0xff) << 48 |
+                   (header[4] & 0xff) << 40 | (header[4] & 0xff) << 32 |
+                   (header[6] & 0xff) << 24 | (header[5] & 0xff) << 16 |
+                   (header[8] & 0xff) << 8  | (header[9] & 0xff);
+        default:
+            return length;
         }
     }
+
 }

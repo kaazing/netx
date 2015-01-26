@@ -17,7 +17,13 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.Random;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,11 +32,15 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
+import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.ws.WsURLConnection;
 
 /**
  * RFC-6455, section 5.2 "Base Framing Protocol"
  */
 public class BaseFramingIT {
+
+    private final Random random = new Random();
 
     private final K3poRule k3po = new K3poRule().setScriptRoot("org/kaazing/specification/ws/framing");
 
@@ -49,10 +59,27 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
-        "echo.binary.payload.length.125/handshake.request.and.frame",
         "echo.binary.payload.length.125/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength125() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        byte[] writeBytes = new byte[125];
+        random.nextBytes(writeBytes);
+        out.write(writeBytes);
+
+        byte[] readBytes = new byte[125];
+        in.read(readBytes);
+
         k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
     }
 
     @Test
