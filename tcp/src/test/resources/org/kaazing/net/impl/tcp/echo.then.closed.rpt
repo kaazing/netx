@@ -1,6 +1,0 @@
-accept tcp://localhost:61234
-accepted
-connected
-read  "Hello, world"
-write "Hello, world"
-closed
