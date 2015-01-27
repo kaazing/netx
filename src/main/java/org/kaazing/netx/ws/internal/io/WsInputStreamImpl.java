@@ -42,7 +42,6 @@ public final class WsInputStreamImpl extends InputStream {
 
     @Override
     public int read() throws IOException {
-
         while (payloadLength == 0) {
             while (payloadOffset == -1) {
                 int headerByte = in.read();
@@ -147,5 +146,4 @@ public final class WsInputStreamImpl extends InputStream {
             return length;
         }
     }
-
 }

@@ -18,10 +18,13 @@ package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
+import java.io.Writer;
 import java.net.URI;
 import java.util.Random;
 
@@ -226,58 +229,214 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
-        "echo.text.payload.length.0/handshake.request.and.frame",
         "echo.text.payload.length.0/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength0() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer out = connection.getWriter();
+        Reader in = connection.getReader();
+
+        String writeString = "";
+        out.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
         k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.text.payload.length.125/handshake.request.and.frame",
         "echo.text.payload.length.125/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength125() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer out = connection.getWriter();
+        Reader in = connection.getReader();
+
+        String writeString = new RandomString(125).nextString();
+        out.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
         k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.text.payload.length.126/handshake.request.and.frame",
         "echo.text.payload.length.126/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength126() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer out = connection.getWriter();
+        Reader in = connection.getReader();
+
+        String writeString = new RandomString(126).nextString();
+        out.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
         k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.text.payload.length.127/handshake.request.and.frame",
         "echo.text.payload.length.127/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength127() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer out = connection.getWriter();
+        Reader in = connection.getReader();
+
+        String writeString = new RandomString(127).nextString();
+        out.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
         k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.text.payload.length.128/handshake.request.and.frame",
         "echo.text.payload.length.128/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength128() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer out = connection.getWriter();
+        Reader in = connection.getReader();
+
+        String writeString = new RandomString(128).nextString();
+        out.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
         k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.text.payload.length.65535/handshake.request.and.frame",
         "echo.text.payload.length.65535/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength65535() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer out = connection.getWriter();
+        Reader in = connection.getReader();
+
+        String writeString = new RandomString(65535).nextString();
+        out.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
         k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
     }
 
     @Test
     @Specification({
-        "echo.text.payload.length.65536/handshake.request.and.frame",
         "echo.text.payload.length.65536/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength65536() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer out = connection.getWriter();
+        Reader in = connection.getReader();
+
+        String writeString = new RandomString(65536).nextString();
+        out.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
         k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
     }
 
+    private static class RandomString {
+
+        private static final char[] symbols;
+
+        static {
+          StringBuilder tmp = new StringBuilder();
+          for (char ch = 32; ch <= 126; ++ch)
+            tmp.append(ch);
+          symbols = tmp.toString().toCharArray();
+        }
+
+        private final Random random = new Random();
+
+        private final char[] buf;
+
+        public RandomString(int length) {
+          if (length < 1) {
+            throw new IllegalArgumentException("length < 1: " + length);
+          }
+          buf = new char[length];
+        }
+
+        public String nextString() {
+          for (int idx = 0; idx < buf.length; ++idx) {
+            buf[idx] = symbols[random.nextInt(symbols.length)];
+          }
+
+          return new String(buf);
+        }
+      }
 }

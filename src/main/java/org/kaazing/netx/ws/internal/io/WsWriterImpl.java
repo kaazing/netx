@@ -16,99 +16,105 @@
 
 package org.kaazing.netx.ws.internal.io;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.io.Writer;
+import static java.lang.Integer.highestOneBit;
 
-import org.kaazing.netx.ws.MessageWriter;
-import org.kaazing.netx.ws.internal.WebSocketException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
+import java.util.Random;
 
 public class WsWriterImpl extends Writer {
-    private WsMessageWriterImpl   _writer;
-    private StringBuffer          _stringBuffer;
-    private boolean               _closed;
+    private final OutputStream out;
+    private final Random       random;
 
-    public WsWriterImpl(MessageWriter writer) {
-        _writer = (WsMessageWriterImpl) writer;
-        _stringBuffer = new StringBuffer("");
-        _closed = false;
+    public WsWriterImpl(OutputStream out, Random random) {
+        this.out = out;
+        this.random = random;
     }
 
     @Override
-    public void close() throws IOException {
-        if (isClosed()) {
-            return;
-        }
+    public void write(char[] cbuf, int off, int len) throws IOException {
+        out.write(0x81);
 
-        synchronized (this) {
-            if (isClosed()) {
-                return;
+        switch (highestOneBit(len)) {
+        case 0x0000:
+        case 0x0001:
+        case 0x0002:
+        case 0x0004:
+        case 0x0008:
+        case 0x0010:
+        case 0x0020:
+            out.write(0x80 | len);
+            break;
+        case 0x0040:
+            switch (len) {
+            case 126:
+                out.write(0x80 | 126);
+                out.write(0x00);
+                out.write(126);
+                break;
+            case 127:
+                out.write(0x80 | 126);
+                out.write(0x00);
+                out.write(127);
+                break;
+            default:
+                out.write(0x80 | len);
+                break;
             }
+            break;
+        case 0x0080:
+        case 0x0100:
+        case 0x0200:
+        case 0x0400:
+        case 0x0800:
+        case 0x1000:
+        case 0x2000:
+        case 0x4000:
+        case 0x8000:
+            out.write(0x80 | 126);
+            out.write((len >> 8) & 0xff);
+            out.write((len >> 0) & 0xff);
+            break;
+        default:
+            // 65536+
+            out.write(0x80 | 127);
 
-            _closed = true;
-            _stringBuffer = null;
-            _writer = null;
-        }
-    }
-
-    @Override
-    public void write(char[] cbuf, int offset, int length) throws IOException {
-        if (cbuf == null) {
-            throw new IllegalArgumentException("Null char array passed to write()");
-        }
-
-        if (offset < 0) {
-            throw new StringIndexOutOfBoundsException(offset);
+            long length = len;
+            out.write((int) ((length >> 56) & 0xff));
+            out.write((int) ((length >> 48) & 0xff));
+            out.write((int) ((length >> 40) & 0xff));
+            out.write((int) ((length >> 32) & 0xff));
+            out.write((int) ((length >> 24) & 0xff));
+            out.write((int) ((length >> 16) & 0xff));
+            out.write((int) ((length >> 8) & 0xff));
+            out.write((int) ((length >> 0) & 0xff));
+            break;
         }
 
-        if (length < 0) {
-            throw new StringIndexOutOfBoundsException(length);
+        byte[] b = String.valueOf(cbuf).getBytes("UTF-8");
+        byte[] mask = new byte[4];
+        random.nextBytes(mask);
+        out.write(mask);
+
+        byte[] masked = new byte[b.length];
+        for (int i = 0; i < b.length; i++) {
+            int ioff = off + i;
+            masked[i] = (byte) (b[ioff] ^ mask[i % mask.length]);
         }
 
-        if (offset > (cbuf.length - length)) {
-            throw new StringIndexOutOfBoundsException(offset + length);
-        }
+        out.write(masked);
+        out.flush();
 
-        synchronized (this) {
-            _checkWriterClosed();
-            _stringBuffer.append(cbuf, offset, length);
-        }
     }
 
     @Override
     public void flush() throws IOException {
-        synchronized (this) {
-            _checkWriterClosed();
-
-            if (_stringBuffer.length() > 0) {
-                try {
-                    _stringBuffer.toString().getBytes("UTF-8");
-                }
-                catch (UnsupportedEncodingException e) {
-                    String s = "The platform must support UTF-8 encoded text per RFC 6455";
-                    throw new IOException(s);
-                }
-                _writer.writeText(_stringBuffer.toString());
-            }
-
-            // We don't want to overwrite the buffer that is making it's way
-            // through the pipeline. So, let's create a brand new instance
-            // of StringBuffer to deal with future write() invocations.
-            _stringBuffer = new StringBuffer("");
-        }
+        // No-op
     }
 
-    // ------------------------ Internal Methods -----------------------------
-    public boolean isClosed() {
-        return _closed;
-    }
-
-    // ------------------------ Private Methods ------------------------------
-    private void _checkWriterClosed() throws IOException {
-        String s = "Cannot perform the operation on the Writer as it " +
-                   "is closed";
-        if (_closed ) {
-            throw new WebSocketException(s);
-        }
+    @Override
+    public void close() throws IOException {
+        out.close();
     }
 }

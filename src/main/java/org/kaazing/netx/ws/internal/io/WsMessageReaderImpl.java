@@ -34,7 +34,7 @@ public class WsMessageReaderImpl extends MessageReader {
     private final InterruptibleBlockingQueue<Object>    _sharedQueue;
     private final WsURLConnectionImpl          _urlConnection;
     private       Object                       _payload;
-    private       MessageType         _messageType;
+    private       MessageType                  _messageType;
     private       boolean                      _closed;
 
     public WsMessageReaderImpl(WsURLConnectionImpl                urlConnection,

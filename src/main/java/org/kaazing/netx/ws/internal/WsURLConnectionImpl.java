@@ -126,8 +126,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     public WsURLConnectionImpl(
-            URLConnectionHelper helper, 
-            URI location, 
+            URLConnectionHelper helper,
+            URI location,
             URI httpLocation,
             Random random,
             WebSocketExtensionFactory extensionFactory) throws IOException {
@@ -268,7 +268,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public MessageReader getMessageReader() throws IOException {
-
         if (messageReader == null) {
             // TODO: trigger lazy connect, same as HTTP
             throw new UnsupportedOperationException();
@@ -302,7 +301,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      *
      * @return Collection<String>      successfully negotiated using this
      *                                 connection
-     * @throws IOException 
+     * @throws IOException
      */
     public Collection<String> getNegotiatedExtensions() throws IOException {
         ensureConnected();
@@ -319,7 +318,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      * @param <T>          parameter type
      * @param parameter    parameter of a negotiated extension
      * @return T           value of the specified parameter
-     * @throws IOException 
+     * @throws IOException
      */
     public <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException {
 
@@ -339,7 +338,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public OutputStream getOutputStream() throws IOException {
-
         if (outputStream == null) {
             ensureConnected();
             outputStream = new WsOutputStreamImpl(connection.getOutputStream(), random);
@@ -350,11 +348,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public Reader getReader() throws IOException {
-
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            throw new UnsupportedOperationException();
+            reader = new WsReaderImpl(connection.getInputStream());
         }
 
         return reader;
@@ -378,7 +375,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (writer == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            throw new UnsupportedOperationException();
+            writer = new WsWriterImpl(connection.getOutputStream(), random);
         }
 
         return writer;
