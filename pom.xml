@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>community</artifactId>
-        <version>1.2</version>
+        <version>2.0</version>
     </parent>
 
     <artifactId>netx</artifactId>
@@ -33,50 +33,17 @@
     <description>Network utility that extends java.net, including URL</description>
     <packaging>jar</packaging>
 
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-    <inceptionYear>2014</inceptionYear>
-
     <scm>
         <url>https://github.com/kaazing/netx.git</url>
         <connection>scm:git:https://github.com/kaazing/netx.git</connection>
     </scm>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <checkstyle.config.location>config/checkstyle/checkstyle.xml</checkstyle.config.location>
         <maven.compiler.source>1.6</maven.compiler.source>
         <maven.compiler.target>1.6</maven.compiler.target>
         <maven.compiler.testSource>1.7</maven.compiler.testSource>
         <maven.compiler.testTarget>1.7</maven.compiler.testTarget>
-        <revapi.version>0.2.1</revapi.version>
     </properties>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
-
-    <developers>
-        <developer>
-            <name>Kaazing Corporation</name>
-            <email>developers@kaazing.com</email>
-            <url>https://github.com/kaazing</url>
-            <organization>Kaazing Corporation</organization>
-            <organizationUrl>http://kaazing.org</organizationUrl>
-        </developer>
-    </developers>
 
     <dependencies>
         <dependency>
@@ -89,57 +56,9 @@
 
     <build>
         <plugins>
-<!--
             <plugin>
-                <groupId>org.revapi</groupId>
-                <artifactId>revapi-maven-plugin</artifactId>
-                <version>${revapi.version}</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.revapi</groupId>
-                        <artifactId>revapi-java</artifactId>
-                        <version>${revapi.version}</version>
-                    </dependency>
-                </dependencies>
-                <configuration>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>api-check</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
--->
-            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.12</version>
-                <executions>
-                    <execution>
-                        <id>check-style</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <phase>validate</phase>
-                        <configuration>
-                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            <consoleOutput>true</consoleOutput>
-                            <logViolationsToConsole>true</logViolationsToConsole>
-                            <failsOnError>true</failsOnError>
-                            <failOnViolation>true</failOnViolation>
-                            <configLocation>org/kaazing/code/quality/checkstyle.xml</configLocation>
-                        </configuration>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.kaazing</groupId>
-                        <artifactId>code.quality</artifactId>
-                        <version>1.0</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
