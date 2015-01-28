@@ -23,11 +23,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Random;
 
-public final class WsOutputStreamImpl extends FilterOutputStream {
+public final class WsOutputStream extends FilterOutputStream {
 
     private final Random random;
 
-    public WsOutputStreamImpl(OutputStream out, Random random) {
+    public WsOutputStream(OutputStream out, Random random) {
         super(out);
         this.random = random;
     }

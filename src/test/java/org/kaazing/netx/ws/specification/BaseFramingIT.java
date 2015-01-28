@@ -19,6 +19,7 @@ package org.kaazing.netx.ws.specification;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.InputStream;
@@ -36,6 +37,9 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
 
 /**
@@ -79,6 +83,41 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
+        "echo.binary.payload.length.0/handshake.response.and.frame" })
+    public void shouldEchoBinaryFrameWithPayloadLength0UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] writeBytes = new byte[0];
+        random.nextBytes(writeBytes);
+        writer.write(writeBytes);
+
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+
+        k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
         "echo.binary.payload.length.125/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength125() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -94,6 +133,41 @@ public class BaseFramingIT {
 
         byte[] readBytes = new byte[125];
         in.read(readBytes);
+
+        k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
+        "echo.binary.payload.length.125/handshake.response.and.frame" })
+    public void shouldEchoBinaryFrameWithPayloadLength125UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] writeBytes = new byte[125];
+        random.nextBytes(writeBytes);
+        writer.write(writeBytes);
+
+        byte[] readBytes = new byte[125];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
 
         k3po.join();
 
@@ -129,6 +203,41 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
+        "echo.binary.payload.length.126/handshake.response.and.frame" })
+    public void shouldEchoBinaryFrameWithPayloadLength126UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] writeBytes = new byte[126];
+        random.nextBytes(writeBytes);
+        writer.write(writeBytes);
+
+        byte[] readBytes = new byte[126];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+
+        k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
         "echo.binary.payload.length.127/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength127() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -144,6 +253,41 @@ public class BaseFramingIT {
 
         byte[] readBytes = new byte[127];
         in.read(readBytes);
+
+        k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
+        "echo.binary.payload.length.127/handshake.response.and.frame" })
+    public void shouldEchoBinaryFrameWithPayloadLength127UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] writeBytes = new byte[127];
+        random.nextBytes(writeBytes);
+        writer.write(writeBytes);
+
+        byte[] readBytes = new byte[127];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
 
         k3po.join();
 
@@ -179,6 +323,41 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
+        "echo.binary.payload.length.128/handshake.response.and.frame" })
+    public void shouldEchoBinaryFrameWithPayloadLength128UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] writeBytes = new byte[128];
+        random.nextBytes(writeBytes);
+        writer.write(writeBytes);
+
+        byte[] readBytes = new byte[128];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+
+        k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
         "echo.binary.payload.length.65535/handshake.response.and.frame" })
     public void shouldEchoBinaryFrameWithPayloadLength65535() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -194,6 +373,41 @@ public class BaseFramingIT {
 
         byte[] readBytes = new byte[65535];
         in.read(readBytes);
+
+        k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
+        "echo.binary.payload.length.65535/handshake.response.and.frame" })
+    public void shouldEchoBinaryFrameWithPayloadLength65535UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] writeBytes = new byte[65535];
+        random.nextBytes(writeBytes);
+        writer.write(writeBytes);
+
+        byte[] readBytes = new byte[65535];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
 
         k3po.join();
 
@@ -229,6 +443,41 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
+        "echo.binary.payload.length.65536/handshake.response.and.frame" })
+    public void shouldEchoBinaryFrameWithPayloadLength65536UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] writeBytes = new byte[65536];
+        random.nextBytes(writeBytes);
+        writer.write(writeBytes);
+
+        byte[] readBytes = new byte[65536];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+
+        k3po.join();
+
+        assertArrayEquals(writeBytes, readBytes);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
         "echo.text.payload.length.0/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength0() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -243,6 +492,42 @@ public class BaseFramingIT {
 
         char[] cbuf = new char[writeString.toCharArray().length];
         in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
+        k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
+        "echo.text.payload.length.0/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength0UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        String writeString = "";
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case TEXT:
+                reader.read(cbuf);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
 
         String readString = String.valueOf(cbuf);
 
@@ -281,6 +566,39 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
+        "echo.text.payload.length.125/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength125UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        String writeString = new RandomString(125).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case TEXT:
+                reader.read(cbuf);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+
+        String readString = String.valueOf(cbuf);
+        k3po.join();
+        assertEquals(writeString, readString);
+        connection.close();
+    }
+
+    @Test
+    @Specification({
         "echo.text.payload.length.126/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength126() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -295,6 +613,42 @@ public class BaseFramingIT {
 
         char[] cbuf = new char[writeString.toCharArray().length];
         in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
+        k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
+        "echo.text.payload.length.126/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength126UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        String writeString = new RandomString(126).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case TEXT:
+                reader.read(cbuf);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
 
         String readString = String.valueOf(cbuf);
 
@@ -333,6 +687,42 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
+        "echo.text.payload.length.127/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength127UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        String writeString = new RandomString(127).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case TEXT:
+                reader.read(cbuf);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+
+        String readString = String.valueOf(cbuf);
+
+        k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
         "echo.text.payload.length.128/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength128() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -347,6 +737,42 @@ public class BaseFramingIT {
 
         char[] cbuf = new char[writeString.toCharArray().length];
         in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
+        k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
+        "echo.text.payload.length.128/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength128UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        String writeString = new RandomString(128).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case TEXT:
+                reader.read(cbuf);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
 
         String readString = String.valueOf(cbuf);
 
@@ -385,6 +811,42 @@ public class BaseFramingIT {
 
     @Test
     @Specification({
+        "echo.text.payload.length.65535/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength65535UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        String writeString = new RandomString(65535).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case TEXT:
+                reader.read(cbuf);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+
+        String readString = String.valueOf(cbuf);
+
+        k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
         "echo.text.payload.length.65536/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength65536() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -399,6 +861,42 @@ public class BaseFramingIT {
 
         char[] cbuf = new char[writeString.toCharArray().length];
         in.read(cbuf, 0, cbuf.length);
+
+        String readString = String.valueOf(cbuf);
+
+        k3po.join();
+
+        assertEquals(writeString, readString);
+
+        connection.close();
+    }
+
+    @Test
+    @Specification({
+        "echo.text.payload.length.65536/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength65536UsingMessageWriterAndMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        String writeString = new RandomString(65536).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case TEXT:
+                reader.read(cbuf);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
 
         String readString = String.valueOf(cbuf);
 

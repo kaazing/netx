@@ -17,7 +17,6 @@
 package org.kaazing.netx.ws;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.kaazing.netx.ws.internal.WebSocket;
 
@@ -25,9 +24,7 @@ import org.kaazing.netx.ws.internal.WebSocket;
  * {@link MessageWriter} is used to send binary and text messages. A
  * reference to {@link MessageWriter} is obtained by invoking either
  * {@link WebSocket#getMessageWriter()} or
- * {@link WsURLConnection#getMessageWriter() methods after the connection has
- * been established. Trying to get a reference to {@link MessageWriter}
- * before the connection is established will result in an IOException.
+ * {@link WsURLConnection#getMessageWriter() methods.
  * <p>
  * Once the connection is closed, a new {@link MessageReader} should
  * be obtained using the aforementioned methods after the connection has been
@@ -36,22 +33,39 @@ import org.kaazing.netx.ws.internal.WebSocket;
 public abstract class MessageWriter {
 
     /**
-     * Sends a text message using the specified payload. Trying to write
-     * after the underlying connection has been closed will result in an
-     * IOException.
+     * Sends a text message using the entire specified buffer.
      *
-     * @param  src            CharSequence payload of the message
-     * @throws IOException    if the connection is not open or if the connection
-     *                        has been closed
+     * @param  buf            text payload of the message
+     * @throws IOException    if an IO error occurs
      */
-    public abstract void writeText(CharSequence src) throws IOException;
+    public abstract void write(char[] buf) throws IOException;
 
     /**
-     * Sends a binary message using the specified payload.
+     * Sends a text message using a portion of the specified buffer.
      *
-     * @param  src            ByteBuffer payload of the message
-     * @throws IOException    if the connection is not open or if the connection
-     *                        has been closed
+     * @param  buf            text payload of the message
+     * @param  off            offset from which to start sending
+     * @param  len            number of characters to send
+     * @throws IOException    if an IO error occurs
      */
-    public abstract void writeBinary(ByteBuffer src) throws IOException;
+    public abstract void write(char[] buf, int off, int len) throws IOException;
+
+
+    /**
+     * Sends a binary message using the entire specified buffer.
+     *
+     * @param  buf            binary payload of the message
+     * @throws IOException    if an IO error occurs
+     */
+    public abstract void write(byte[] buf) throws IOException;
+
+    /**
+     * Sends a binary message using the entire specified buffer.
+     *
+     * @param  buf            binary payload of the message
+     * @param  off            offset from which to start sending
+     * @param  len            number of bytes to send
+     * @throws IOException    if an IO error occurs
+     */
+    public abstract void write(byte[] buf, int offset, int len) throws IOException;
 }

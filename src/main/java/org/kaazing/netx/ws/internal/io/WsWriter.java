@@ -23,11 +23,11 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.util.Random;
 
-public class WsWriterImpl extends Writer {
+public class WsWriter extends Writer {
     private final OutputStream out;
     private final Random       random;
 
-    public WsWriterImpl(OutputStream out, Random random) {
+    public WsWriter(OutputStream out, Random random) {
         this.out = out;
         this.random = random;
     }
@@ -92,20 +92,27 @@ public class WsWriterImpl extends Writer {
             break;
         }
 
-        byte[] b = String.valueOf(cbuf).getBytes("UTF-8");
+        // Create a section of the buf that is to be written.
+        char[] arr = new char[len];
+        for (int i = 0; i < len; i++) {
+            arr[i] = cbuf[off + i];
+        }
+
+        // Create the masking key.
         byte[] mask = new byte[4];
         random.nextBytes(mask);
         out.write(mask);
 
-        byte[] masked = new byte[b.length];
-        for (int i = 0; i < b.length; i++) {
+        // Mask the payload.
+        byte[] bytes = String.valueOf(arr).getBytes("UTF-8");
+        byte[] masked = new byte[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
             int ioff = off + i;
-            masked[i] = (byte) (b[ioff] ^ mask[i % mask.length]);
+            masked[i] = (byte) (bytes[ioff] ^ mask[i % mask.length]);
         }
 
         out.write(masked);
         out.flush();
-
     }
 
     @Override

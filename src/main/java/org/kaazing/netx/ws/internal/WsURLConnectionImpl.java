@@ -53,16 +53,15 @@ import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
-import org.kaazing.netx.ws.internal.io.WsInputStreamImpl;
-import org.kaazing.netx.ws.internal.io.WsMessageReaderImpl;
-import org.kaazing.netx.ws.internal.io.WsMessageWriterImpl;
-import org.kaazing.netx.ws.internal.io.WsOutputStreamImpl;
-import org.kaazing.netx.ws.internal.io.WsReaderImpl;
-import org.kaazing.netx.ws.internal.io.WsWriterImpl;
+import org.kaazing.netx.ws.internal.io.WsInputStream;
+import org.kaazing.netx.ws.internal.io.WsMessageReader;
+import org.kaazing.netx.ws.internal.io.WsMessageWriter;
+import org.kaazing.netx.ws.internal.io.WsOutputStream;
+import org.kaazing.netx.ws.internal.io.WsReader;
+import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
-
     private static final Set<Parameter<?>> EMPTY_PARAMETERS = Collections.emptySet();
 
     private static final Logger LOG = getLogger(WsURLConnection.class.getPackage().getName());
@@ -87,16 +86,14 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensions;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensionsRO;
 
-    private ReadyState readyState;
-    private String negotiatedProtocol;
-
-    // TODO
-    private WsInputStreamImpl                              inputStream;
-    private WsOutputStreamImpl                             outputStream;
-    private WsReaderImpl                                   reader;
-    private WsWriterImpl                                   writer;
-    private WsMessageReaderImpl                            messageReader;
-    private WsMessageWriterImpl                            messageWriter;
+    private ReadyState      readyState;
+    private String          negotiatedProtocol;
+    private WsInputStream   inputStream;
+    private WsOutputStream  outputStream;
+    private WsReader        reader;
+    private WsWriter        writer;
+    private WsMessageReader messageReader;
+    private WsMessageWriter messageWriter;
 
     private static final WebSocketExtensionParameterValues EMPTY_EXTENSION_PARAMETERS = new EmptyExtensionParameterValues();
 
@@ -260,7 +257,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (inputStream == null) {
             ensureConnected();
-            inputStream = new WsInputStreamImpl(connection.getInputStream());
+            inputStream = new WsInputStream(connection.getInputStream());
         }
 
         return inputStream;
@@ -270,7 +267,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public MessageReader getMessageReader() throws IOException {
         if (messageReader == null) {
             // TODO: trigger lazy connect, same as HTTP
-            throw new UnsupportedOperationException();
+            ensureConnected();
+            messageReader = new WsMessageReader(connection.getInputStream());
         }
 
         return messageReader;
@@ -281,7 +279,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (messageWriter == null) {
             // TODO: trigger lazy connect, same as HTTP
-            throw new UnsupportedOperationException();
+            ensureConnected();
+            messageWriter = new WsMessageWriter(getOutputStream(), getWriter());
         }
 
         return messageWriter;
@@ -340,7 +339,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public OutputStream getOutputStream() throws IOException {
         if (outputStream == null) {
             ensureConnected();
-            outputStream = new WsOutputStreamImpl(connection.getOutputStream(), random);
+            outputStream = new WsOutputStream(connection.getOutputStream(), random);
         }
 
         return outputStream;
@@ -351,7 +350,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            reader = new WsReaderImpl(connection.getInputStream());
+            reader = new WsReader(connection.getInputStream());
         }
 
         return reader;
@@ -375,7 +374,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (writer == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            writer = new WsWriterImpl(connection.getOutputStream(), random);
+            writer = new WsWriter(connection.getOutputStream(), random);
         }
 
         return writer;

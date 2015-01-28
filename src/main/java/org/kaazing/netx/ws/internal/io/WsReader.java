@@ -18,30 +18,28 @@ package org.kaazing.netx.ws.internal.io;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
 
-public final class WsInputStreamImpl extends InputStream {
-
+public class WsReader extends Reader {
     private final InputStream in;
-    private final byte[] header;
+    private final byte[]      header;
 
-    private int headerOffset;
-    private int payloadOffset;
-    private int payloadLength;
+    private int               headerOffset;
+    private int               payloadOffset;
+    private int               payloadLength;
 
-    public WsInputStreamImpl(InputStream in) {
+    public WsReader(InputStream  in) throws IOException {
         this.in = in;
         this.header = new byte[10];
         this.payloadOffset = -1;
     }
 
     @Override
-    public int available() throws IOException {
-        // TODO:
-        return in.available();
-    }
+    public int read(char[] cbuf, int off, int len) throws IOException {
+        if (len == 0) {
+            return 0;
+        }
 
-    @Override
-    public int read() throws IOException {
         while (payloadLength == 0) {
             while (payloadOffset == -1) {
                 int headerByte = in.read();
@@ -54,7 +52,7 @@ public final class WsInputStreamImpl extends InputStream {
                     int opcode = header[0] & 0x07;
                     switch (opcode) {
                     case 0x00:
-                    case 0x02:
+                    case 0x01:
                         break;
                     default:
                         // TODO: skip
@@ -97,30 +95,35 @@ public final class WsInputStreamImpl extends InputStream {
             }
         }
 
-        int b = in.read();
+        int    length = Math.min(len, payloadLength);
+        byte[] bytes = new byte[length];
 
-        if (payloadOffset++ == payloadLength) {
+        int    bytesRead = in.read(bytes, 0, length);
+        if (bytesRead == -1) {
+            throw new IOException("End of stream");
+        }
+
+        // ### TODO: When we test with multi-byte chars, we can decide whether
+        //           to convert byte[] to a UTF-8 char[] using the following line:
+        // int[]  utf8buf = Utf8Util.decode(buffer);
+        char[] utf8buf = new String(bytes, 0, bytesRead, "UTF-8").toCharArray();
+        int    charsRead = utf8buf.length;
+
+        assert utf8buf.length <= len;
+
+        for (int i = 0; i < charsRead; i++) {
+            cbuf[off + i] = utf8buf[i];
+        }
+
+        payloadOffset += length;
+
+        if (payloadOffset == payloadLength) {
             headerOffset = 0;
             payloadOffset = -1;
             payloadLength = 0;
         }
 
-        return b;
-    }
-
-    @Override
-    public int read(byte[] b) throws IOException {
-        return super.read(b);
-    }
-
-    @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-        return super.read(b, off, len);
-    }
-
-    @Override
-    public long skip(long n) throws IOException {
-        return super.skip(n);
+        return charsRead;
     }
 
     @Override
