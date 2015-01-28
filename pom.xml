@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>netx.ws</artifactId>
-    <version>SNAPSHOT</version>
+    <version>develop-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>WebSocket RFC-6455 Implementation</name>
