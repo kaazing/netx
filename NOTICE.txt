@@ -1,14 +1,14 @@
-This product depends on Net Extensions 2.0
+This product depends on Net Extensions
 
 	License:	http://www.apache.org/licenses/LICENSE-2.0 (Apache License, Version 2.0)
 	Homepage:	https://github.com/kaazing/netx.git
 
-This product depends on Net Extensions for HTTP 2.0
+This product depends on Net Extensions for HTTP
 
 	License:	http://www.apache.org/licenses/LICENSE-2.0 (Apache License, Version 2.0)
 	Homepage:	https://github.com/kaazing/netx.http.git
 
-This product depends on K3PO - JUnit Extension for K3PO Protocol Droid 2.0
+This product depends on K3PO - JUnit Extension for K3PO Protocol Droid
 
 	License:	http://www.apache.org/licenses/LICENSE-2.0 (Apache License, Version 2.0)
 	Homepage:	https://github.com/kaazing/k3po.java.git
