@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>netx</artifactId>
-    <version>SNAPSHOT</version>
+    <version>develop-SNAPSHOT</version>
 
     <name>Net Extensions</name>
     <url>https://github.com/kaazing/netx</url>
