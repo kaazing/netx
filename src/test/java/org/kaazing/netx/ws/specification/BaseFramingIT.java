@@ -132,8 +132,17 @@ public class BaseFramingIT {
         out.write(writeBytes);
 
         byte[] readBytes = new byte[125];
-        in.read(readBytes);
+        int offset = 0;
+        int length = readBytes.length;
+        int bytesRead = 0;
 
+        while ((bytesRead != -1) && (length > 0)) {
+            bytesRead = in.read(readBytes, offset, length);
+            if (bytesRead != -1) {
+                offset += bytesRead;
+                length -= bytesRead;
+            }
+        }
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
@@ -192,8 +201,17 @@ public class BaseFramingIT {
         out.write(writeBytes);
 
         byte[] readBytes = new byte[126];
-        in.read(readBytes);
+        int offset = 0;
+        int length = readBytes.length;
+        int bytesRead = 0;
 
+        while ((bytesRead != -1) && (length > 0)) {
+            bytesRead = in.read(readBytes, offset, length);
+            if (bytesRead != -1) {
+                offset += bytesRead;
+                length -= bytesRead;
+            }
+        }
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
@@ -252,8 +270,17 @@ public class BaseFramingIT {
         out.write(writeBytes);
 
         byte[] readBytes = new byte[127];
-        in.read(readBytes);
+        int offset = 0;
+        int length = readBytes.length;
+        int bytesRead = 0;
 
+        while ((bytesRead != -1) && (length > 0)) {
+            bytesRead = in.read(readBytes, offset, length);
+            if (bytesRead != -1) {
+                offset += bytesRead;
+                length -= bytesRead;
+            }
+        }
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
@@ -312,8 +339,17 @@ public class BaseFramingIT {
         out.write(writeBytes);
 
         byte[] readBytes = new byte[128];
-        in.read(readBytes);
+        int offset = 0;
+        int length = readBytes.length;
+        int bytesRead = 0;
 
+        while ((bytesRead != -1) && (length > 0)) {
+            bytesRead = in.read(readBytes, offset, length);
+            if (bytesRead != -1) {
+                offset += bytesRead;
+                length -= bytesRead;
+            }
+        }
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
@@ -372,8 +408,17 @@ public class BaseFramingIT {
         out.write(writeBytes);
 
         byte[] readBytes = new byte[65535];
-        in.read(readBytes);
+        int offset = 0;
+        int length = readBytes.length;
+        int bytesRead = 0;
 
+        while ((bytesRead != -1) && (length > 0)) {
+            bytesRead = in.read(readBytes, offset, length);
+            if (bytesRead != -1) {
+                offset += bytesRead;
+                length -= bytesRead;
+            }
+        }
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
@@ -432,8 +477,17 @@ public class BaseFramingIT {
         out.write(writeBytes);
 
         byte[] readBytes = new byte[65536];
-        in.read(readBytes);
+        int offset = 0;
+        int length = readBytes.length;
+        int bytesRead = 0;
 
+        while ((bytesRead != -1) && (length > 0)) {
+            bytesRead = in.read(readBytes, offset, length);
+            if (bytesRead != -1) {
+                offset += bytesRead;
+                length -= bytesRead;
+            }
+        }
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
@@ -484,15 +538,24 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Writer out = connection.getWriter();
-        Reader in = connection.getReader();
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
 
         String writeString = "";
-        out.write(writeString.toCharArray());
+        writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
-        in.read(cbuf, 0, cbuf.length);
+        int offset = 0;
+        int length = cbuf.length;
+        int charsRead = 0;
 
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
         String readString = String.valueOf(cbuf);
 
         k3po.join();
@@ -546,15 +609,24 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Writer out = connection.getWriter();
-        Reader in = connection.getReader();
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
 
         String writeString = new RandomString(125).nextString();
-        out.write(writeString.toCharArray());
+        writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
-        in.read(cbuf, 0, cbuf.length);
+        int offset = 0;
+        int length = cbuf.length;
+        int charsRead = 0;
 
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
         String readString = String.valueOf(cbuf);
 
         k3po.join();
@@ -605,15 +677,24 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Writer out = connection.getWriter();
-        Reader in = connection.getReader();
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
 
         String writeString = new RandomString(126).nextString();
-        out.write(writeString.toCharArray());
+        writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
-        in.read(cbuf, 0, cbuf.length);
+        int offset = 0;
+        int length = cbuf.length;
+        int charsRead = 0;
 
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
         String readString = String.valueOf(cbuf);
 
         k3po.join();
@@ -667,15 +748,24 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Writer out = connection.getWriter();
-        Reader in = connection.getReader();
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
 
         String writeString = new RandomString(127).nextString();
-        out.write(writeString.toCharArray());
+        writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
-        in.read(cbuf, 0, cbuf.length);
+        int offset = 0;
+        int length = cbuf.length;
+        int charsRead = 0;
 
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
         String readString = String.valueOf(cbuf);
 
         k3po.join();
@@ -729,15 +819,24 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Writer out = connection.getWriter();
-        Reader in = connection.getReader();
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
 
         String writeString = new RandomString(128).nextString();
-        out.write(writeString.toCharArray());
+        writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
-        in.read(cbuf, 0, cbuf.length);
+        int offset = 0;
+        int length = cbuf.length;
+        int charsRead = 0;
 
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
         String readString = String.valueOf(cbuf);
 
         k3po.join();
@@ -791,14 +890,24 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Writer out = connection.getWriter();
-        Reader in = connection.getReader();
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
 
         String writeString = new RandomString(65535).nextString();
-        out.write(writeString.toCharArray());
+        writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
-        in.read(cbuf, 0, cbuf.length);
+        int offset = 0;
+        int length = cbuf.length;
+        int charsRead = 0;
+
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
 
         String readString = String.valueOf(cbuf);
 
@@ -853,14 +962,24 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Writer out = connection.getWriter();
-        Reader in = connection.getReader();
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
 
         String writeString = new RandomString(65536).nextString();
-        out.write(writeString.toCharArray());
+        writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
-        in.read(cbuf, 0, cbuf.length);
+        int offset = 0;
+        int length = cbuf.length;
+        int charsRead = 0;
+
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
 
         String readString = String.valueOf(cbuf);
 
