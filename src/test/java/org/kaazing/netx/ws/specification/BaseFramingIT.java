@@ -913,8 +913,9 @@ public class BaseFramingIT {
 
         static {
           StringBuilder tmp = new StringBuilder();
-          for (char ch = 32; ch <= 126; ++ch)
+          for (char ch = 32; ch <= 126; ++ch) {
             tmp.append(ch);
+          }
           symbols = tmp.toString().toCharArray();
         }
 

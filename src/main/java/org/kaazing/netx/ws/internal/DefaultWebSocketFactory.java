@@ -55,8 +55,7 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
         for (WebSocketExtensionFactorySpi factory: loader) {
             String extensionName = factory.getExtensionName();
 
-            if (extensionName != null)
-            {
+            if (extensionName != null) {
                 factories.put(extensionName, factory);
             }
         }

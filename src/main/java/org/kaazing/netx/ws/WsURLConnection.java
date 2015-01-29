@@ -179,14 +179,9 @@ public abstract class WsURLConnection extends URLConnection {
     /**
      * Gets the protocol that the client and the server have successfully
      * negotiated.
-     * <p>
-     * If this method is invoked before the connection is successfully
-     * established, an IllegalStateException is thrown.
-     * <p>
+     *
      * @return protocol                negotiated by the client and the server
-     * @throws IOException 
-     * @throws IllegalStateException   if invoked before the {@link #connect()}
-     *                                 completes
+     * @throws IOException
      */
     public abstract String getNegotiatedProtocol() throws IOException;
 

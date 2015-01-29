@@ -146,7 +146,7 @@ public abstract class WebSocketExtension {
             metadataSet = EnumSet.of(characteristics[0]);
         }
         else {
-            Metadata[] array = new Metadata[length -1];
+            Metadata[] array = new Metadata[length - 1];
 
             // Start from the second(0-based index) element onwards to populate
             // the array.
