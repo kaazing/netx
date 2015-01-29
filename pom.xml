@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>netx.tcp</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.1</version>
     <packaging>jar</packaging>
 
     <name>Net TCP Implementation</name>
