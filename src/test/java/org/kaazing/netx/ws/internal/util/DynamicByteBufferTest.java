@@ -22,8 +22,7 @@ import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.charset.Charset;
 
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.junit.Test;
 
 
@@ -52,14 +51,14 @@ public class DynamicByteBufferTest {
     @Test
     public void testGetAndSetBytes() throws Exception {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(2);
-        buf.put((byte)1);
-        buf.put((byte)2);
+        buf.put((byte) 1);
+        buf.put((byte) 2);
         buf.flip();
-        assertEquals((byte)1, buf.get());
-        assertEquals((byte)2, buf.get());
+        assertEquals((byte) 1, buf.get());
+        assertEquals((byte) 2, buf.get());
         buf.flip();
-        assertEquals((byte)1, buf.getAt(0));
-        assertEquals((byte)2, buf.getAt(1));
+        assertEquals((byte) 1, buf.getAt(0));
+        assertEquals((byte) 2, buf.getAt(1));
         buf.flip();
     }
 
@@ -73,35 +72,35 @@ public class DynamicByteBufferTest {
         buf.putShort((short) 4);
         buf.putShort((short) 5);
         buf.flip();
-        assertEquals((short)1, buf.getShort());
-        assertEquals((short)1, buf.getShortAt(0));
-        assertEquals((short)2, buf.getShortAt(2));
-        assertEquals((short)3, buf.getShortAt(4));
-        assertEquals((short)2, buf.getShort());
-        assertEquals((short)3, buf.getShort());
-        assertEquals((short)4, buf.getShort());
-        assertEquals((short)5, buf.getShort());
+        assertEquals((short) 1, buf.getShort());
+        assertEquals((short) 1, buf.getShortAt(0));
+        assertEquals((short) 2, buf.getShortAt(2));
+        assertEquals((short) 3, buf.getShortAt(4));
+        assertEquals((short) 2, buf.getShort());
+        assertEquals((short) 3, buf.getShort());
+        assertEquals((short) 4, buf.getShort());
+        assertEquals((short) 5, buf.getShort());
     }
 
     @Test
     public void testGetAndSetVarious() throws Exception {
         //tests reallocation of buffer automatically.
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(2);
-        buf.put((byte) 1);
+        buf.put((byte)  1);
         buf.putShort((short) 2);
         buf.putInt(3);
         buf.putLong(4);
         String test = "this";
         buf.putString(test, Charset.defaultCharset());
-        buf.put((byte)0);
+        buf.put((byte) 0);
         buf.putPrefixedString(1, "abcde", Charset.defaultCharset());
         buf.flip();
-        assertEquals((byte)1, buf.get());
-        assertEquals((short)2, buf.getShort());
+        assertEquals((byte) 1, buf.get());
+        assertEquals((short) 2, buf.getShort());
         assertEquals(3, buf.getInt());
         assertEquals(4, buf.getLong());
         assertEquals(test, buf.getString(Charset.defaultCharset()));
-        assertEquals("abcde", buf.getPrefixedString(1,Charset.defaultCharset()));
+        assertEquals("abcde", buf.getPrefixedString(1, Charset.defaultCharset()));
     }
 
     @Test
@@ -117,14 +116,14 @@ public class DynamicByteBufferTest {
         buf.putPrefixedString(2, test1, cs);
         buf.putPrefixedString(2, test2, cs);
         buf.putPrefixedString(2, test3, cs);
-        buf.put((byte)0);
+        buf.put((byte) 0);
         buf.putInt(100);
         buf.flip();
-        assertEquals(test, buf.getPrefixedString(2,cs));
-        assertEquals(test1, buf.getPrefixedString(2,cs));
-        assertEquals(test2, buf.getPrefixedString(2,cs));
-        assertEquals(test3, buf.getPrefixedString(2,cs));
-        assertEquals((byte)0, buf.get());
+        assertEquals(test, buf.getPrefixedString(2, cs));
+        assertEquals(test1, buf.getPrefixedString(2, cs));
+        assertEquals(test2, buf.getPrefixedString(2, cs));
+        assertEquals(test3, buf.getPrefixedString(2, cs));
+        assertEquals((byte) 0, buf.get());
         assertEquals(100, buf.getInt());
     }
 
@@ -138,17 +137,17 @@ public class DynamicByteBufferTest {
         String test3 = "story";
         Charset cs = Charset.forName("UTF-8");
         buf.putString(test, cs);
-        buf.put((byte)0);
+        buf.put((byte) 0);
         buf.putPrefixedString(2, "abcde", cs);
         buf.putPrefixedString(2, test1, cs);
         buf.putPrefixedString(2, test2, cs);
         buf.putPrefixedString(2, test3, cs);
         buf.flip();
         assertEquals(test, buf.getString(cs));
-        assertEquals("abcde", buf.getPrefixedString(2,cs));
-        assertEquals(test1, buf.getPrefixedString(2,cs));
-        assertEquals(test2, buf.getPrefixedString(2,cs));
-        assertEquals(test3, buf.getPrefixedString(2,cs));
+        assertEquals("abcde", buf.getPrefixedString(2, cs));
+        assertEquals(test1, buf.getPrefixedString(2, cs));
+        assertEquals(test2, buf.getPrefixedString(2, cs));
+        assertEquals(test3, buf.getPrefixedString(2, cs));
     }
 
     @Test
@@ -161,26 +160,26 @@ public class DynamicByteBufferTest {
         String test3 = "story";
         Charset cs = Charset.forName("ASCII");
         buf.putString(test, cs);
-        buf.put((byte)0);
+        buf.put((byte) 0);
         buf.putPrefixedString(2, "abcde", cs);
         buf.putPrefixedString(2, test1, cs);
         buf.putPrefixedString(2, test2, cs);
         buf.putPrefixedString(2, test3, cs);
         buf.flip();
         assertEquals(test, buf.getString(cs));
-        assertEquals("abcde", buf.getPrefixedString(2,cs));
-        assertEquals(test1, buf.getPrefixedString(2,cs));
-        assertEquals(test2, buf.getPrefixedString(2,cs));
-        assertEquals(test3, buf.getPrefixedString(2,cs));
+        assertEquals("abcde", buf.getPrefixedString(2, cs));
+        assertEquals(test1, buf.getPrefixedString(2, cs));
+        assertEquals(test2, buf.getPrefixedString(2, cs));
+        assertEquals(test3, buf.getPrefixedString(2, cs));
     }
 
     @Test
     public void testHexDump() {
         // TODO: should test actual HEX values, 1 and 2 digits
         DynamicByteBuffer buf = new DynamicByteBuffer();
-        buf.put((byte)1);
-        buf.put((byte)2);
-        buf.put((byte)3);
+        buf.put((byte) 1);
+        buf.put((byte) 2);
+        buf.put((byte) 3);
         buf.flip();
         assertEquals("1 2 3 ", buf.getHexDump());
     }
@@ -210,44 +209,44 @@ public class DynamicByteBufferTest {
      * byte array tests
      */
     @Test
-    public void testGetAndSetByteArray() throws Exception{
+    public void testGetAndSetByteArray() throws Exception {
         // TODO: test should include NULL, MIN and MAX bytes
         DynamicByteBuffer buf = new DynamicByteBuffer();
-        byte b1[] = new byte[6];
-        b1[0] = (byte)1;
-        b1[1] = (byte)-1;
-        b1[2] = (byte)-1;
-        b1[3] = (byte)4;
-        b1[4] = (byte)1;
-        b1[5] = (byte)-2;
+        byte[] b1 = new byte[6];
+        b1[0] = (byte) 1;
+        b1[1] = (byte) -1;
+        b1[2] = (byte) -1;
+        b1[3] = (byte) 4;
+        b1[4] = (byte) 1;
+        b1[5] = (byte) -2;
         buf.putBytes(b1);
         buf.flip();
 
-        byte res[] = buf.getBytes(2);
-        byte res1[] = buf.getBytesAt(4,2);
-        assertEquals((byte)1, res[0]);
-        assertEquals((byte)-1, res[1]);
-        assertEquals((byte)1, res1[0]);
-        assertEquals((byte)-2, res1[1]);
+        byte[] res = buf.getBytes(2);
+        byte[] res1 = buf.getBytesAt(4, 2);
+        assertEquals((byte) 1, res[0]);
+        assertEquals((byte) -1, res[1]);
+        assertEquals((byte) 1, res1[0]);
+        assertEquals((byte) -2, res1[1]);
 
         byte[] b2 = new byte[2];
-        b2[0] = (byte)121;
-        b2[1] = (byte)122;
-        buf.putBytesAt(0,b2);
+        b2[0] = (byte) 121;
+        b2[1] = (byte) 122;
+        buf.putBytesAt(0, b2);
         buf.flip();
-        res1 = buf.getBytesAt(0,2);
-        assertEquals((byte)121, res1[0]);
-        assertEquals((byte)122, res1[1]);
+        res1 = buf.getBytesAt(0, 2);
+        assertEquals((byte) 121, res1[0]);
+        assertEquals((byte) 122, res1[1]);
     }
 
     @Test
     public void testGetAndSetPut() throws Exception {
         DynamicByteBuffer buf = new DynamicByteBuffer();
-        byte b1= (byte) -128;
-        byte b2= (byte) 127;
-        byte b3= (byte) 128;
-        byte b4= (byte) 12;
-        byte b5= (byte) 13;
+        byte b1 = (byte)  -128;
+        byte b2 = (byte)  127;
+        byte b3 = (byte)  128;
+        byte b4 = (byte)  12;
+        byte b5 = (byte)  13;
         buf.put(b1);
         buf.put(b2);
         buf.put(b3);
@@ -257,23 +256,23 @@ public class DynamicByteBufferTest {
         assertEquals(b2, buf.get());
         assertEquals(b3, buf.get());
 
-        buf.putAt(0,b4);
-        buf.putAt(1,b5);
+        buf.putAt(0, b4);
+        buf.putAt(1, b5);
         assertEquals(b4, buf.getAt(0));
         assertEquals(b5, buf.getAt(1));
     }
 
-    @Test (expected=BufferOverflowException.class)
+    @Test (expected = BufferOverflowException.class)
     public void testGetAndSetPutException() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.setAutoExpand(false);
-        buf.put((byte)121);
+        buf.put((byte) 121);
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetPutAtException2() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
-        buf.putAt(129, (byte)121);
+        buf.putAt(129, (byte) 121);
     }
 
     @Test
@@ -303,14 +302,14 @@ public class DynamicByteBufferTest {
         assertEquals(buf.position(), 4);
     }
 
-    @Test (expected=BufferOverflowException.class)
+    @Test (expected = BufferOverflowException.class)
     public void testGetAndSetPutUnsignedException() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.setAutoExpand(false);
         buf.putUnsigned(121);
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetPutUnsignedAtException2() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.putUnsignedAt(129, 121);
@@ -320,59 +319,59 @@ public class DynamicByteBufferTest {
      * Short Tests
      */
     @Test
-    public void testGetAndSetShort() throws Exception{
+    public void testGetAndSetShort() throws Exception {
         DynamicByteBuffer buf = new DynamicByteBuffer();
-        buf.putShort((short)0);
-        buf.putShort((short)1);
-        buf.putShort((short)32767);
-        buf.putShort((short)-32768);
+        buf.putShort((short) 0);
+        buf.putShort((short) 1);
+        buf.putShort((short) 32767);
+        buf.putShort((short) -32768);
         buf.flip();
 
         assertEquals(buf.position(), 0);
         assertEquals(buf.limit(), 8);
 
-        assertEquals((short)0, buf.getShort());
-        assertEquals((short)1, buf.getShort());
-        assertEquals((short)32767, buf.getShort());
-        assertEquals((short)-32768, buf.getShort());
+        assertEquals((short) 0, buf.getShort());
+        assertEquals((short) 1, buf.getShort());
+        assertEquals((short) 32767, buf.getShort());
+        assertEquals((short) -32768, buf.getShort());
 
         assertEquals(buf.position(), 8);
 
-        buf.putShortAt(0, (short)121);
-        buf.putShortAt(2, (short)1000);
-        assertEquals((short)121, buf.getShortAt(0));
-        assertEquals((short)1000, buf.getShortAt(2));
+        buf.putShortAt(0, (short) 121);
+        buf.putShortAt(2, (short) 1000);
+        assertEquals((short) 121, buf.getShortAt(0));
+        assertEquals((short) 1000, buf.getShortAt(2));
 
         assertEquals(buf.position(), 8);
     }
 
-    @Test (expected=BufferOverflowException.class)
+    @Test (expected = BufferOverflowException.class)
     public void testGetAndSetPutShortException() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.setAutoExpand(false);
-        buf.putShort((short)121);
+        buf.putShort((short) 121);
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetPutShortAtException2() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
-        buf.putShortAt(129, (short)121);
+        buf.putShortAt(129, (short) 121);
     }
 
-    @Test (expected=BufferUnderflowException.class)
+    @Test (expected = BufferUnderflowException.class)
     public void testGetAndSetGetShortException3() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.getShort();
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetGetShortAtException4() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.getShortAt(128);
     }
 
     @Test
-    public void testGetAndSetUnsignedShort() throws Exception{
+    public void testGetAndSetUnsignedShort() throws Exception {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.putUnsignedShort(0);
         buf.putUnsignedShort(65535);
@@ -386,32 +385,32 @@ public class DynamicByteBufferTest {
         assertEquals(65535, buf.getUnsignedShort());
 
         buf.rewind();
-        buf.putUnsignedShortAt(0,121);
-        buf.putUnsignedShortAt(2,122);
+        buf.putUnsignedShortAt(0, 121);
+        buf.putUnsignedShortAt(2, 122);
         assertEquals(121, buf.getUnsignedShortAt(0));
         assertEquals(122, buf.getUnsignedShortAt(2));
     }
 
-    @Test (expected=BufferOverflowException.class)
+    @Test (expected = BufferOverflowException.class)
     public void testGetAndSetPutUnsignedShortException() throws Exception {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.setAutoExpand(false);
         buf.putUnsignedShort(121);
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetPutUnsignedShortAtException2() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.putUnsignedShortAt(129, 121);
     }
 
-    @Test (expected=BufferUnderflowException.class)
+    @Test (expected = BufferUnderflowException.class)
     public void testGetAndSetGetUnsignedShortException3() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.getUnsignedShort();
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetGetUnsignedShortAtException4() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.getUnsignedShortAt(128);
@@ -421,16 +420,16 @@ public class DynamicByteBufferTest {
      * Int tests
      */
     @Test
-    public void testGetAndSetInt() throws Exception{
+    public void testGetAndSetInt() throws Exception {
         // cant test for numbers outside range as putint accepts int and
         // hence java doesnt allow values outside range -2147483648 to 2147483647 to be set to valriables
         // hence no test case for assertFalse for numbers outside -2147483648 to 2147483647
         DynamicByteBuffer buf = new DynamicByteBuffer();
-        int b1= -2147483648  ;
-        int b2= 2147483647 ;
-        int b3= 32768;
-        int b4= 128;
-        int b5= 128;
+        int b1 = -2147483648  ;
+        int b2 = 2147483647 ;
+        int b3 = 32768;
+        int b4 = 128;
+        int b5 = 128;
         buf.putInt(b1);
         buf.putInt(b2);
         buf.putInt(b3);
@@ -439,39 +438,39 @@ public class DynamicByteBufferTest {
         assertEquals(b1, buf.getInt());
         assertEquals(b2, buf.getInt());
         buf.rewind();
-        buf.putIntAt(0,b4);
-        buf.putIntAt(4,b5);
+        buf.putIntAt(0, b4);
+        buf.putIntAt(4, b5);
         assertEquals(b4, buf.getIntAt(0));
         assertEquals(b5, buf.getIntAt(4));
     }
 
-    @Test (expected=BufferOverflowException.class)
+    @Test (expected = BufferOverflowException.class)
     public void testGetAndSetPutIntException() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.setAutoExpand(false);
         buf.putInt(121);
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetPutIntAtException2() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.putIntAt(129, 121);
     }
 
-    @Test (expected=BufferUnderflowException.class)
+    @Test (expected = BufferUnderflowException.class)
     public void testGetAndSetGetIntException3() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.getInt();
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetGetIntAtException4() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.getIntAt(128);
     }
 
     @Test
-    public void testGetAndSetUnsignedInt() throws Exception{
+    public void testGetAndSetUnsignedInt() throws Exception {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         long MAX_UNSIGNED_INT = 4294967295L;
 
@@ -479,7 +478,7 @@ public class DynamicByteBufferTest {
         buf.putUnsignedInt(1);
         buf.putUnsignedInt(0);
         buf.putUnsignedInt(-1);
-        buf.putUnsignedInt(MAX_UNSIGNED_INT+1);
+        buf.putUnsignedInt(MAX_UNSIGNED_INT + 1);
 
         assertEquals(buf.position(), 20);
 
@@ -496,34 +495,34 @@ public class DynamicByteBufferTest {
 
         assertEquals(buf.position(), 20);
 
-        buf.putUnsignedIntAt(0,121);
-        buf.putUnsignedIntAt(4,4000000000L);
+        buf.putUnsignedIntAt(0, 121);
+        buf.putUnsignedIntAt(4, 4000000000L);
         assertEquals(121L, buf.getUnsignedIntAt(0));
         assertEquals(4000000000L, buf.getUnsignedIntAt(4));
 
         assertEquals(buf.position(), 20);
     }
 
-    @Test (expected=BufferOverflowException.class)
+    @Test (expected = BufferOverflowException.class)
     public void testGetAndSetPutUnsignedIntException() throws Exception {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.setAutoExpand(false);
         buf.putUnsignedInt(121);
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetPutUnsignedIntAtException2() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.putUnsignedIntAt(129, 121);
     }
 
-    @Test (expected=BufferUnderflowException.class)
+    @Test (expected = BufferUnderflowException.class)
     public void testGetAndSetGetUnsignedIntException3() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.getUnsignedInt();
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetGetUnsignedIntAtException4() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.getUnsignedIntAt(128);
@@ -533,7 +532,7 @@ public class DynamicByteBufferTest {
      * Unsigned Medium Int tests
      */
     @Test
-    public void testGetAndSetMediumInt() throws Exception{
+    public void testGetAndSetMediumInt() throws Exception {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.putUnsigned(0x12);
         buf.putUnsigned(0x34);
@@ -546,7 +545,7 @@ public class DynamicByteBufferTest {
 
     @SuppressWarnings("deprecation")
     @Test
-    public void testGetAndSetMediumInt2() throws Exception{
+    public void testGetAndSetMediumInt2() throws Exception {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.order(java.nio.ByteOrder.LITTLE_ENDIAN);
 
@@ -559,7 +558,7 @@ public class DynamicByteBufferTest {
         assertEquals(0x563412, buf.getUnsignedMediumInt());
     }
 
-    @Test (expected=BufferUnderflowException.class)
+    @Test (expected = BufferUnderflowException.class)
     public void testGetAndSetGetMediumIntException3() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.getUnsignedMediumInt();
@@ -567,13 +566,13 @@ public class DynamicByteBufferTest {
 
     // Long tests
     @Test
-    public void testGetAndSetLong() throws Exception{
+    public void testGetAndSetLong() throws Exception {
         DynamicByteBuffer buf = new DynamicByteBuffer();
-        long b1= -9223372036854775808L;
-        long b2= 9223372036854775807L;
-        long b3= 32768;
-        long b4= 543210987654321L;
-        long b5= 123456789012345L;
+        long b1 = -9223372036854775808L;
+        long b2 = 9223372036854775807L;
+        long b3 = 32768;
+        long b4 = 543210987654321L;
+        long b5 = 123456789012345L;
         buf.putLong(b1);
         buf.putLong(b2);
         buf.putLong(b3);
@@ -589,26 +588,26 @@ public class DynamicByteBufferTest {
         assertEquals(b5, buf.getLongAt(8));
     }
 
-    @Test (expected=BufferOverflowException.class)
+    @Test (expected = BufferOverflowException.class)
     public void testGetAndSetPutLongException() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.setAutoExpand(false);
         buf.putLong(121L);
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetPutLongAtException2() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.putLongAt(129, 121L);
     }
 
-    @Test (expected=BufferUnderflowException.class)
+    @Test (expected = BufferUnderflowException.class)
     public void testGetAndSetGetLongException3() {
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(0);
         buf.getLong();
     }
 
-    @Test (expected=IndexOutOfBoundsException.class)
+    @Test (expected = IndexOutOfBoundsException.class)
     public void testGetAndSetGetLongAtException4() {
         DynamicByteBuffer buf = new DynamicByteBuffer();
         buf.getLongAt(128);
@@ -617,16 +616,16 @@ public class DynamicByteBufferTest {
     @Test
     public void testGetAndSetSegment() throws Exception {
         //tests reallocation of buffer automatically.
-        byte[] source = new byte[] {(byte)1,(byte)2,(byte)3,(byte)4,(byte)5,(byte)6 };
+        byte[] source = new byte[] {(byte) 1, (byte) 2, (byte) 3, (byte) 4, (byte) 5, (byte) 6 };
         DynamicByteBuffer buf = DynamicByteBuffer.allocate(2);
         buf.put(source, 1, 4); //put 2,3,4,5 into buffer
         buf.flip();
         assertEquals(4, buf.remaining());
         byte[] dest = new byte[3];
         buf.get(dest, 1, 2); //get 3,4 into dest, start position at 1
-        assertEquals((byte)0, dest[0]);
-        assertEquals((byte)2, dest[1]);
-        assertEquals((byte)3, dest[2]);
+        assertEquals((byte) 0, dest[0]);
+        assertEquals((byte) 2, dest[1]);
+        assertEquals((byte) 3, dest[2]);
     }
 
     @Test

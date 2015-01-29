@@ -37,10 +37,10 @@ public final class WebSocketExtensionFactory {
      *
      * @param name          the extension name
      * @param parameters    the extension parameters
-     * 
+     *
      * @return WebSocketExtension   the parameterized extension
      */
-    public final WebSocketExtensionSpi createExtension(String name, WebSocketExtensionParameterValues parameters) {
+    public WebSocketExtensionSpi createExtension(String name, WebSocketExtensionParameterValues parameters) {
         WebSocketExtensionFactorySpi factory = factoriesRO.get(name);
         if (factory == null) {
             throw new IllegalArgumentException("Unsupported extension: " + name);

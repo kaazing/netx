@@ -23,16 +23,7 @@ import java.util.logging.Logger;
 /**
  * Internal class. This class manages the Base64 encoding and decoding
  */
-public class Base64Util {
-
-//    @FlashNative
-//import mx.utils.Base64Encoder;
-//    public String encodeBytes(ByteArray bytes) {
-//        Base64Encoder encoder=new Base64Encoder();
-//        encoder.insertNewLines = false;
-//        encoder.encodeBytes(bytes);
-//        return encoder.drain();
-//    }
+public final class Base64Util {
 
     private static final String CLASS_NAME = Base64Util.class.getName();
     private static final Logger LOG = Logger.getLogger(CLASS_NAME);
@@ -49,7 +40,7 @@ public class Base64Util {
         LOG.entering(CLASS_NAME, "encode", decoded);
 
         int decodedSize = decoded.remaining();
-        int effectiveDecodedSize = ((decodedSize+2) / 3) * 3;
+        int effectiveDecodedSize = ((decodedSize + 2) / 3) * 3;
         int decodedFragmentSize = decodedSize % 3;
 
         int encodedArraySize = effectiveDecodedSize / 3 * 4;
@@ -76,7 +67,7 @@ public class Base64Util {
             int byte0 = decodedArray[decodedArrayPosition++] & 0xff;
 
             encodedArray[encodedArrayPosition++] = INDEXED[(byte0 >> 2) & 0x3f];
-            encodedArray[encodedArrayPosition++] = INDEXED[((byte0 << 4) & 0x30)];
+            encodedArray[encodedArrayPosition++] = INDEXED[(byte0 << 4) & 0x30];
             encodedArray[encodedArrayPosition++] = PADDING_BYTE;
             encodedArray[encodedArrayPosition++] = PADDING_BYTE;
         }
@@ -106,7 +97,7 @@ public class Base64Util {
         }
 
         byte[] encodedArray = encoded.getBytes();
-        byte[] decodedArray = new byte[(length / 4 * 3)];
+        byte[] decodedArray = new byte[length / 4 * 3];
         int decodedArrayOffset = 0;
         int i = 0;
         while (i < length) {
@@ -135,35 +126,35 @@ public class Base64Util {
         if ((ch & 0x40) != 0) {
             if ((ch & 0x20) != 0) {
                 // a(01100001)-z(01111010) -> 26-51
-                assert (ch >= 'a');
-                assert (ch <= 'z');
-                return (ch - 71);
+                assert ch >= 'a';
+                assert ch <= 'z';
+                return ch - 71;
             } else {
                 // A(01000001)-Z(01011010) -> 0-25
-                assert (ch >= 'A');
-                assert (ch <= 'Z');
-                return (ch - 65);
+                assert ch >= 'A';
+                assert ch <= 'Z';
+                return ch - 65;
             }
         } else if ((ch & 0x20) != 0) {
             if ((ch & 0x10) != 0) {
                 if ((ch & 0x08) != 0 && (ch & 0x04) != 0) {
                     // =(00111101) -> 0
-                    assert (ch == '=');
+                    assert ch == '=';
                     return 0;
                 } else {
                     // 0(00110000)-9(00111001) -> 52-61
-                    assert (ch >= '0');
-                    assert (ch <= '9');
-                    return (ch + 4);
+                    assert ch >= '0';
+                    assert ch <= '9';
+                    return ch + 4;
                 }
             } else {
                 if ((ch & 0x04) != 0) {
                     // /(00101111) -> 63
-                    assert (ch == '/');
+                    assert ch == '/';
                     return 63;
                 } else {
                     // +(00101011) -> 62
-                    assert (ch == '+');
+                    assert ch == '+';
                     return 62;
                 }
             }

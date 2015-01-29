@@ -34,7 +34,7 @@ public final class WsOutputStream extends FilterOutputStream {
 
     @Override
     public void write(int b) throws IOException {
-        write (new byte[] { (byte) b });
+        write(new byte[] { (byte) b });
     }
 
     @Override

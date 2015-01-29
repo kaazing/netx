@@ -30,7 +30,7 @@ public class InterruptibleBlockingQueue<E> extends ArrayBlockingQueue<E> {
     // Start pushing back as soon as possible.
     private static final int  _QUEUE_CAPACITY = 1;
 
-    private boolean _done = false;
+    private boolean _done;
 
     public InterruptibleBlockingQueue() {
         super(_QUEUE_CAPACITY, true);

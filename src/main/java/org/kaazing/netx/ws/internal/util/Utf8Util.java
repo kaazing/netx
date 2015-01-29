@@ -137,7 +137,7 @@ public final class Utf8Util {
             }
         }
 
-        assert (offset == buf.length);
+        assert offset == buf.length;
         return capacity;
     }
 }

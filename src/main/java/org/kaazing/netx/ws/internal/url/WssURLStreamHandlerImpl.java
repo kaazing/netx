@@ -40,7 +40,7 @@ final class WssURLStreamHandlerImpl extends URLStreamHandler {
     public WssURLStreamHandlerImpl(
             URLConnectionHelper helper,
             Map<String, String> supportedProtocols,
-            Random random, 
+            Random random,
             WebSocketExtensionFactory extensionFactory) {
         this.helper = helper;
         this.supportedProtocols = supportedProtocols;

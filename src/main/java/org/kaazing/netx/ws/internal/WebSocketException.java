@@ -36,12 +36,13 @@ public class WebSocketException extends IOException {
         _STATUS_CODES.put(1007, "Connection terminated due to inconsistency between the data and the message type");
         _STATUS_CODES.put(1008, "Connection terminated as the received a message violates the policy");
         _STATUS_CODES.put(1009, "Connection terminated as the received message is too big to process");
-        _STATUS_CODES.put(1010, "Connection terminated by the client because an extension could not be negotiated with the server during the handshake");
+        _STATUS_CODES.put(1010, "Connection terminated by the client because an extension "
+                + "could not be negotiated with the server during the handshake");
         _STATUS_CODES.put(1011, "Connection terminated by the server because of an unexpected condition");
         _STATUS_CODES.put(1015, "Connection was closed due to a failure to perform a TLS handshake");
     }
 
-    private int     _code = 0;
+    private int _code;
 
     public WebSocketException(String reason) {
         super(reason);

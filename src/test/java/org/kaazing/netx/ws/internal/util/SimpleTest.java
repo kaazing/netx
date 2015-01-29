@@ -22,7 +22,12 @@ import java.net.URL;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.WsURLConnection;
 
-public class SimpleTest {
+public final class SimpleTest {
+
+    private SimpleTest() {
+        // utility
+    }
+
     public static void main(String[] args) {
         try {
             URLConnectionHelper helper = URLConnectionHelper.newInstance();

@@ -237,7 +237,7 @@ public abstract class WebSocket implements Closeable {
      *
      * @return Collection<String>      successfully negotiated using this
      *                                 connection
-     * @throws IOException 
+     * @throws IOException
      */
     public abstract Collection<String> getNegotiatedExtensions() throws IOException;
 
@@ -254,7 +254,7 @@ public abstract class WebSocket implements Closeable {
      * @param <T>          parameter type
      * @param parameter    parameter of a negotiated extension
      * @return T           value of the specified parameter
-     * @throws IOException 
+     * @throws IOException
      */
     public abstract <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException;
 
@@ -269,7 +269,7 @@ public abstract class WebSocket implements Closeable {
      * protocol will result in an IllegalStateException.
      * <p>
      * @return protocol                negotiated by the client and the server
-     * @throws IOException 
+     * @throws IOException
      */
     public abstract String getNegotiatedProtocol() throws IOException;
 
