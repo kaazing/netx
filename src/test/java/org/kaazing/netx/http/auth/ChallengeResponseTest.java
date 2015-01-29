@@ -18,8 +18,6 @@ package org.kaazing.netx.http.auth;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.kaazing.netx.http.auth.ApplicationBasicChallengeHandler;
-import org.kaazing.netx.http.auth.ChallengeResponse;
 
 public class ChallengeResponseTest {
 

@@ -16,6 +16,9 @@
 
 package org.kaazing.netx.http.internal.auth;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertSame;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -27,8 +30,10 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.http.auth.ChallengeRequest;
 import org.kaazing.netx.http.auth.DispatchChallengeHandler;
 import org.kaazing.netx.http.auth.SampleChallengeHandler;
+import org.kaazing.netx.http.internal.auth.DefaultDispatchChallengeHandler.Token;
 
 public class DispatchChallengeHandlerTest {
+
     DefaultDispatchChallengeHandler dispatch = (DefaultDispatchChallengeHandler) DispatchChallengeHandler.create();
     ChallengeHandler sampleHandler;
 
@@ -129,7 +134,7 @@ public class DispatchChallengeHandlerTest {
         dispatch.register(locationDescription, sampleHandler);
         Collection<ChallengeHandler> challengeHandlers = dispatch.lookup(location);
         Assert.assertNotNull("Expecting " + locationDescription + " to match location " + location, challengeHandlers);
-        Assert.assertEquals("Expecting "+locationDescription+" to match location "+location, 1, challengeHandlers.size());
+        Assert.assertEquals("Expecting " + locationDescription + " to match location " + location, 1, challengeHandlers.size());
         Assert.assertSame(sampleHandler, challengeHandlers.iterator().next());
         setUp();
     }
@@ -142,10 +147,10 @@ public class DispatchChallengeHandlerTest {
     }
 
     private <T> void assertIsEmpty(String description, Collection<T> collection) {
-        if ( collection == null ) {
+        if (collection == null) {
             Assert.fail(description);
         }
-        if ( collection.size() != 0) {
+        if (collection.size() != 0) {
             Assert.fail(description);
         }
         Assert.assertTrue(description, collection.isEmpty());
@@ -185,31 +190,35 @@ public class DispatchChallengeHandlerTest {
     @Test
     public void testLookupByChallengeExactMatch() throws Exception {
         dispatch.register("http://localhost:8000", sampleHandler);
-        ChallengeHandler ChallengeHandler2 = dispatch.lookup(new ChallengeRequest("http://localhost:8000", "Application test_challenge foo"));
-        Assert.assertSame(sampleHandler, ChallengeHandler2);
+        ChallengeRequest challengeRequest = new ChallengeRequest("http://localhost:8000", "Application test_challenge foo");
+        ChallengeHandler challengeHandler2 = dispatch.lookup(challengeRequest);
+        Assert.assertSame(sampleHandler, challengeHandler2);
     }
 
     @Test
     public void testLookupByChallengeCloseWildcardMatch() throws Exception {
         dispatch.register("http://*.example.com", sampleHandler);
-        ChallengeHandler challengeHandler =
-                dispatch.lookup(new ChallengeRequest("http://foo.example.com", "Application test_challenge SOME CHALLENGE STRING"));
+        ChallengeRequest challengeRequest =
+                new ChallengeRequest("http://foo.example.com", "Application test_challenge SOME CHALLENGE STRING");
+        ChallengeHandler challengeHandler = dispatch.lookup(challengeRequest);
         Assert.assertSame(sampleHandler, challengeHandler);
     }
 
     @Test
     public void testLookupByChallengeNodeAboveWildcardMatch() throws Exception {
         dispatch.register("http://*.example.com", sampleHandler);
-        ChallengeHandler challengeHandler =
-                dispatch.lookup(new ChallengeRequest("http://foo.example.com:80", "Application test_challenge SOME CHALLENGE STRING"));
+        ChallengeRequest challengeRequest =
+                new ChallengeRequest("http://foo.example.com:80", "Application test_challenge SOME CHALLENGE STRING");
+        ChallengeHandler challengeHandler = dispatch.lookup(challengeRequest);
         Assert.assertSame(sampleHandler, challengeHandler);
     }
 
     @Test
     public void testPureWildcardRegistration() throws Exception {
         dispatch.register("http://*/", sampleHandler);
-        ChallengeHandler challengeHandler =
-                dispatch.lookup(new ChallengeRequest("http://foo.example.com:80", "Application test_challenge SOME CHALLENGE STRING"));
+        ChallengeRequest challengeRequest =
+                new ChallengeRequest("http://foo.example.com:80", "Application test_challenge SOME CHALLENGE STRING");
+        ChallengeHandler challengeHandler = dispatch.lookup(challengeRequest);
         Assert.assertSame(sampleHandler, challengeHandler);
     }
 
@@ -217,8 +226,11 @@ public class DispatchChallengeHandlerTest {
     public void testTokenWildcardZeroLengthMatches() throws Exception {
         dispatch.register("http://sub.hostname.com:8000/path1/path2/*", sampleHandler);
         Collection<ChallengeHandler> lookup = dispatch.lookup("http://sub.hostname.com:8000/path1/path2");
-        Assert.assertSame("Expected to find a challenge handler factory registered under " + "http://sub.hostname.com:8000/path1/path2/*" +
-                " using " + "http://sub.hostname.com:8000/path1/path2" + " but failed.",
+        assertSame("Expected to find a challenge handler factory registered under " +
+                "http://sub.hostname.com:8000/path1/path2/*" +
+                " using " +
+                "http://sub.hostname.com:8000/path1/path2" +
+                " but failed.",
                 sampleHandler, lookup.toArray()[0]);
 
     }
@@ -273,7 +285,8 @@ public class DispatchChallengeHandlerTest {
     public void testFullUriTokenization() throws Exception {
         List<DefaultDispatchChallengeHandler.Token<DefaultDispatchChallengeHandler.UriElement>> tokens =
                 dispatch.tokenize("http://user:password@sub.hostname.com:8000/path1/path2/*");
-        Assert.assertArrayEquals(new String[]{"com", "hostname", "sub", "8000", "user", "password", "path1", "path2", "*"}, toStringArray(tokens));
+        String[] expecteds = new String[]{"com", "hostname", "sub", "8000", "user", "password", "path1", "path2", "*"};
+        assertArrayEquals(expecteds, toStringArray(tokens));
 
     }
 
@@ -333,10 +346,10 @@ public class DispatchChallengeHandlerTest {
             }, toStringArray(tokens));
     }
 
-    private String[] toStringArray(List<DefaultDispatchChallengeHandler.Token<DefaultDispatchChallengeHandler.UriElement>> tokens) {
+    private String[] toStringArray(List<Token<DefaultDispatchChallengeHandler.UriElement>> tokens) {
         String[] result = new String[tokens.size()];
         int i = 0;
-        for ( DefaultDispatchChallengeHandler.Token<DefaultDispatchChallengeHandler.UriElement> token: tokens) {
+        for (Token<DefaultDispatchChallengeHandler.UriElement> token: tokens) {
             result[i++] = token.getName();
         }
         return result;

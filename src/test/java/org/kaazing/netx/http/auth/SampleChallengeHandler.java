@@ -16,8 +16,11 @@
 
 package org.kaazing.netx.http.auth;
 
+import static java.lang.String.format;
 
-public class SampleChallengeHandler extends ChallengeHandler implements LoginHandlerProvider{
+
+public class SampleChallengeHandler extends ChallengeHandler implements LoginHandlerProvider {
+
     public static SampleChallengeHandler create() {
         return create(SampleChallengeHandler.class);
     }
@@ -33,7 +36,9 @@ public class SampleChallengeHandler extends ChallengeHandler implements LoginHan
 
     @Override
     public ChallengeResponse handle(ChallengeRequest challengeRequest) {
-        return new ChallengeResponse(String.format("%s %s", challengeRequest.getAuthenticationScheme(), challengeRequest.getAuthenticationParameters()).toCharArray(), this);
+        String authenticationScheme = challengeRequest.getAuthenticationScheme();
+        String authenticationParameters = challengeRequest.getAuthenticationParameters();
+        return new ChallengeResponse(format("%s %s", authenticationScheme, authenticationParameters).toCharArray(), this);
     }
 
     /**

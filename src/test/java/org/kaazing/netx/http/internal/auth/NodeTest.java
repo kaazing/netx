@@ -27,7 +27,7 @@ import org.kaazing.netx.http.internal.auth.DefaultDispatchChallengeHandler.Node;
 
 public class NodeTest {
 
-    private DefaultDispatchChallengeHandler.Node<String,NodeType> root;
+    private DefaultDispatchChallengeHandler.Node<String, NodeType> root;
 
     static enum NodeType {
         TEST
@@ -92,7 +92,7 @@ public class NodeTest {
         root.addChild("foo", TEST);
         DefaultDispatchChallengeHandler.Node<String, NodeType> foo = root.getChild("foo");
         foo.appendValues("VALUE");
-        Assert.assertEquals(Arrays.asList("VALUE"),foo.getValues());
+        Assert.assertEquals(Arrays.asList("VALUE"), foo.getValues());
     }
 
     @Test
