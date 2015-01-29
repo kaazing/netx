@@ -67,7 +67,7 @@
         <dependency>
             <groupId>org.kaazing</groupId>
             <artifactId>specification.ws</artifactId>
-            <version>1.0.0-alpha-1-SNAPSHOT</version>
+            <version>[0.1,0.99)</version>
         </dependency>
     </dependencies>
 
