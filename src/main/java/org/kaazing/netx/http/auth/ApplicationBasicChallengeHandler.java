@@ -21,17 +21,17 @@ import java.util.ServiceLoader;
 
 /**
  * Challenge handler for "Application Basic" authentication or challenge scheme.
- * <p/>
+ * <p>
  * The ApplicationBasicChallengeHandler can be loaded and instantiated using
  * {@link ApplicationBasicChallengeHandler#create()}, and registered
  * at a location using {@link DispatchChallengeHandler#register(String, ChallengeHandler)}.
- * <p/>
+ * <p>
  * In addition, one can install general and realm-specific {@link LoginHandler}
  * objects onto this {@link ApplicationBasicChallengeHandler} to assist in handling
  * challenges associated with any or specific realms.  This can be achieved using
  * {@link #setLoginHandler(LoginHandler)} and
  * {@link #setRealmLoginHandler(String, LoginHandler)} methods.
- * <p/>
+ * <p>
  * The following example loads an instance of a {@link ApplicationBasicChallengeHandler},
  * sets a login handler onto it and registers the basic handler at a URI location.
  * In this way, all attempts to access that URI for which the server issues
@@ -66,7 +66,7 @@ public abstract class ApplicationBasicChallengeHandler extends ChallengeHandler 
      * {@link ServiceLoader} API with the implementation specified under
      * META-INF/services.
      *
-     * @return BasicChallengeHandler
+     * @return ApplicationBasicChallengeHandler
      */
     public static ApplicationBasicChallengeHandler create() {
         return create(ApplicationBasicChallengeHandler.class);
@@ -78,7 +78,7 @@ public abstract class ApplicationBasicChallengeHandler extends ChallengeHandler 
      * the implementation specified under META-INF/services.
      *
      * @param  classLoader          ClassLoader to be used to instantiate
-     * @return BasicChallengeHandler
+     * @return ApplicationBasicChallengeHandler
      */
     public static ApplicationBasicChallengeHandler create(ClassLoader classLoader) {
         return create(ApplicationBasicChallengeHandler.class, classLoader);
@@ -102,6 +102,7 @@ public abstract class ApplicationBasicChallengeHandler extends ChallengeHandler 
      * (if any).
      *
      * @param loginHandler a login handler for credentials.
+     * @return ApplicationBasicChallengeHandler
      */
     public abstract ApplicationBasicChallengeHandler setLoginHandler(LoginHandler loginHandler);
 

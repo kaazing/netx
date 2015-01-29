@@ -29,13 +29,8 @@ import java.util.ServiceLoader;
  * Note that the "Negotiate" authentication scheme is different from the
  * "Application Negotiate" scheme. When "Negotiate" authentication is used, JDK directly
  * uses the system java.net.Authenticator to setup the "Authorization" header.
- * <p>
  *
- * @see <a href="http://tools.ietf.org/html/rfc4178#section-4.2.1">RFC 4178 Section 4.2.1</a> for details
- *      about how the supported object identifiers contribute towards the initial context token in the challenge response.
- *
- * <p/>
- *
+ * @see <a href="http://tools.ietf.org/html/rfc4178">RFC 4178 Section 4.2.1</a>
  */
 public abstract class ApplicationNegotiableChallengeHandler extends ChallengeHandler {
 

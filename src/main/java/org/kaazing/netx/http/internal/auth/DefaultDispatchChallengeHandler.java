@@ -36,7 +36,6 @@ import org.kaazing.netx.http.auth.DispatchChallengeHandler;
  * appropriate challenge handlers when challenges arrive from specific URI
  * locations.  This allows clients to use specific challenge handlers to handle
  * specific types of challenges at different URI locations.
- * <p/>
  */
 public class DefaultDispatchChallengeHandler extends DispatchChallengeHandler {
 // ------------------------------ FIELDS ------------------------------
