@@ -56,7 +56,7 @@ public class WsReader extends Reader {
                         break;
                     default:
                         // TODO: skip
-                        throw new IOException("Non-binary frame");
+                        throw new IOException("Non-text frame");
                     }
                     break;
                 case 2:
