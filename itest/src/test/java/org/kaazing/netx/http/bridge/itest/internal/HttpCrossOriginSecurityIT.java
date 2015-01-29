@@ -48,7 +48,7 @@ public class HttpCrossOriginSecurityIT {
     @Ignore
     @Specification({
 //        "netx.http.bridge.response",
-        "response.with.status.code.200"})
+        "response.with.status.code.200" })
     public void shouldRequestResponseCrossOrigin() throws Exception {
         // TODO: need a better way to simulate Applet security environment
         URI location = URI.create("http://localhost:8081/path");
@@ -68,7 +68,7 @@ public class HttpCrossOriginSecurityIT {
     @Specification({
         "test.applet.response",
         "netx.http.bridge.response",
-        "response.with.status.code.200"})
+        "response.with.status.code.200" })
     public void shouldTestApplet() throws Exception {
         k3po.join();
     }
