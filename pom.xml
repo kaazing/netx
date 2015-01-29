@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>community</artifactId>
-        <version>2.1</version>
+        <version>2.3</version>
     </parent>
 
     <artifactId>netx.bbosh</artifactId>
@@ -15,6 +15,11 @@
     <name>Net BBOSH Implementation</name>
     <url>https://github.com/kaazing/netx.bbosh</url>
     <description>Support for Bidirectional Binary Streams Over HTTP (BBOSH) URLs</description>
+
+    <scm>
+        <url>https://github.com/kaazing/netx.bbosh</url>
+        <connection>scm:git:https://github.com/kaazing/netx.bbosh.git</connection>
+    </scm>
 
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
@@ -48,6 +53,10 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.kaazing</groupId>
                 <artifactId>k3po-maven-plugin</artifactId>
