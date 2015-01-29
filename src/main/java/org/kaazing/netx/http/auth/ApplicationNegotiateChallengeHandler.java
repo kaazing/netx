@@ -23,17 +23,17 @@ import java.util.ServiceLoader;
  * challenges from the server.  It uses other "candidate" challenger handlers to
  * assemble an initial context token to send to the server, and is responsible
  * for creating a challenge response that can delegate to the winning candidate.
- * <p/>
+ * <p>
  * This ApplicationNegotiateChallengeHandler can be loaded and instantiated using
  * {@link #create()}, and registered at a location using
  * {@link DispatchChallengeHandler#register(String, ChallengeHandler)}.
- * <p/>
+ * <p>
  * In addition, one can register more specific {@link ApplicationNegotiableChallengeHandler}
  * objects with this initial {@link ApplicationNegotiateChallengeHandler} to handle
  * initial Application Negotiate challenges and subsequent challenges associated
  * with specific Negotiation
  * <a href="http://tools.ietf.org/html/rfc4178#section-4.1">mechanism types / object identifiers</a>.
- * <p/>
+ * <p>
  * The following example establishes an Application Negotiation strategy at a
  * specific URL location. We show the use of a {@link DispatchChallengeHandler}
  * to register a {@link ApplicationNegotiateChallengeHandler} at a specific

@@ -16,14 +16,15 @@
 
 package org.kaazing.netx.http.auth;
 
+import java.util.ServiceLoader;
+
 /**
  * A DispatchChallengeHandler is responsible for dispatching challenge requests
  * to appropriate challenge handlers when challenges
  * arrive from specific URI locations in challenge responses.
- * <p/>
+ * <p>
  * This allows clients to use specific challenge handlers to handle specific
  * types of challenges at different URI locations.
- * <p/>
  */
 public abstract class DispatchChallengeHandler extends ChallengeHandler {
 
@@ -58,30 +59,30 @@ public abstract class DispatchChallengeHandler extends ChallengeHandler {
 
     /**
      * Register a challenge handler to respond to challenges at one or more locations.
-     * <p/>
+     * <p>
      * When a challenge response is received for a protected URI, the {@code locationDescription}
      * matches against elements of the protected URI; if a match is found, one
      * consults the challenge handler(s) registered at that {@code locationDescription} to find
      * a challenge handler suitable to respond to the challenge.
-     * <p/>
+     * <p>
      * A {@code locationDescription} comprises a username, password, host, port and paths,
      * any of which can be wild-carded with the "*" character to match any number of request URIs.
      * If no port is explicitly mentioned in a {@code locationDescription}, a default port will be inferred
      * based on the scheme mentioned in the location description, according to the following table:
-     * <table border=1>
+     * <table summary="locationDescriptions" border=1>
      *     <tr><th>scheme</th><th>default port</th><th>Sample locationDescription</th></tr>
      *     <tr><td>http</td><td>80</td><td>foo.example.com or http://foo.example.com</td></tr>
      *     <tr><td>ws</td><td>80</td><td>foo.example.com or ws://foo.example.com</td></tr>
      *     <tr><td>https</td><td>443</td><td>https://foo.example.com</td></tr>
      *     <tr><td>wss</td><td>443</td><td>wss://foo.example.com</td></tr>
      * </table>
-     * <p/>
+     * <p>
      * The protocol scheme (e.g. http or ws) if present in {@code locationDescription} will not be used to
      * match {@code locationDescription} with the protected URI, because authentication challenges are
      * implemented on top of one of the HTTP/s protocols always, whether one is initiating web socket
      * connections or regular HTTP connections.  That is to say for example, the locationDescription {@code "foo.example.com"}
      * matches both URIs {@code http://foo.example.com} and {@code ws://foo.example.com}.
-     * <p/>
+     * <p>
      * Some examples of {@code locationDescription} values with wildcards are:
      * <ol>
      *     <li>{@code *}&#047; -- matches all requests to any host on port 80 (default port),
@@ -102,7 +103,7 @@ public abstract class DispatchChallengeHandler extends ChallengeHandler {
      * If the provided challengeHandler is registered at the provided location, clear that
      * association such that any future challenge requests matching the location will never
      * be handled by the provided challenge handler.
-     * <p/>
+     * <p>
      * If no such location or challengeHandler registration exists, this method silently succeeds.
      * @param locationDescription the exact location description at which the challenge handler was originally registered
      * @param challengeHandler the challenge handler to de-register.

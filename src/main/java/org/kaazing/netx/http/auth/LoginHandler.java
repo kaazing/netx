@@ -21,11 +21,11 @@ import java.net.PasswordAuthentication;
 /**
  * A login handler is responsible for obtaining credentials from an arbitrary
  * source.
- * <p/>
+ * <p>
  * Login Handlers can be associated with one or more {@link ChallengeHandler}
  * objects, to ensure that when a Challenge Handler requires credentials for a {@link ChallengeResponse},
  * the work is delegated to a {@link LoginHandler}.
- * <p/>
+ * <p>
  * At client configuration time, a {@link LoginHandler} can be associated with a {@link ChallengeHandler} as follows:
  * <pre>
  * {@code

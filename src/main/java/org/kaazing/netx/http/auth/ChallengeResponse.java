@@ -78,7 +78,7 @@ public class ChallengeResponse {
 
     /**
      * Clear the credentials of this response.
-     * <p/>
+     * <p>
      * Calling this method once the credentials have been communicated to the network layer
      * protects credentials in memory.
      */
