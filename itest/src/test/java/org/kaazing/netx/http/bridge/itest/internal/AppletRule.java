@@ -37,7 +37,7 @@ public final class AppletRule implements TestRule {
 
     @Override
     public Statement apply(final Statement base, Description description) {
-        
+
         return new Statement() {
 
             @Override
