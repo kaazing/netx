@@ -10,7 +10,7 @@
 
     <artifactId>netx.http</artifactId>
     <packaging>jar</packaging>
-    <version>develop-SNAPSHOT</version>
+    <version>0.1</version>
 
     <name>Net Extensions for HTTP</name>
     <url>https://github.com/kaazing/netx.http</url>
