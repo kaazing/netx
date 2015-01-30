@@ -23,6 +23,7 @@ import static java.util.Collections.unmodifiableMap;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.NetPermission;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -34,11 +35,33 @@ import java.util.ServiceLoader;
 
 import javax.annotation.Resource;
 
+/**
+ * {@code URLConnectionHelper} provides a means of opening a {@link URLConnection} for a {@link URI}.
+ *
+ * Converting a {@link URI} to an {@link URL} requires the security {@link NetPermission} {@code "specifyStreamHandler"},
+ * which is not granted to the default Applet {@link SecurityManager}.
+ *
+ * Each {@link URLConnection} implementation is created by a {@link URLConnectionHelperSpi} registered by protocol scheme.
+ */
 public final class URLConnectionHelper {
 
     private final Map<String, URLConnectionHelperSpi> helpers;
 
-    public URL toURL(URI location) throws IOException {
+    /**
+     * Converts a {@code URI} to an {@code URL} with behavior registered by protocol scheme.
+     *
+     * If no behavior has been registered, then the default Java behavior is used instead.
+     * Requires the security permission {@code NetPermission("specifyStreamHandler")} for non-default behavior.
+     *
+     * @param location the location to convert
+     *
+     * @return a URL with behavior registered by protocol scheme
+     *
+     * @throws IOException if an I/O error occurs while creating the {@code URLStreamHandler}
+     * @throws SecurityException if the security permission {@code NetPermission("specifyStreamHandler")} has not been granted
+     *         (for non-default behavior)
+     */
+    public URL toURL(URI location) throws IOException, SecurityException {
         String scheme = location.getScheme();
         URLConnectionHelperSpi helper = helpers.get(scheme);
         if (helper != null) {
@@ -48,6 +71,17 @@ public final class URLConnectionHelper {
         return location.toURL();
     }
 
+    /**
+     * Opens a connection to a {@code URI} with behavior registered by protocol scheme.
+     *
+     * If no behavior has been registered, then the default Java behavior is used instead.
+     *
+     * @param location the location to open
+     *
+     * @return a newly opened {@code URLConnection}
+     *
+     * @throws IOException if an I/O error occurs while opening the connection
+     */
     public URLConnection openConnection(URI location) throws IOException {
         String scheme = location.getScheme();
         URLConnectionHelperSpi helper = helpers.get(scheme);
@@ -57,12 +91,28 @@ public final class URLConnectionHelper {
         return location.toURL().openConnection();
     }
 
+    /**
+     * Creates a new {@code URLConnectionHelper}.
+     *
+     * Discovery of {@code URLConnectionHelperSpi} service implementations uses the current thread's context class loader.
+     *
+     * @return a new {@code URLConnectionHelper}
+     */
     public static URLConnectionHelper newInstance() {
         Class<URLConnectionHelperSpi> clazz = URLConnectionHelperSpi.class;
         ServiceLoader<URLConnectionHelperSpi> loader = ServiceLoader.load(clazz);
         return newInstance(loader);
     }
 
+    /**
+     * Creates a new {@code URLConnectionHelper}.
+     *
+     * Discovery of {@code URLConnectionHelperSpi} service implementations use the specified class loader.
+     *
+     * @param cl the service discovery class loader
+     *
+     * @return a new {@code URLConnectionHelper}
+     */
     public static URLConnectionHelper newInstance(ClassLoader cl) {
         Class<URLConnectionHelperSpi> clazz = URLConnectionHelperSpi.class;
         ServiceLoader<URLConnectionHelperSpi> loader = ServiceLoader.load(clazz, cl);
