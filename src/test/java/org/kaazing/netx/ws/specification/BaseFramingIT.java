@@ -965,7 +965,7 @@ public class BaseFramingIT {
         Writer writer = connection.getWriter();
         Reader reader = connection.getReader();
 
-        String writeString = new RandomString(65536).nextString();
+        String writeString = new RandomString(65533).nextString() + "\u1FFF";
         writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
@@ -1001,7 +1001,7 @@ public class BaseFramingIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        String writeString = new RandomString(65536).nextString();
+        String writeString = new RandomString(65533).nextString() + "\u1FFF";
         writer.write(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
@@ -1024,6 +1024,46 @@ public class BaseFramingIT {
         assertEquals(writeString, readString);
 
         connection.close();
+    }
+
+    private int getByteCount(String str) {
+        char[] buf = str.toCharArray();
+        int count = 0;
+
+        for (int i = 0; i < buf.length; i++) {
+            count += expectedBytes(buf[i]);
+        }
+
+        return count;
+
+    }
+    private int expectedBytes(int value) {
+        if (value < 0x80) {
+            return 1;
+        }
+        if (value < 0x800) {
+            return 2;
+        }
+        if (value <= '\uFFFF') {
+            return 3;
+        }
+        return 4;
+    }
+
+    private static void hexDump(byte[] bytes) {
+        StringBuilder hexDump = new StringBuilder("");
+
+        for (int i = 0; i < bytes.length; i++) {
+            if (hexDump.length() > 0) {
+                hexDump.append(", ");
+            }
+
+            hexDump.append(String.format("%02x", 0xFF & bytes[i]).toUpperCase());
+        }
+
+        String s = hexDump.toString();
+        System.out.println("Number of bytes: " + bytes.length);
+        System.out.println("Hex Dump: " + s);
     }
 
     private static class RandomString {
@@ -1056,5 +1096,5 @@ public class BaseFramingIT {
 
           return new String(buf);
         }
-      }
+    }
 }

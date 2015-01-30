@@ -31,6 +31,23 @@ import org.kaazing.netx.ws.internal.WebSocket;
  * established. Using the old reader will result in IOException.
  */
 public abstract class MessageWriter {
+    /**
+     * Sends a binary message using the entire specified buffer.
+     *
+     * @param  buf            binary payload of the message
+     * @throws IOException    if an IO error occurs
+     */
+    public abstract void write(byte[] buf) throws IOException;
+
+    /**
+     * Sends a binary message using the entire specified buffer.
+     *
+     * @param  buf            binary payload of the message
+     * @param  offset         offset from which to start sending
+     * @param  length         number of bytes to send
+     * @throws IOException    if an IO error occurs
+     */
+    public abstract void write(byte[] buf, int offset, int length) throws IOException;
 
     /**
      * Sends a text message using the entire specified buffer.
@@ -44,28 +61,10 @@ public abstract class MessageWriter {
      * Sends a text message using a portion of the specified buffer.
      *
      * @param  buf            text payload of the message
-     * @param  off            offset from which to start sending
-     * @param  len            number of characters to send
+     * @param  offset         offset from which to start sending
+     * @param  length         number of characters to send
      * @throws IOException    if an IO error occurs
      */
-    public abstract void write(char[] buf, int off, int len) throws IOException;
+    public abstract void write(char[] buf, int offset, int length) throws IOException;
 
-
-    /**
-     * Sends a binary message using the entire specified buffer.
-     *
-     * @param  buf            binary payload of the message
-     * @throws IOException    if an IO error occurs
-     */
-    public abstract void write(byte[] buf) throws IOException;
-
-    /**
-     * Sends a binary message using the entire specified buffer.
-     *
-     * @param  buf            binary payload of the message
-     * @param  off            offset from which to start sending
-     * @param  len            number of bytes to send
-     * @throws IOException    if an IO error occurs
-     */
-    public abstract void write(byte[] buf, int offset, int len) throws IOException;
 }

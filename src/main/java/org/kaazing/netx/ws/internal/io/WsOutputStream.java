@@ -24,7 +24,6 @@ import java.io.OutputStream;
 import java.util.Random;
 
 public final class WsOutputStream extends FilterOutputStream {
-
     private final Random random;
 
     public WsOutputStream(OutputStream out, Random random) {

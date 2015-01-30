@@ -16,17 +16,23 @@
 
 package org.kaazing.netx.ws.internal.io;
 
+import static java.lang.String.format;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+
+import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class WsReader extends Reader {
     private final InputStream in;
     private final byte[]      header;
 
-    private int               headerOffset;
-    private int               payloadOffset;
-    private int               payloadLength;
+    private int headerOffset;
+    private int payloadOffset;
+    private int payloadLength;
+    private int charBytes;
+    private int remaining;
 
     public WsReader(InputStream  in) throws IOException {
         this.in = in;
@@ -35,11 +41,16 @@ public class WsReader extends Reader {
     }
 
     @Override
-    public int read(char[] cbuf, int off, int len) throws IOException {
-        if (len == 0) {
+    public int read(char[] cbuf, int offset, int length) throws IOException {
+        if (length == 0) {
             return 0;
         }
 
+        int mark = offset;
+
+        // This loop will be entered only if the entire WebSocket frame has been drained. If there was fragmentation at the TCP
+        // level, this method will be invoked again with different offset and length. At that time, we will just use the
+        // payloadLength and payloadOffset values that were from the previous attempt(s) to read.
         while (payloadLength == 0) {
             while (payloadOffset == -1) {
                 int headerByte = in.read();
@@ -53,10 +64,11 @@ public class WsReader extends Reader {
                     switch (opcode) {
                     case 0x00:
                     case 0x01:
+                        System.out.println(format("headerOffset = %d, opcode = %d", headerOffset, opcode));
                         break;
                     default:
                         // TODO: skip
-                        throw new IOException("Non-text frame");
+                        throw new IOException(format("Non-text frame - opcode = %d", opcode));
                     }
                     break;
                 case 2:
@@ -67,10 +79,13 @@ public class WsReader extends Reader {
                     switch (header[1] & 0x7f) {
                     case 126:
                     case 127:
+                        System.out.println(format("headerOffset = %d, length incomplete (%d)", headerOffset, header[1] & 0x7f));
                         break;
                     default:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        System.out.println(format("headerOffset = %d, payloadLength = %d", headerOffset, payloadLength));
+                        break;
                     }
                     break;
                 case 4:
@@ -78,6 +93,8 @@ public class WsReader extends Reader {
                     case 126:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        System.out.println(format("headerOffset = %d, payloadLength = %d", headerOffset, payloadLength));
+                        break;
                     default:
                         break;
                     }
@@ -87,6 +104,8 @@ public class WsReader extends Reader {
                     case 127:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        System.out.println(format("headerOffset = %d, payloadLength = %d", headerOffset, payloadLength));
+                        break;
                     default:
                         break;
                     }
@@ -95,27 +114,64 @@ public class WsReader extends Reader {
             }
         }
 
-        int    length = Math.min(len, payloadLength);
-        byte[] bytes = new byte[length];
+        // payloadOffset and payloadLength are in terms of bytes. However, off and len are in terms of chars. The payload can
+        // include multi-byte UTF-8 characters. The multi-byte characters can span across WebSocket frames or TCP fragments. If
+        // there was fragmentation at the TCP layer before the entire frame was drained, this loop should be executed to drain
+        // the payload.
+        while (offset < length) {
+            int b = -1;
 
-        int    bytesRead = in.read(bytes, 0, length);
-        if (bytesRead == -1) {
-            throw new IOException("End of stream");
+            while (remaining > 0) {
+                // Deal with multi-byte character.
+                b = in.read();
+                if (b == -1) {
+                    return offset - mark;
+                }
+
+                payloadOffset++;
+
+                switch (remaining) {
+                case 3:
+                case 2:
+                    charBytes = (charBytes << 6) | (b & 0x3F);
+                    remaining--;
+                    break;
+                case 1:
+                    cbuf[offset++] = (char) ((charBytes << 6) | (b & 0x3F));
+                    remaining--;
+                    charBytes = 0;
+                    break;
+                case 0:
+                    break;
+                }
+            }
+
+            b = in.read();
+            if (b == -1) {
+                return offset - mark;
+            }
+
+            payloadOffset++;
+
+            remaining = Utf8Util.remainingUTF8Bytes(b);
+            switch (remaining) {
+            case 0:
+                // ASCII char.
+                cbuf[offset++] = (char) (b & 0x7F);
+                break;
+            case 1:
+                charBytes = b & 0x1F;
+                break;
+            case 2:
+                charBytes = b & 0x0F;
+                break;
+            case 3:
+                charBytes = b & 0x07;
+                break;
+            default:
+                throw new IOException("Invalid UTF-8 byte sequence. UTF-8 char cannot span for more than 4 bytes.");
+            }
         }
-
-        // ### TODO: When we test with multi-byte chars, we can decide whether
-        //           to convert byte[] to a UTF-8 char[] using the following line:
-        // int[]  utf8buf = Utf8Util.decode(buffer);
-        char[] utf8buf = new String(bytes, 0, bytesRead, "UTF-8").toCharArray();
-        int    charsRead = utf8buf.length;
-
-        assert utf8buf.length <= len;
-
-        for (int i = 0; i < charsRead; i++) {
-            cbuf[off + i] = utf8buf[i];
-        }
-
-        payloadOffset += length;
 
         if (payloadOffset == payloadLength) {
             headerOffset = 0;
@@ -123,7 +179,8 @@ public class WsReader extends Reader {
             payloadLength = 0;
         }
 
-        return charsRead;
+        // Return the number of chars read.
+        return offset - mark;
     }
 
     @Override

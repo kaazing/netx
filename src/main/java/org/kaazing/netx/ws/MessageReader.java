@@ -36,6 +36,46 @@ import java.io.IOException;
  */
 public abstract class MessageReader {
     /**
+     * Invoking this method will cause the thread to block until a message is
+     * received. When the message is received, this method returns the type of
+     * the newly received message. Based on the returned
+     * {@link MessageType}, appropriate getter methods can be used to
+     * retrieve the binary or text message. When the connection is closed, this
+     * method returns {@link MessageType#EOS}.
+     * <p>
+     * If this method is invoked while a message is being read into a buffer,
+     * it will just return the type associated with the current message.
+     * <p>
+     * @return WebSocketMessageType     WebSocketMessageType.TEXT for a text
+     *                         message; WebSocketMessageType.BINARY
+     *                         for a binary message; WebSocketMessageType.EOS
+     *                         if the connection is closed
+     * @throws IOException
+     */
+    public abstract MessageType next() throws IOException;
+
+    /**
+     * Returns the {@link MessageType} of the already received message.
+     * This method returns a null until the first message is received.  Note
+     * that this is not a blocking call. When connected, if this method is
+     * invoked immediately after {@link #next()}, then they will return the same
+     * value.
+     * <p>
+     * Based on the returned {@link MessageType}, appropriate read
+     * methods can be used to receive the message. This method will continue to
+     * return the same {@link MessageType} till the next message
+     * arrives. When the next message arrives, this method will return the
+     * the {@link MessageType} associated with that message.
+     * <p>
+
+     * @return WebSocketMessageType    WebSocketMessageType.TEXT for a text
+     *                                 message; WebSocketMessageType.BINARY
+     *                                 for a binary message; WebSocketMessageType.EOS
+     *                                 if the connection is closed; null before
+     *                                 the first message
+     */
+    public abstract MessageType peek();
+
     /**
      * Returns the payload of the entire binary message. If the message is being
      * received in multiple CONTINUATION frames, then this method will read all
@@ -51,12 +91,12 @@ public abstract class MessageReader {
      * <p>
      * @param buf      buffer into which data is read
      * @param offset   the start offset in array b at which the data is written
-     * @param len      the maximum number of bytes to read.
+     * @param length      the maximum number of bytes to read.
      * @return the number of bytes read
      * @throws IOException  if the type of the is not {@link MessageType#BINARY};
      *                      if the buffer cannot accommodate the entire message
      */
-    public abstract int read(byte[] buf, int offset, int len) throws IOException;
+    public abstract int read(byte[] buf, int offset, int length) throws IOException;
 
     /**
      * Returns the payload of the bianry message. This method should be used if
@@ -91,12 +131,12 @@ public abstract class MessageReader {
      * <p>
      * @param buf      buffer into which data is read
      * @param offset   the start offset in array b at which the data is written
-     * @param len      the maximum number of bytes to read for each frame
+     * @param length      the maximum number of bytes to read for each frame
      * @return the number of chars read
      * @throws IOException  if the type of the is not {@link MessageType#TEXT};
      *                      if the buffer cannot accommodate the entire message
      */
-    public abstract int read(char[] buf, int offset, int len) throws IOException;
+    public abstract int read(char[] buf, int offset, int length) throws IOException;
 
     /**
      * Returns the payload of the text message. This method should be used if
@@ -111,45 +151,4 @@ public abstract class MessageReader {
      *                      if the buffer cannot accommodate the entire message
      */
     public abstract int read(char[] buf) throws IOException;
-
-    /**
-     * Returns the {@link MessageType} of the already received message.
-     * This method returns a null until the first message is received.  Note
-     * that this is not a blocking call. When connected, if this method is
-     * invoked immediately after {@link #next()}, then they will return the same
-     * value.
-     * <p>
-     * Based on the returned {@link MessageType}, appropriate read
-     * methods can be used to receive the message. This method will continue to
-     * return the same {@link MessageType} till the next message
-     * arrives. When the next message arrives, this method will return the
-     * the {@link MessageType} associated with that message.
-     * <p>
-
-     * @return WebSocketMessageType    WebSocketMessageType.TEXT for a text
-     *                                 message; WebSocketMessageType.BINARY
-     *                                 for a binary message; WebSocketMessageType.EOS
-     *                                 if the connection is closed; null before
-     *                                 the first message
-     */
-    public abstract MessageType peek();
-
-    /**
-     * Invoking this method will cause the thread to block until a message is
-     * received. When the message is received, this method returns the type of
-     * the newly received message. Based on the returned
-     * {@link MessageType}, appropriate getter methods can be used to
-     * retrieve the binary or text message. When the connection is closed, this
-     * method returns {@link MessageType#EOS}.
-     * <p>
-     * If this method is invoked while a message is being read into a buffer,
-     * it will just return the type associated with the current message.
-     * <p>
-     * @return WebSocketMessageType     WebSocketMessageType.TEXT for a text
-     *                         message; WebSocketMessageType.BINARY
-     *                         for a binary message; WebSocketMessageType.EOS
-     *                         if the connection is closed
-     * @throws IOException
-     */
-    public abstract MessageType next() throws IOException;
 }

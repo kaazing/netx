@@ -16,6 +16,8 @@
 
 package org.kaazing.netx.ws.internal.io;
 
+import static java.lang.String.format;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -58,7 +60,7 @@ public final class WsInputStream extends InputStream {
                         break;
                     default:
                         // TODO: skip
-                        throw new IOException("Non-binary frame");
+                        throw new IOException(format("Non-binary frame - opcode = %d", opcode));
                     }
                     break;
                 case 2:
@@ -73,6 +75,7 @@ public final class WsInputStream extends InputStream {
                     default:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        break;
                     }
                     break;
                 case 4:
@@ -80,6 +83,7 @@ public final class WsInputStream extends InputStream {
                     case 126:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        break;
                     default:
                         break;
                     }
@@ -89,6 +93,7 @@ public final class WsInputStream extends InputStream {
                     case 127:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        break;
                     default:
                         break;
                     }

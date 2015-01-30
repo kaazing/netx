@@ -24,6 +24,7 @@ import java.util.logging.Logger;
 
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
+import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public final class WsMessageReader extends MessageReader {
     private static final String CLASS_NAME = WsMessageReader.class.getName();
@@ -32,11 +33,15 @@ public final class WsMessageReader extends MessageReader {
     private final InputStream in;
     private final byte[]      header;
 
-    private MessageType       type;
-    private int               headerOffset;
-    private State             state;
-    private boolean           fin;
-    private long              payloadLength;
+    private MessageType type;
+    private int headerOffset;
+    private State state;
+    private boolean fin;
+    private long payloadLength;
+    private int payloadOffset;
+    private int remaining;
+    private int charBytes;
+
 
     private enum State {
         READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
@@ -50,6 +55,7 @@ public final class WsMessageReader extends MessageReader {
         this.in = in;
         this.header = new byte[10];
         this.state = State.READ_FLAGS_AND_OPCODE;
+        this.payloadOffset = -1;
     }
 
     @Override
@@ -58,9 +64,7 @@ public final class WsMessageReader extends MessageReader {
     }
 
     @Override
-    public synchronized int read(byte[] buf, int offset, int len) throws IOException {
-        int count = 0;
-
+    public synchronized int read(byte[] buf, int offset, int length) throws IOException {
         // Check whether next() has been invoked before this method. If it
         // wasn't invoked, then read the header byte.
         switch (state) {
@@ -77,21 +81,27 @@ public final class WsMessageReader extends MessageReader {
         }
 
         boolean finalFrame = fin;
-        int index = offset;
-        do {
-            index += count;
+        int mark = offset;
+        int bytesRead = 0;
 
-            if (len > (buf.length - index)) {
-                int size = buf.length - index;
+        do {
+            if (length > (buf.length - offset)) {
+                int size = buf.length - offset;
                 throw new IOException(format("Buffer size (%d) small to accommodate "
-                        + "payload of size (%d)", size, len));
+                        + "payload of size (%d)", size, length));
             }
 
-            assert state == State.READ_PAYLOAD_LENGTH;
-            payloadLength = readPayloadLength();
+            int retval = readPayloadLength();
+            if (retval == -1) {
+                return offset - mark;
+            }
 
-            assert state == State.READ_PAYLOAD;
-            count += readBinary(buf, index, len);
+            bytesRead = readBinary(buf, offset, length);
+            if (bytesRead == -1) {
+                return offset - mark;
+            }
+
+            offset += bytesRead;
 
             // Once the payload is read, use fin to figure out whether this was
             // the final frame.
@@ -105,7 +115,7 @@ public final class WsMessageReader extends MessageReader {
         } while (!finalFrame);
 
         state = State.READ_FLAGS_AND_OPCODE;
-        return count;
+        return offset - mark;
     }
 
     @Override
@@ -114,9 +124,7 @@ public final class WsMessageReader extends MessageReader {
     }
 
     @Override
-    public synchronized int read(char[] buf, int offset, int len) throws IOException {
-        int count = 0;
-
+    public synchronized int read(char[] buf, int offset, int length) throws IOException {
         // Check whether next() has been invoked before this method. If it
         // wasn't invoked, then read the header byte.
         switch (state) {
@@ -133,24 +141,29 @@ public final class WsMessageReader extends MessageReader {
         }
 
         boolean finalFrame = fin;
-        int index = offset;
-        do {
-            index += count;
+        int mark = offset;
+        int charsRead = 0;
 
-            if (len > (buf.length - index)) {
-                int size = buf.length - index;
+        do {
+            if (length > (buf.length - offset)) {
+                int size = buf.length - offset;
                 throw new IOException(format("Buffer size (%d) cannot accommodate "
-                        + " payload of size (%d)", size, len));
+                        + " payload of size (%d)", size, length));
             }
 
-            assert state == State.READ_PAYLOAD_LENGTH;
-            payloadLength = readPayloadLength();
+            int retval = readPayloadLength();
+            if (retval == -1) {
+                return offset - mark;
+            }
 
-            assert state == State.READ_PAYLOAD;
-            count += readText(buf, index, len);
+            charsRead = readText(buf, offset, length);
+            if (charsRead == -1) {
+                return offset - mark;
+            }
 
-            // Once the payload is read, use fin to figure out whether this was
-            // the final frame.
+            offset += charsRead;
+
+            // Once the payload is read, use fin to figure out whether this was the final frame.
             finalFrame = fin;
 
             if (!finalFrame) {
@@ -161,7 +174,7 @@ public final class WsMessageReader extends MessageReader {
         } while (!finalFrame);
 
         state = State.READ_FLAGS_AND_OPCODE;
-        return count;
+        return offset - mark;
     }
 
     @Override
@@ -216,13 +229,8 @@ public final class WsMessageReader extends MessageReader {
         return headerByte;
     }
 
-    private synchronized long readPayloadLength() throws IOException {
-        assert state == State.READ_PAYLOAD_LENGTH;
-
-        long length = -1;
-        int payloadOffset = -1;
-
-        while (length == -1) {
+    private synchronized int readPayloadLength() throws IOException {
+        while (payloadLength == 0) {
             while (payloadOffset == -1) {
                 int headerByte = in.read();
                 if (headerByte == -1) {
@@ -241,14 +249,14 @@ public final class WsMessageReader extends MessageReader {
                         break;
                     default:
                         payloadOffset = 0;
-                        length = payloadLength(header);
+                        payloadLength = payloadLength(header);
                     }
                     break;
                 case 4:
                     switch (header[1] & 0x7f) {
                     case 126:
                         payloadOffset = 0;
-                        length = payloadLength(header);
+                        payloadLength = payloadLength(header);
                     default:
                         break;
                     }
@@ -257,62 +265,35 @@ public final class WsMessageReader extends MessageReader {
                     switch (header[1] & 0x7f) {
                     case 127:
                         payloadOffset = 0;
-                        length = payloadLength(header);
+                        payloadLength = payloadLength(header);
                     default:
                         break;
                     }
                     break;
                 }
             }
+
+            // This can happen if the payload length is zero.
+            if (payloadOffset == payloadLength) {
+                payloadOffset = -1;
+                headerOffset = 0;
+                break;
+            }
         }
 
         state = State.READ_PAYLOAD;
-        return length == -1 ? 0 : length;
+        return 0;
     }
 
-    private synchronized int readBinary(byte[] buf, int offset, int len) throws IOException {
-        assert state == State.READ_PAYLOAD;
-
-        int numBytes = 0;
-        int length = len;
-        int index = offset;
-        int payloadOffset = 0;
-
-        if ((buf.length - offset) < payloadLength) {
-            int size = buf.length - offset;
-            throw new IOException(format("Buffer size (%d) is small to accommodate "
-                                    + "payload of size (%d)", size, payloadLength));
+    private synchronized int readBinary(byte[] buf, int offset, int length) throws IOException {
+        if (payloadLength == 0) {
+            state = State.READ_FLAGS_AND_OPCODE;
+            return 0;
         }
-
-        // Read the entire payload from the current frame into the buffer.
-        while (payloadOffset < payloadLength) {
-            length -= payloadOffset;
-            index += numBytes;
-
-            assert length <= (buf.length - index);
-
-            numBytes = in.read(buf, index, length);
-            payloadOffset += numBytes;
-        }
-
-        assert payloadOffset == payloadLength ;
-
-        // Entire WebSocket frame has been read. Reset the state.
-        headerOffset = 0;
-        payloadLength = 0;
-        state = State.READ_FLAGS_AND_OPCODE;
-
-        return payloadOffset;
-    }
-
-    private synchronized int readText(char[] buf, int offset, int len) throws IOException {
-        assert state == State.READ_PAYLOAD;
 
         int bytesRead = 0;
-        int length = len;
-        int index = offset;
-        int payloadOffset = 0;
-        int charsRead = 0;
+        int len = length;
+        int mark = offset;
 
         if ((buf.length - offset) < payloadLength) {
             int size = buf.length - offset;
@@ -322,24 +303,17 @@ public final class WsMessageReader extends MessageReader {
 
         // Read the entire payload from the current frame into the buffer.
         while (payloadOffset < payloadLength) {
-            length -= payloadOffset;
-            index += charsRead;
+            len -= bytesRead;
+            offset += bytesRead;
 
-            assert length <= (buf.length - index);
+            assert len <= (buf.length - offset);
 
-            byte[] bytes = new byte[(int) (payloadLength - payloadOffset)];
-            bytesRead = in.read(bytes, 0, bytes.length);
+            bytesRead = in.read(buf, offset, len);
             if (bytesRead == -1) {
-                throw new IOException("End of stream");
+                return offset - mark;
             }
 
-            // int[] utf8buf = Utf8Util.decode(bytes);
-            char[] utf8buf = new String(bytes, 0, bytesRead, "UTF-8").toCharArray();
-            charsRead += utf8buf.length;
-            for (int i = 0; i < utf8buf.length; i++) {
-                buf[index + i] = utf8buf[i];
-            }
-
+            offset += bytesRead;
             payloadOffset += bytesRead;
         }
 
@@ -348,9 +322,87 @@ public final class WsMessageReader extends MessageReader {
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
         payloadLength = 0;
+        payloadOffset = -1;
         state = State.READ_FLAGS_AND_OPCODE;
 
-        return payloadOffset;
+        return offset - mark;
+    }
+
+    private synchronized int readText(char[] cbuf, int offset, int length) throws IOException {
+        if (payloadLength == 0) {
+            state = State.READ_FLAGS_AND_OPCODE;
+            return 0;
+        }
+
+        int bytesRead = 0;
+        int len = length;
+        int mark = offset;
+        int charsRead = 0;
+
+        while (offset < length) {
+            int b = -1;
+
+            while (remaining > 0) {
+                // Deal with multi-byte character.
+                b = in.read();
+                if (b == -1) {
+                    return offset - mark;
+                }
+
+                payloadOffset++;
+
+                switch (remaining) {
+                case 3:
+                case 2:
+                    charBytes = (charBytes << 6) | (b & 0x3F);
+                    remaining--;
+                    break;
+                case 1:
+                    cbuf[offset++] = (char) ((charBytes << 6) | (b & 0x3F));
+                    remaining--;
+                    charBytes = 0;
+                    break;
+                case 0:
+                    break;
+                }
+            }
+
+            b = in.read();
+            if (b == -1) {
+                return offset - mark;
+            }
+
+            payloadOffset++;
+
+            remaining = Utf8Util.remainingUTF8Bytes(b);
+            switch (remaining) {
+            case 0:
+                // ASCII char.
+                cbuf[offset++] = (char) (b & 0x7F);
+                break;
+            case 1:
+                charBytes = b & 0x1F;
+                break;
+            case 2:
+                charBytes = b & 0x0F;
+                break;
+            case 3:
+                charBytes = b & 0x07;
+                break;
+            default:
+                throw new IOException("Invalid UTF-8 byte sequence. UTF-8 char cannot span for more than 4 bytes.");
+            }
+        }
+
+        assert payloadOffset == payloadLength ;
+
+        // Entire WebSocket frame has been read. Reset the state.
+        headerOffset = 0;
+        payloadLength = 0;
+        payloadOffset = -1;
+        state = State.READ_FLAGS_AND_OPCODE;
+
+        return offset - mark;
     }
 
     private static int payloadLength(byte[] header) {

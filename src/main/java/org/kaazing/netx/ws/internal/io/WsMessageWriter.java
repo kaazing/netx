@@ -24,7 +24,7 @@ import org.kaazing.netx.ws.MessageWriter;
 
 public class WsMessageWriter extends MessageWriter {
     private final OutputStream out;
-    private final Writer       writer;
+    private final Writer writer;
 
     public WsMessageWriter(OutputStream out, Writer writer) {
         this.out = out;
