@@ -1,0 +1,152 @@
+<!-- Copyright (c) 2007-2014, Kaazing Corporation. All rights reserved. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.kaazing</groupId>
+        <artifactId>community</artifactId>
+        <version>2.4</version>
+    </parent>
+
+    <artifactId>netx.ws</artifactId>
+    <version>develop-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>WebSocket RFC-6455 Implementation</name>
+    <url>https://github.com/kaazing/netx.ws</url>
+    <description>WebSocket Client-side Support</description>
+
+    <scm>
+        <url>https://github.com/kaazing/netx.ws</url>
+        <connection>scm:git:https://github.com/kaazing/netx.ws.git</connection>
+    </scm>
+
+    <properties>
+        <junit.version>4.12</junit.version>
+        <jmock.version>2.6.0</jmock.version>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
+        <maven.compiler.testSource>1.7</maven.compiler.testSource>
+        <maven.compiler.testTarget>1.7</maven.compiler.testTarget>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.kaazing</groupId>
+            <artifactId>netx</artifactId>
+            <version>[0.1,1.0)</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kaazing</groupId>
+            <artifactId>netx.http</artifactId>
+            <version>[0.0,1.0)</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jmock</groupId>
+            <artifactId>jmock-junit4</artifactId>
+            <version>${jmock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jmock</groupId>
+            <artifactId>jmock-legacy</artifactId>
+            <version>${jmock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kaazing</groupId>
+            <artifactId>k3po.junit</artifactId>
+            <version>2.0.0-alpha-3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kaazing</groupId>
+            <artifactId>specification.ws</artifactId>
+            <version>[0.1,0.99)</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.kaazing</groupId>
+                <artifactId>k3po-maven-plugin</artifactId>
+                <version>2.0.0-alpha-8</version>
+                <configuration>
+                    <skipTests>${skipITs}</skipTests>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>start</goal>
+                            <goal>stop</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <artifactSet>
+                                <includes>
+                                    <include>org.kaazing:netx</include>
+                                    <include>org.kaazing:netx.http</include>
+                                </includes>
+                            </artifactSet>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <shadedClassifierName>all</shadedClassifierName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- The id "attach-javadocs" is critical. Otherwise,
+                            these settings are not applied at release:perform. -->
+                        <id>attach-javadocs</id>
+                        <configuration>
+                            <attach>true</attach>
+                            <includeDependencySources>true</includeDependencySources>
+                            <dependencySourceIncludes>
+                                <dependencySourceInclude>org.kaazing:netx.http</dependencySourceInclude>
+                                <dependencySourceInclude>org.kaazing:netx</dependencySourceInclude>
+                            </dependencySourceIncludes>
+                            <excludePackageNames>
+                                *internal*:*impl*
+                            </excludePackageNames>
+                            <overview>${basedir}/src/main/javadoc/overview.html</overview>
+                            <windowtitle>Kaazing Gateway Java WebSocket Client Documentation</windowtitle>
+                            <doctitle>Java WebSocket Client - API Documentation</doctitle>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
