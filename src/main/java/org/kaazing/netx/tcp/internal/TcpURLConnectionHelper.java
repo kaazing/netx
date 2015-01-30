@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.tcp.impl;
+package org.kaazing.netx.tcp.internal;
 
 import static java.util.Collections.singleton;
 
