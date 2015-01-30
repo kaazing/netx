@@ -64,7 +64,6 @@ public class WsReader extends Reader {
                     switch (opcode) {
                     case 0x00:
                     case 0x01:
-                        System.out.println(format("headerOffset = %d, opcode = %d", headerOffset, opcode));
                         break;
                     default:
                         // TODO: skip
@@ -79,12 +78,10 @@ public class WsReader extends Reader {
                     switch (header[1] & 0x7f) {
                     case 126:
                     case 127:
-                        System.out.println(format("headerOffset = %d, length incomplete (%d)", headerOffset, header[1] & 0x7f));
                         break;
                     default:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
-                        System.out.println(format("headerOffset = %d, payloadLength = %d", headerOffset, payloadLength));
                         break;
                     }
                     break;
@@ -93,7 +90,6 @@ public class WsReader extends Reader {
                     case 126:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
-                        System.out.println(format("headerOffset = %d, payloadLength = %d", headerOffset, payloadLength));
                         break;
                     default:
                         break;
@@ -104,7 +100,6 @@ public class WsReader extends Reader {
                     case 127:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
-                        System.out.println(format("headerOffset = %d, payloadLength = %d", headerOffset, payloadLength));
                         break;
                     default:
                         break;
