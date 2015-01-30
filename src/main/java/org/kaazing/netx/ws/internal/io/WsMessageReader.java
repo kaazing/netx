@@ -313,7 +313,6 @@ public final class WsMessageReader extends MessageReader {
                 return offset - mark;
             }
 
-            offset += bytesRead;
             payloadOffset += bytesRead;
         }
 
