@@ -24,9 +24,7 @@ import java.io.IOException;
  * responsibility to pass in appropriately sized byte array for binary messages
  * and char array for text messages.
  * <p>
- * A reference to {@link MessageReader} can be obtained by using
- * {@link WsURLConnection#getMessageReader()} or {@link WebSoket#getMessageReader()}
- * methods. {@link MessageReader} allows looking at the {@link MessageType} so
+ * A {@link MessageReader} allows looking at the {@link MessageType} so
  * that the application developer can invoke the appropriate read() method to
  * either retrieve a text message or a binary message.
  * <p>
@@ -50,7 +48,7 @@ public abstract class MessageReader {
      *                         message; WebSocketMessageType.BINARY
      *                         for a binary message; WebSocketMessageType.EOS
      *                         if the connection is closed
-     * @throws IOException
+     * @throws IOException  if an I/O error occurs while advancing to the next message type
      */
     public abstract MessageType next() throws IOException;
 
