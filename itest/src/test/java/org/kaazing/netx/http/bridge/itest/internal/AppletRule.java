@@ -33,6 +33,7 @@ import org.junit.runners.model.Statement;
 import sun.applet.AppletSecurity;
 import sun.security.provider.PolicyFile;
 
+@SuppressWarnings("restriction")
 public final class AppletRule implements TestRule {
 
     @Override

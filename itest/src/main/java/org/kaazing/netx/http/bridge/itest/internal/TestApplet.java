@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.http.bridge.itest;
+package org.kaazing.netx.http.bridge.itest.internal;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
