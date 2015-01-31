@@ -22,6 +22,11 @@ import java.net.URL;
 
 import org.kaazing.netx.http.auth.ChallengeHandler;
 
+/**
+ * {@code HttpURLConnection} enhances the built-in HTTP-based {@code URLConnection}.
+ *
+ * Support is added for HTTP upgrade, an origin-aware HTTP redirect policy, and an application-level security challenge handler.
+ */
 public abstract class HttpURLConnection extends java.net.HttpURLConnection {
 
     /**
@@ -29,27 +34,52 @@ public abstract class HttpURLConnection extends java.net.HttpURLConnection {
      */
     public static final int HTTP_SWITCHING_PROTOCOLS = 101;
 
-    private ChallengeHandler   challengeHandler;
+    private ChallengeHandler challengeHandler;
     private HttpRedirectPolicy redirectPolicy;
 
-    protected HttpURLConnection(URL u) {
-        super(u);
+    /**
+     * Creates a new {@code HttpURLConnection}.
+     *
+     * @param url the location for this connection
+     */
+    protected HttpURLConnection(URL url) {
+        super(url);
 
         this.redirectPolicy = ORIGIN;
     }
 
+    /**
+     * Sets a new origin-aware HTTP redirect policy.
+     *
+     * @param redirectPolicy  the new HTTP redirect policy
+     */
     public void setRedirectPolicy(HttpRedirectPolicy redirectPolicy) {
         this.redirectPolicy = redirectPolicy;
     }
 
+    /**
+     * Returns the current origin-aware HTTP redirect policy.
+     *
+     * @return the current HTTP redirect policy
+     */
     public HttpRedirectPolicy getRedirectPolicy() {
         return redirectPolicy;
     }
 
+    /**
+     * Sets a new application-level HTTP security challenge handler.
+     *
+     * @param challengeHandler  the new HTTP security challenge handler
+     */
     public void setChallengeHandler(ChallengeHandler challengeHandler) {
         this.challengeHandler = challengeHandler;
     }
 
+    /**
+     * Returns the current application-level HTTP security challenge handler.
+     *
+     * @return the current HTTP security challenge handler
+     */
     public ChallengeHandler getChallengeHandler() {
         return challengeHandler;
     }
