@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.bbosh.impl;
+package org.kaazing.netx.bbosh.internal;
 
 import java.io.IOException;
 import java.io.InputStream;

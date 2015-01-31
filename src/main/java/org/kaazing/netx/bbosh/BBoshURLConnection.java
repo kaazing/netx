@@ -27,11 +27,19 @@ import java.util.List;
 import org.kaazing.netx.bbosh.BBoshStrategy.Polling;
 import org.kaazing.netx.bbosh.BBoshStrategy.Streaming;
 
+/**
+ * Provides BBOSH support for {@code URLConnection}.
+ */
 public abstract class BBoshURLConnection extends URLConnection implements Closeable {
 
     private final List<BBoshStrategy> supportedStrategies;
     private BBoshStrategy negotiatedStrategy;
 
+    /**
+     * Creates a new {@code BBoshURLConnection}.
+     *
+     * @param url  the location for this {@code BBoshURLConnection}
+     */
     protected BBoshURLConnection(URL url) {
         super(url);
         supportedStrategies = new ArrayList<BBoshStrategy>();
@@ -39,9 +47,13 @@ public abstract class BBoshURLConnection extends URLConnection implements Closea
         supportedStrategies.add(new Streaming());
     }
 
-    public void setSupportedStrategies(BBoshStrategy strategy, BBoshStrategy... strategies) {
+    /**
+     * Registers the supported BBOSH connection strategies.
+     *
+     * @param strategies  the supported BBOSH connection strategies
+     */
+    public final void setSupportedStrategies(BBoshStrategy... strategies) {
         supportedStrategies.clear();
-        supportedStrategies.add(strategy);
         if (strategies != null) {
             for (int i = 0; i < strategies.length; i++) {
                 supportedStrategies.add(strategies[i]);
@@ -49,19 +61,39 @@ public abstract class BBoshURLConnection extends URLConnection implements Closea
         }
     }
 
-    public void setSupportedStrategies(List<BBoshStrategy> strategies) {
+    /**
+     * Registers the supported BBOSH connection strategies.
+     *
+     * @param strategies  the supported BBOSH connection strategies
+     */
+    public final void setSupportedStrategies(List<BBoshStrategy> strategies) {
         supportedStrategies.clear();
         supportedStrategies.addAll(strategies);
     }
 
-    public BBoshStrategy getNegotiatedStrategy() {
+    /**
+     * Returns the negotiated BBOSH connection strategy.
+     *
+     * @return  the negotiated BBOSH connection strategy
+     */
+    public final BBoshStrategy getNegotiatedStrategy() {
         return negotiatedStrategy;
     }
 
-    protected List<BBoshStrategy> getSupportedStrategies() {
+    /**
+     * Returns the supported BBOSH connection strategies.
+     *
+     * @return  the supported BBOSH connection strategies
+     */
+    protected final List<BBoshStrategy> getSupportedStrategies() {
         return supportedStrategies;
     }
 
+    /**
+     * Registers the negotiated BBOSH connection strategy.
+     *
+     * @param negotiatedStrategy  the negotiated BBOSH connection strategy
+     */
     protected final void setNegotiatedStrategy(BBoshStrategy negotiatedStrategy) {
         this.negotiatedStrategy = negotiatedStrategy;
     }
