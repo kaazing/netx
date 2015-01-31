@@ -31,6 +31,8 @@ import java.util.Arrays;
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLSocketFactory;
 
+import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
+
 public abstract class HttpOriginSecuritySpi {
 
     private static final String BRIDGE_RESOURCE_NAME = "netx.http.bridge";
@@ -41,6 +43,7 @@ public abstract class HttpOriginSecuritySpi {
         return new DefaultOriginSecurity();
     }
 
+    @IgnoreJRERequirement
     public final HttpURLConnection openConnection(URL url) throws IOException {
         try {
             return openConnection0(url);
