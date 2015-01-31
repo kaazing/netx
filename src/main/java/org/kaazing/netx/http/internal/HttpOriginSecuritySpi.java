@@ -97,6 +97,7 @@ public abstract class HttpOriginSecuritySpi {
             String origin = null;
 
             if (cl instanceof URLClassLoader) {
+                @SuppressWarnings("resource")
                 URLClassLoader ucl = (URLClassLoader) cl;
 
                 URL[] urls = ucl.getURLs();
