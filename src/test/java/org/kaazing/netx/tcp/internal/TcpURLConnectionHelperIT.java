@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.tcp.impl;
+package org.kaazing.netx.tcp.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 
@@ -25,6 +24,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.Charset;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +37,8 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
 
 public class TcpURLConnectionHelperIT {
+
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private final K3poRule robot = new K3poRule();
 
