@@ -14,7 +14,7 @@ write header content-length
 write "<html>"
 write "<body>"
 write "<applet width=600 height=600"
-write " code=\"org.kaazing.netx.http.bridge.itest.TestApplet.class\""
+write " code=\"org.kaazing.netx.http.bridge.itest.internal.TestApplet.class\""
 write " archive=\"/applet\""
 write ">"
 write " <param name=location value=\"http://localhost:8081/path\" >"
