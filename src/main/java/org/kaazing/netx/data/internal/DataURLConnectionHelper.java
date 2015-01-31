@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.data.impl;
+package org.kaazing.netx.data.internal;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.util.Collections.singleton;
 
 import java.io.ByteArrayInputStream;
@@ -37,6 +36,7 @@ import org.kaazing.netx.URLConnectionHelperSpi;
 public final class DataURLConnectionHelper extends URLConnectionHelperSpi {
 
     private static final int BASE64_PADDING_BYTE = 0x3d;
+    private static final Charset US_ASCII = Charset.forName("US-ASCII");
 
     private static Pattern SPECIFIC_PART_PATTERN = Pattern.compile("([^;,]+)?(?:;charset=([^;,]+))?(?:;(base64))?,(.*)");
 
