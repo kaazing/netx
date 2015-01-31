@@ -19,6 +19,11 @@ package org.kaazing.netx.ws.internal.util;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.String.format;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+
 public final class Utf8Util {
     private Utf8Util() {
     }
@@ -44,4 +49,15 @@ public final class Utf8Util {
         }
     }
 
+    public static boolean isValidUTF8(byte[] input) {
+        CharsetDecoder cs = Charset.forName("UTF-8").newDecoder();
+
+        try {
+            cs.decode(ByteBuffer.wrap(input));
+            return true;
+        }
+        catch (CharacterCodingException e) {
+            return false;
+        }
+    }
 }

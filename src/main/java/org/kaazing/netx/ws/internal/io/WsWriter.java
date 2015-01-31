@@ -105,8 +105,11 @@ public class WsWriter extends Writer {
         random.nextBytes(mask);
         out.write(mask);
 
-        // Mask the payload.
+        // ### TODO: Convert the char[] to UTF-8 byte[] payload instead of creating a String.
         byte[] bytes = String.valueOf(arr).getBytes("UTF-8");
+
+        // Mask the payload.
+
         byte[] masked = new byte[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
             int ioff = offset + i;

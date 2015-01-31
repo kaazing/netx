@@ -37,7 +37,7 @@ public abstract class MessageWriter {
     public abstract void write(byte[] buf) throws IOException;
 
     /**
-     * Sends a binary message using the entire specified buffer.
+     * Sends a binary message using a portion of the specified buffer.
      *
      * @param  buf            binary payload of the message
      * @param  offset         offset from which to start sending

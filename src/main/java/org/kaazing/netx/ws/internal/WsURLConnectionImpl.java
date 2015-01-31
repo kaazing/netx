@@ -156,31 +156,36 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public void close(int code, String reason) throws IOException {
+        byte[] reasonBytes = null;
+
         if (code != 0) {
             //verify code and reason against RFC 6455
             //if code is present, it must equal to 1000 or in range 3000 to 4999
             if (code != 1000 && (code < 3000 || code > 4999)) {
-                    throw new IllegalArgumentException("code must equal to 1000 or in range 3000 to 4999");
+                    throw new IOException("code must equal to 1000 or in range 3000 to 4999");
             }
 
             //if reason is present, it must not be longer than 123 bytes
             if (reason != null && reason.length() > 0) {
                 //convert reason to UTF8 string
                 try {
-                    byte[] reasonBytes = reason.getBytes("UTF8");
+                    reasonBytes = reason.getBytes("UTF8");
                     if (reasonBytes.length > 123) {
-                        throw new IllegalArgumentException("Reason is longer than 123 bytes");
+                        throw new IOException("Reason is longer than 123 bytes");
                     }
                     reason = new String(reasonBytes, "UTF8");
-
                 } catch (UnsupportedEncodingException e) {
                     LOG.log(Level.FINEST, e.getMessage(), e);
-                    throw new IllegalArgumentException("Reason must be encodable to UTF8");
+                    throw new IOException("Reason must be encodable to UTF8");
                 }
             }
+
         }
 
-        // ### TODO: Send the CLOSE frame out.
+        ((WsOutputStream) getOutputStream()).writeClose(code, reasonBytes);
+
+        // ### TODO: Maybe,  the client should wait for the server to respond with a CLOSE.
+        connection.disconnect();
     }
 
     @Override
@@ -257,7 +262,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (inputStream == null) {
             ensureConnected();
-            inputStream = new WsInputStream(connection.getInputStream());
+            inputStream = new WsInputStream(connection.getInputStream(), (WsOutputStream) getOutputStream());
         }
 
         return inputStream;
@@ -268,7 +273,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (messageReader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            messageReader = new WsMessageReader(connection.getInputStream());
+            messageReader = new WsMessageReader(connection.getInputStream(), (WsOutputStream) getOutputStream());
         }
 
         return messageReader;
@@ -350,7 +355,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            reader = new WsReader(connection.getInputStream());
+            reader = new WsReader(connection.getInputStream(), (WsOutputStream) getOutputStream());
         }
 
         return reader;

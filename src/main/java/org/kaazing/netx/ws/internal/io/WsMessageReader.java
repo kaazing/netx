@@ -20,18 +20,18 @@ import static java.lang.String.format;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Logger;
 
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public final class WsMessageReader extends MessageReader {
-    private static final String CLASS_NAME = WsMessageReader.class.getName();
-    private static final Logger LOG = Logger.getLogger(CLASS_NAME);
+//    private static final String CLASS_NAME = WsMessageReader.class.getName();
+//    private static final Logger LOG = Logger.getLogger(CLASS_NAME);
 
     private final InputStream in;
-    private final byte[]      header;
+    private final WsOutputStream out;
+    private final byte[] header;
 
     private MessageType type;
     private int headerOffset;
@@ -47,12 +47,13 @@ public final class WsMessageReader extends MessageReader {
         READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
     };
 
-    public WsMessageReader(InputStream in) {
+    public WsMessageReader(InputStream in, WsOutputStream out) {
         if (in == null) {
             throw new NullPointerException("Null InputStream passed in");
         }
 
         this.in = in;
+        this.out = out;
         this.header = new byte[10];
         this.state = State.READ_FLAGS_AND_OPCODE;
         this.payloadOffset = -1;
@@ -65,8 +66,7 @@ public final class WsMessageReader extends MessageReader {
 
     @Override
     public synchronized int read(byte[] buf, int offset, int length) throws IOException {
-        // Check whether next() has been invoked before this method. If it
-        // wasn't invoked, then read the header byte.
+        // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
         switch (state) {
         case READ_FLAGS_AND_OPCODE:
             readHeaderByte();
@@ -85,21 +85,18 @@ public final class WsMessageReader extends MessageReader {
         int bytesRead = 0;
 
         do {
-            if (length > (buf.length - offset)) {
+            if ((offset + length) > buf.length) {
                 int size = buf.length - offset;
-                throw new IOException(format("Buffer size (%d) small to accommodate "
-                        + "payload of size (%d)", size, length));
+                throw new IOException(format("Buffer size (%d) small to accommodate payload of size (%d)", size, length));
             }
 
             int retval = readPayloadLength();
             if (retval == -1) {
-                return offset - mark;
+                throw new IOException("End of stream before the entire payload could be read into the buffer");
+                // return offset - mark;
             }
 
             bytesRead = readBinary(buf, offset, length);
-            if (bytesRead == -1) {
-                return offset - mark;
-            }
 
             offset += bytesRead;
 
@@ -125,8 +122,7 @@ public final class WsMessageReader extends MessageReader {
 
     @Override
     public synchronized int read(char[] buf, int offset, int length) throws IOException {
-        // Check whether next() has been invoked before this method. If it
-        // wasn't invoked, then read the header byte.
+        // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
         switch (state) {
         case READ_FLAGS_AND_OPCODE:
             readHeaderByte();
@@ -145,21 +141,18 @@ public final class WsMessageReader extends MessageReader {
         int charsRead = 0;
 
         do {
-            if (length > (buf.length - offset)) {
+            if ((offset + length) > buf.length) {
                 int size = buf.length - offset;
-                throw new IOException(format("Buffer size (%d) cannot accommodate "
-                        + " payload of size (%d)", size, length));
+                throw new IOException(format("Buffer size (%d) cannot accommodate payload of size (%d)", size, length));
             }
 
             int retval = readPayloadLength();
             if (retval == -1) {
-                return offset - mark;
+                throw new IOException("End of stream before the entire payload could be read into the buffer");
+                // return offset - mark;
             }
 
             charsRead = readText(buf, offset, length);
-            if (charsRead == -1) {
-                return offset - mark;
-            }
 
             offset += charsRead;
 
@@ -214,17 +207,28 @@ public final class WsMessageReader extends MessageReader {
 
         header[headerOffset++] = (byte) headerByte;
 
-        int opcode = headerByte & 0x07;
+        fin = (headerByte & 0x80) != 0;
+
+        int opcode = headerByte & 0x0F;
         switch (opcode) {
+        case 0x00:
+            break;
         case 0x01:
             type = MessageType.TEXT;
             break;
         case 0x02:
             type = MessageType.BINARY;
             break;
+        case 0x08:
+        case 0x09:
+        case 0x0A:
+            filterControlFrames();
+            headerByte = readHeaderByte();
+        default:
+            // ### TODO: Perhaps send CLOSE frame with appropriate code, close the connection, and then throw the exception.
+            throw new IOException(format("Protocol Violation: Invalid opcode %d", opcode));
         }
 
-        fin = (headerByte & 0x80) != 0;
         state = State.READ_PAYLOAD_LENGTH;
         return headerByte;
     }
@@ -250,6 +254,7 @@ public final class WsMessageReader extends MessageReader {
                     default:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        break;
                     }
                     break;
                 case 4:
@@ -257,6 +262,7 @@ public final class WsMessageReader extends MessageReader {
                     case 126:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        break;
                     default:
                         break;
                     }
@@ -266,6 +272,7 @@ public final class WsMessageReader extends MessageReader {
                     case 127:
                         payloadOffset = 0;
                         payloadLength = payloadLength(header);
+                        break;
                     default:
                         break;
                     }
@@ -295,10 +302,9 @@ public final class WsMessageReader extends MessageReader {
         int len = length;
         int mark = offset;
 
-        if ((buf.length - offset) < payloadLength) {
+        if (buf.length < (offset + payloadLength)) {
             int size = buf.length - offset;
-            throw new IOException(format("Buffer size (%d) is small to accommodate "
-                                    + "payload of size (%d)", size, payloadLength));
+            throw new IOException(format("Buffer size (%d) is small to accommodate payload of size (%d)", size, payloadLength));
         }
 
         // Read the entire payload from the current frame into the buffer.
@@ -306,11 +312,12 @@ public final class WsMessageReader extends MessageReader {
             len -= bytesRead;
             offset += bytesRead;
 
-            assert len <= (buf.length - offset);
+            assert len + offset <= buf.length;
 
             bytesRead = in.read(buf, offset, len);
             if (bytesRead == -1) {
-                return offset - mark;
+                throw new IOException("End of stream before the entire payload could be read into the buffer");
+                // return offset - mark;
             }
 
             payloadOffset += bytesRead;
@@ -333,19 +340,16 @@ public final class WsMessageReader extends MessageReader {
             return 0;
         }
 
-        int bytesRead = 0;
-        int len = length;
         int mark = offset;
-        int charsRead = 0;
 
         while (offset < length) {
             int b = -1;
 
             while (remaining > 0) {
-                // Deal with multi-byte character.
+                // Read the remaining bytes of a multi-byte character. These bytes could be in two successive WebSocket frames.
                 b = in.read();
                 if (b == -1) {
-                    return offset - mark;
+                    throw new IOException("End of stream before the entire payload could be read into the buffer");
                 }
 
                 payloadOffset++;
@@ -368,12 +372,14 @@ public final class WsMessageReader extends MessageReader {
 
             b = in.read();
             if (b == -1) {
-                return offset - mark;
+                break;
             }
 
             payloadOffset++;
 
+            // Check if the byte read is the first of a multi-byte character.
             remaining = Utf8Util.remainingUTF8Bytes(b);
+
             switch (remaining) {
             case 0:
                 // ASCII char.
@@ -393,7 +399,10 @@ public final class WsMessageReader extends MessageReader {
             }
         }
 
-        assert payloadOffset == payloadLength ;
+        // Unlike WsReader, WsMessageReader has to ensure that the entire payload has been read.
+        if (payloadOffset < payloadLength) {
+            throw new IOException("End of stream before the entire payload could be read into the buffer");
+        }
 
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
@@ -402,6 +411,78 @@ public final class WsMessageReader extends MessageReader {
         state = State.READ_FLAGS_AND_OPCODE;
 
         return offset - mark;
+    }
+
+    private void filterControlFrames() throws IOException {
+        int opcode = header[0] & 0x07;
+
+        if ((opcode == 0x00) || (opcode == 0x01) || (opcode == 0x02)) {
+            return;
+        }
+
+        readPayloadLength();
+
+        switch (opcode) {
+        case 0x08:
+            int code = 0;
+            if (payloadLength >= 2) {
+                // Read the first two bytes as the CLOSE code.
+                int b1 = in.read();
+                int b2 = in.read();
+
+                code = ((b1 & 0xFF) << 8) | (b2 & 0xFF);
+
+                // If reason is also received, then just drain those bytes.
+                if (payloadLength > 2) {
+                    byte[] reason = new byte[(int) (payloadLength - 2)];
+                    int bytesRead = in.read(reason);
+
+                    if (bytesRead == -1) {
+                        throw new IOException("End of stream");
+                    }
+                }
+            }
+
+            if (out.wasCloseSent()) {
+                // If the client had earlier initiated a CLOSE and this is server's response as part of the CLOSE handshake,
+                // then we should close the connection.
+                in.close();
+            }
+            else {
+                // The server has initiated a CLOSE. The client should reflect the CLOSE including the code(if any) to
+                // complete the CLOSE handshake and then close the connection.
+                out.writeClose(code, null);
+                in.close();
+            }
+            break;
+
+        case 0x09:
+        case 0x0A:
+            byte[] buf = null;
+            if (payloadLength > 0) {
+                buf = new byte[(int) payloadLength];
+                int bytesRead = in.read(buf);
+
+                if (bytesRead == -1) {
+                    throw new IOException("End of stream");
+                }
+            }
+
+            if (opcode == 0x09) {
+                // Send the PONG frame out with the same payload that was received with PING.
+                out.writePong(buf);
+            }
+            break;
+
+        default:
+            throw new IOException(format("Protocol Violation: Unrecognized opcode %d", opcode));
+        }
+
+        // Get ready to read the next frame after CLOSE frame is sent out.
+        payloadLength = 0;
+        payloadOffset = -1;
+        headerOffset = 0;
+        state = State.READ_FLAGS_AND_OPCODE;
     }
 
     private static int payloadLength(byte[] header) {

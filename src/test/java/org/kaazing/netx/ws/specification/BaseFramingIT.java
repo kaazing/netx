@@ -72,13 +72,16 @@ public class BaseFramingIT {
         out.write(writeBytes);
 
         byte[] readBytes = new byte[0];
-        in.read(readBytes);
+        // in.read(readBytes);
+        int b = in.read();
+
+        if (b == -1) {
+            b += 100;
+        }
 
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -112,8 +115,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -146,8 +147,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -181,8 +180,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -215,8 +212,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -250,8 +245,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -284,8 +277,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -319,8 +310,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -353,8 +342,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -388,8 +375,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -422,8 +407,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -457,8 +440,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -491,8 +472,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -526,8 +505,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -561,8 +538,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -597,8 +572,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -632,8 +605,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -666,7 +637,6 @@ public class BaseFramingIT {
         String readString = String.valueOf(cbuf);
         k3po.join();
         assertEquals(writeString, readString);
-        connection.close();
     }
 
     @Test
@@ -700,8 +670,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -736,8 +704,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -771,8 +737,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -807,8 +771,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -842,8 +804,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -878,8 +838,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -914,8 +872,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -950,8 +906,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -986,8 +940,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -1022,49 +974,23 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
-    private int getByteCount(String str) {
-        char[] buf = str.toCharArray();
-        int count = 0;
-
-        for (int i = 0; i < buf.length; i++) {
-            count += expectedBytes(buf[i]);
-        }
-
-        return count;
-
-    }
-    private int expectedBytes(int value) {
-        if (value < 0x80) {
-            return 1;
-        }
-        if (value < 0x800) {
-            return 2;
-        }
-        if (value <= '\uFFFF') {
-            return 3;
-        }
-        return 4;
-    }
-
-    private static void hexDump(byte[] bytes) {
-        StringBuilder hexDump = new StringBuilder("");
-
-        for (int i = 0; i < bytes.length; i++) {
-            if (hexDump.length() > 0) {
-                hexDump.append(", ");
-            }
-
-            hexDump.append(String.format("%02x", 0xFF & bytes[i]).toUpperCase());
-        }
-
-        String s = hexDump.toString();
-        System.out.println("Number of bytes: " + bytes.length);
-        System.out.println("Hex Dump: " + s);
-    }
+//    private static void hexDump(byte[] bytes) {
+//        StringBuilder hexDump = new StringBuilder("");
+//
+//        for (int i = 0; i < bytes.length; i++) {
+//            if (hexDump.length() > 0) {
+//                hexDump.append(", ");
+//            }
+//
+//            hexDump.append(String.format("%02x", 0xFF & bytes[i]).toUpperCase());
+//        }
+//
+//        String s = hexDump.toString();
+//        System.out.println("Number of bytes: " + bytes.length);
+//        System.out.println("Hex Dump: " + s);
+//    }
 
     private static class RandomString {
 
