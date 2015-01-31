@@ -29,8 +29,7 @@ import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 
 /**
- * A URLConnection with support for WebSocket-specific features. See
- * {@link http://www.w3.org/TR/websockets/} for details.
+ * A URLConnection with support for WebSocket RFC-6455
  * <p>
  * Each WsURLConnection provides bi-directional communications for text and
  * binary messaging via the Kaazing Gateway.
@@ -38,14 +37,19 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
  * An instance of {@link WsURLConnection} is created as shown below:
  * <pre>
  * {@code
- *     URL location = URLFactory.create("ws://<hostname>:<port>/<serviceName>");
- *     URLConnection connection = location.openConnection();
- *     WsURLConnection wsConnection = (WsURLConnection)connection;
+ *     URLConnectionHelper helper = URLConnectionHelper.newInstance();
+ *     URL location = helper.toURL(URI.create("ws://<hostname>:<port>/<serviceName>"));
+ *     WsURLConnection wsConnection = (WsURLConnection) location.openConnection();
  * }
  * </pre>
  */
 public abstract class WsURLConnection extends URLConnection {
 
+    /**
+     * Creates a new {@code WsURLConnection}.
+     *
+     * @param url the location for this connection
+     */
     protected WsURLConnection(URL url) {
         super(url);
     }
@@ -67,7 +71,7 @@ public abstract class WsURLConnection extends URLConnection {
      * @throws IllegalArgumentException    if the code isn't 1000 or out of
      *                                     range 3000 - 4999.
      */
-    public abstract void close(int code) throws IOException;
+    public abstract void close(int code) throws IOException, IllegalArgumentException;
 
     /**
      * Disconnects with the server with code and reason. This is a blocking
@@ -80,8 +84,7 @@ public abstract class WsURLConnection extends URLConnection {
      *                                     range 3000 - 4999 OR if the reason
      *                                     is more than 123 bytes
      */
-    public abstract void close(int code, String reason)
-           throws IOException;
+    public abstract void close(int code, String reason) throws IOException, IllegalArgumentException;
 
     /**
      * Connects with the server using an end-point. This is a blocking call. The
@@ -107,7 +110,7 @@ public abstract class WsURLConnection extends URLConnection {
      * Gets the names of all the protocols that are enabled for this
      * connection. Returns an empty Collection if protocols are not enabled.
      *
-     * @return Collection<String>     supported protocols by this connection
+     * @return the protocols enabled for this connection
      */
     public abstract Collection<String> getEnabledProtocols();
 
@@ -115,7 +118,7 @@ public abstract class WsURLConnection extends URLConnection {
      * Returns {@link HttpRedirectPolicy} indicating the policy for
      * following  HTTP redirects (3xx).
      *
-     * @return HttpRedirectOption     indicating the
+     * @return  the redirect policy
      */
     public abstract HttpRedirectPolicy getRedirectPolicy();
 
@@ -180,8 +183,8 @@ public abstract class WsURLConnection extends URLConnection {
      * Gets the protocol that the client and the server have successfully
      * negotiated.
      *
-     * @return protocol                negotiated by the client and the server
-     * @throws IOException
+     * @return protocol  negotiated by the client and the server
+     * @throws IOException  if an I/O error occurs while negotiating the WebSocket sub-protocol
      */
     public abstract String getNegotiatedProtocol() throws IOException;
 
@@ -248,7 +251,7 @@ public abstract class WsURLConnection extends URLConnection {
      * both at the connect-time as well as at subsequent revalidation-time that
      * occurs at regular intervals.
      *
-     * @param challengeHandler   ChallengeHandler used for authentication
+     * @param challengeHandler   the security challenge handler used for authentication
      */
     public abstract void setChallengeHandler(ChallengeHandler challengeHandler);
 
@@ -260,18 +263,16 @@ public abstract class WsURLConnection extends URLConnection {
      * If this method is invoked after a connection has been successfully
      * established, an IllegalStateException is thrown.
      * <p>
-     * @param extensions    list of extensions to be negotiated with the server
-     *                      during the handshake
-     * @throw IllegalStateException   if this method is invoked after connect()
+     * @param protocols  the list of protocols to be negotiated with the server during the WebSocket handshake
+     * @throws IllegalStateException   if this method is invoked after connect()
      */
-    public abstract void setEnabledProtocols(Collection<String> protocols);
+    public abstract void setEnabledProtocols(Collection<String> protocols) throws IllegalStateException;
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for
      * following  HTTP redirects (3xx).
      *
-     * @param policy     HttpRedirectOption to used for following the
-     *                   redirects
+     * @param policy the redirect policy applied to HTTP redirect responses
      */
     public abstract void setRedirectPolicy(HttpRedirectPolicy policy);
 }

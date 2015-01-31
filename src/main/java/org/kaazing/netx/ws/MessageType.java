@@ -22,5 +22,19 @@ package org.kaazing.netx.ws;
  * represents end-of-stream.
  */
 public enum MessageType {
-    EOS, TEXT, BINARY;
+
+    /**
+     * End of stream.
+     */
+    EOS,
+
+    /**
+     * Text message type.
+     */
+    TEXT,
+
+    /**
+     * Binary message type.
+     */
+    BINARY;
 }
