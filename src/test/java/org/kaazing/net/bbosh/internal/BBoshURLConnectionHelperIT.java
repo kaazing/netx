@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.net.bbosh.impl;
+package org.kaazing.net.bbosh.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
