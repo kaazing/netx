@@ -259,7 +259,8 @@ public class ClosingHandshakeIT {
     @Test
     @Specification({
         "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8ReasonUsingReader() throws Exception {
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8ReasonUsingReader()
+            throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
 
@@ -272,7 +273,8 @@ public class ClosingHandshakeIT {
     @Test
     @Specification({
         "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8ReasonUsingMessageReader() throws Exception {
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8ReasonUsingMessageReader()
+            throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
 
