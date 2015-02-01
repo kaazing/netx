@@ -110,6 +110,9 @@ public final class WsInputStream extends InputStream {
 
             // If the current frame is either CLOSE, PING, or PONG, then we just filter out it's bytes.
             filterControlFrames();
+            if ((header[0] & 0x0F) == 0x08) {
+                return -1;
+            }
 
             // If the payload length is zero, then we should start reading the new frame.
             if (payloadLength == 0) {
@@ -153,7 +156,7 @@ public final class WsInputStream extends InputStream {
     }
 
     private void filterControlFrames() throws IOException {
-        int opcode = header[0] & 0x07;
+        int opcode = header[0] & 0x0F;
 
         if ((opcode == 0x00) || (opcode == 0x02)) {
             return;
@@ -162,16 +165,21 @@ public final class WsInputStream extends InputStream {
         switch (opcode) {
         case 0x08:
             int code = 0;
+            byte[] reason = null;
+
             if (payloadLength >= 2) {
                 // Read the first two bytes as the CLOSE code.
                 int b1 = in.read();
                 int b2 = in.read();
 
                 code = ((b1 & 0xFF) << 8) | (b2 & 0xFF);
+                if ((code == 1005) || (code == 1006) || (code == 1015)) {
+                    code = 1002;
+                }
 
                 // If reason is also received, then just drain those bytes.
                 if (payloadLength > 2) {
-                    byte[] reason = new byte[(int) (payloadLength - 2)];
+                    reason = new byte[(int) (payloadLength - 2)];
                     int bytesRead = in.read(reason);
 
                     if (bytesRead == -1) {
@@ -180,6 +188,10 @@ public final class WsInputStream extends InputStream {
 
                     if (!Utf8Util.isValidUTF8(reason)) {
                         code = 1002;
+                    }
+
+                    if (code != 1000) {
+                        reason = null;
                     }
                 }
             }
@@ -192,7 +204,7 @@ public final class WsInputStream extends InputStream {
             else {
                 // The server has initiated a CLOSE. The client should reflect the CLOSE including the code(if any) to
                 // complete the CLOSE handshake and then close the connection.
-                out.writeClose(code, null);
+                out.writeClose(code, reason);
                 in.close();
             }
             break;

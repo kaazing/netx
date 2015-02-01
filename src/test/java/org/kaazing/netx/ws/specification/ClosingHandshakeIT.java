@@ -17,11 +17,15 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.io.InputStream;
+import java.io.Reader;
 import java.net.URI;
 import java.util.Random;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -30,6 +34,8 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.WsURLConnection;
 
 /**
@@ -86,81 +92,407 @@ public class ClosingHandshakeIT {
 
     @Test
     @Specification({
-        "server.send.empty.close.frame/handshake.request.and.frame",
         "server.send.empty.close.frame/handshake.response.and.frame" })
     public void shouldCompleteCloseHandshakeWhenServerSendEmptyCloseFrame() throws Exception {
-//        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-//        URI location = URI.create("ws://localhost:8080/path");
-//
-//        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        InputStream in = connection.getInputStream();
-//        byte[] bytes = new byte[4];
-//        in.read(bytes);
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream in = connection.getInputStream();
+        in.read();
         k3po.join();
     }
 
     @Test
     @Specification({
-        "server.send.close.frame.with.code.1000/handshake.request.and.frame",
+        "server.send.empty.close.frame/handshake.response.and.frame" })
+    public void shouldCompleteCloseHandshakeWhenServerSendEmptyCloseFrameUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        reader.read();
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.send.empty.close.frame/handshake.response.and.frame" })
+    public void shouldCompleteCloseHandshakeWhenServerSendEmptyCloseFrameUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
         "server.send.close.frame.with.code.1000/handshake.response.and.frame" })
     public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000() throws Exception {
-//        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-//        URI location = URI.create("ws://localhost:8080/path");
-//
-//        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        InputStream in = connection.getInputStream();
-//        byte[] bytes = new byte[4];
-//        in.read(bytes);
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream in = connection.getInputStream();
+        in.read();
         k3po.join();
     }
 
     @Test
     @Specification({
-        "server.send.close.frame.with.code.1000.and.reason/handshake.request.and.frame",
+        "server.send.close.frame.with.code.1000/handshake.response.and.frame" })
+    public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000UsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        reader.read();
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.send.close.frame.with.code.1000/handshake.response.and.frame" })
+    public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000UsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+        k3po.join();
+    }
+
+    @Test
+    @Ignore
+    @Specification({
         "server.send.close.frame.with.code.1000.and.reason/handshake.response.and.frame" })
     public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000AndReason() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream in = connection.getInputStream();
+        in.read();
+        k3po.join();
+    }
+
+    @Test
+    @Ignore
+    @Specification({
+        "server.send.close.frame.with.code.1000.and.reason/handshake.response.and.frame" })
+    public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000AndReasonUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        reader.read();
+        k3po.join();
+    }
+
+    @Test
+    @Ignore
+    @Specification({
+        "server.send.close.frame.with.code.1000.and.reason/handshake.response.and.frame" })
+    public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000AndReasonUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
         k3po.join();
     }
 
     @Test
     @Specification({
-        "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.request.and.frame",
         "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8Reason() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream in = connection.getInputStream();
+        in.read();
         k3po.join();
     }
 
     @Test
     @Specification({
-        "server.send.close.frame.with.code.1001/handshake.request.and.frame",
+        "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8ReasonUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        reader.read();
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8ReasonUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
         "server.send.close.frame.with.code.1001/handshake.response.and.frame" })
     public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1001() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream in = connection.getInputStream();
+        in.read();
         k3po.join();
     }
 
     @Test
     @Specification({
-        "server.send.close.frame.with.code.1005/handshake.request.and.frame",
+        "server.send.close.frame.with.code.1001/handshake.response.and.frame" })
+    public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1001UsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        reader.read();
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.send.close.frame.with.code.1001/handshake.response.and.frame" })
+    public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1001UsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
         "server.send.close.frame.with.code.1005/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1005() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream in = connection.getInputStream();
+        in.read();
         k3po.join();
     }
 
     @Test
     @Specification({
-        "server.send.close.frame.with.code.1006/handshake.request.and.frame",
+        "server.send.close.frame.with.code.1005/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1005UsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        reader.read();
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.send.close.frame.with.code.1005/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1005UsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
         "server.send.close.frame.with.code.1006/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1006() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream in = connection.getInputStream();
+        in.read();
         k3po.join();
     }
 
     @Test
     @Specification({
-        "server.send.close.frame.with.code.1015/handshake.request.and.frame",
-        "server.send.close.frame.with.code.1015/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1015() throws Exception {
+        "server.send.close.frame.with.code.1006/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1006UsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        reader.read();
         k3po.join();
     }
+
+    @Test
+    @Specification({
+        "server.send.close.frame.with.code.1006/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1006UsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.send.close.frame.with.code.1015/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1015() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream in = connection.getInputStream();
+        in.read();
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.send.close.frame.with.code.1015/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1015UsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        reader.read();
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.send.close.frame.with.code.1015/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1015UsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        while ((type = reader.next()) != MessageType.EOS) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertTrue(type == MessageType.BINARY);
+                break;
+            }
+        }
+        k3po.join();
+    }
+
 
     private static class RandomString {
 

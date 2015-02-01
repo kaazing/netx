@@ -75,9 +75,13 @@ public final class WsMessageReader extends MessageReader {
             break;
         }
 
-        if (type != MessageType.BINARY) {
-            String s = "Cannot decode the payload as a binary message";
-            throw new IOException(s);
+        switch (type) {
+        case EOS:
+            throw new IOException("Connection is closed");
+        case TEXT:
+            throw new IOException("Cannot decode the payload as a binary message");
+        default:
+            break;
         }
 
         boolean finalFrame = fin;
@@ -131,9 +135,13 @@ public final class WsMessageReader extends MessageReader {
             break;
         }
 
-        if (type != MessageType.TEXT) {
-            String s = "Cannot decode the payload as a text message";
-            throw new IOException(s);
+        switch (type) {
+        case EOS:
+            throw new IOException("Connection is closed");
+        case BINARY:
+            throw new IOException("Cannot decode the payload as a text message");
+        default:
+            break;
         }
 
         boolean finalFrame = fin;
@@ -223,7 +231,12 @@ public final class WsMessageReader extends MessageReader {
         case 0x09:
         case 0x0A:
             filterControlFrames();
+            if ((header[0] & 0x0F) == 0x08) {
+                type = MessageType.EOS;
+                return -1;
+            }
             headerByte = readHeaderByte();
+            break;
         default:
             // ### TODO: Perhaps send CLOSE frame with appropriate code, close the connection, and then throw the exception.
             throw new IOException(format("Protocol Violation: Invalid opcode %d", opcode));
@@ -414,7 +427,7 @@ public final class WsMessageReader extends MessageReader {
     }
 
     private void filterControlFrames() throws IOException {
-        int opcode = header[0] & 0x07;
+        int opcode = header[0] & 0x0F;
 
         if ((opcode == 0x00) || (opcode == 0x01) || (opcode == 0x02)) {
             return;
@@ -425,20 +438,33 @@ public final class WsMessageReader extends MessageReader {
         switch (opcode) {
         case 0x08:
             int code = 0;
+            byte[] reason = null;
+
             if (payloadLength >= 2) {
                 // Read the first two bytes as the CLOSE code.
                 int b1 = in.read();
                 int b2 = in.read();
 
                 code = ((b1 & 0xFF) << 8) | (b2 & 0xFF);
+                if ((code == 1005) || (code == 1006) || (code == 1015)) {
+                    code = 1002;
+                }
 
                 // If reason is also received, then just drain those bytes.
                 if (payloadLength > 2) {
-                    byte[] reason = new byte[(int) (payloadLength - 2)];
+                    reason = new byte[(int) (payloadLength - 2)];
                     int bytesRead = in.read(reason);
 
                     if (bytesRead == -1) {
                         throw new IOException("End of stream");
+                    }
+
+                    if (!Utf8Util.isValidUTF8(reason)) {
+                        code = 1002;
+                    }
+
+                    if (code != 1000) {
+                        reason = null;
                     }
                 }
             }
@@ -451,7 +477,7 @@ public final class WsMessageReader extends MessageReader {
             else {
                 // The server has initiated a CLOSE. The client should reflect the CLOSE including the code(if any) to
                 // complete the CLOSE handshake and then close the connection.
-                out.writeClose(code, null);
+                out.writeClose(code, reason);
                 in.close();
             }
             break;
