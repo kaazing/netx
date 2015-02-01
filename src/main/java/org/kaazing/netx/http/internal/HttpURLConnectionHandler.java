@@ -25,10 +25,9 @@ import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.util.Arrays.fill;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -173,6 +172,7 @@ abstract class HttpURLConnectionHandler {
         private InputStream input;
         private OutputStream output;
         private InputStream error;
+        private ByteArrayOutputStream lineBytes;
 
         public Upgradeable(HttpURLConnectionImpl connection) {
             super(connection);
@@ -252,11 +252,12 @@ abstract class HttpURLConnectionHandler {
             case HANDSHAKE_SENT:
                 input = socket.getInputStream();
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(input, "US-ASCII"));
-                String start = reader.readLine();
+//                BufferedReader reader = new BufferedReader(new InputStreamReader(input, "US-ASCII"));
+
+                String start = readLine(input);
                 connection.addHeaderField(null, start);
 
-                if (start == null) {
+                if ((start == null) || start.isEmpty()) {
                     throw new IllegalStateException("Bad HTTP/1.1 syntax");
                 }
                 Matcher startMatcher = PATTERN_START.matcher(start);
@@ -269,7 +270,8 @@ abstract class HttpURLConnectionHandler {
 
                 Map<String, List<String>> cookies = null;
                 List<String> challenges = null;
-                for (String header = reader.readLine(); !header.isEmpty(); header = reader.readLine()) {
+
+                for (String header = readLine(input); !header.isEmpty(); header = readLine(input)) {
                     int colonAt = header.indexOf(':');
                     if (colonAt == -1) {
                         throw new IllegalStateException("Bad HTTP/1.1 syntax");
@@ -395,6 +397,31 @@ abstract class HttpURLConnectionHandler {
             String protocol = url.getProtocol();
 
             return Authenticator.requestPasswordAuthentication(host, null, port, protocol, realm, scheme);
+        }
+
+        private String readLine(InputStream inputStream) throws IOException {
+            if (lineBytes == null) {
+                lineBytes = new ByteArrayOutputStream();
+            }
+
+            lineBytes.reset();
+
+            int b = 0;
+
+            do {
+                b = inputStream.read();
+                if ((b == -1) || (b == '\n')) {
+                    if (lineBytes.size() == 0) {
+                        return "";
+                    }
+
+                    return lineBytes.toString("UTF-8");
+                }
+
+                if (b != '\r') {
+                    lineBytes.write(b);
+                }
+            } while (true);
         }
     }
 }

@@ -117,6 +117,31 @@ public class HttpIT {
     }
 
     @Test
+    @Specification("response.with.status.code.101.and.write")
+    public void shouldHandle101AndReadImmediately() throws Exception {
+        URI uri = URI.create("http://localhost:8080/path?query");
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Upgrade", "websocket");
+        connection.setRequestProperty("Sec-WebSocket-Protocol", "13");
+        connection.setDoOutput(true);
+        Reader input = new InputStreamReader(connection.getInputStream(), UTF_8);
+        Writer output = new OutputStreamWriter(connection.getOutputStream(), UTF_8);
+
+        char[] cbuf = new char[12];
+        input.read(cbuf);
+
+        output.write("Hello, world");
+        output.flush();
+        output.close();
+
+        assertEquals(101, connection.getResponseCode());
+        assertEquals("Hello, world", new String(cbuf));
+
+        k3po.join();
+    }
+
+    @Test
     @Specification("response.upgrade.failed.with.status.code.401.basic")
     public void shouldHandleUpgradeFailed401() throws Exception {
         // TODO: use mock Authenticator
