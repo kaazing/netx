@@ -25,7 +25,6 @@ import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.util.Arrays.fill;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -172,7 +171,6 @@ abstract class HttpURLConnectionHandler {
         private InputStream input;
         private OutputStream output;
         private InputStream error;
-        private ByteArrayOutputStream lineBytes;
 
         public Upgradeable(HttpURLConnectionImpl connection) {
             super(connection);
@@ -250,78 +248,85 @@ abstract class HttpURLConnectionHandler {
 
             switch (state) {
             case HANDSHAKE_SENT:
-                input = socket.getInputStream();
+                LineReader reader = null;
 
-//                BufferedReader reader = new BufferedReader(new InputStreamReader(input, "US-ASCII"));
+                try {
+                    input = socket.getInputStream();
 
-                String start = readLine(input);
-                connection.addHeaderField(null, start);
+                    reader = new LineReader(input);
 
-                if ((start == null) || start.isEmpty()) {
-                    throw new IllegalStateException("Bad HTTP/1.1 syntax");
-                }
-                Matcher startMatcher = PATTERN_START.matcher(start);
-                if (!startMatcher.matches()) {
-                    throw new IllegalStateException("Bad HTTP/1.1 syntax");
-                }
-                int responseCode = parseInt(startMatcher.group(1));
-                String responseMessage = startMatcher.group(2);
-                connection.setResponse(responseCode, responseMessage);
+                    String start = reader.readLine();
+                    connection.addHeaderField(null, start);
 
-                Map<String, List<String>> cookies = null;
-                List<String> challenges = null;
-
-                for (String header = readLine(input); !header.isEmpty(); header = readLine(input)) {
-                    int colonAt = header.indexOf(':');
-                    if (colonAt == -1) {
+                    if ((start == null) || start.isEmpty()) {
                         throw new IllegalStateException("Bad HTTP/1.1 syntax");
                     }
-                    String name = header.substring(0, colonAt).trim();
-                    String value = header.substring(colonAt + 1).trim();
-                    // detect cookies
-                    if ("Set-Cookie".equalsIgnoreCase(name) || "Set-Cookie2".equalsIgnoreCase(name)) {
-                        if (cookies == null) {
-                            cookies = new LinkedHashMap<String, List<String>>();
-                        }
-                        List<String> values = cookies.get(name);
-                        if (values == null) {
-                            values = new LinkedList<String>();
-                            cookies.put(name, values);
-                        }
-                        values.add(value);
+                    Matcher startMatcher = PATTERN_START.matcher(start);
+                    if (!startMatcher.matches()) {
+                        throw new IllegalStateException("Bad HTTP/1.1 syntax");
                     }
-                    else if ("WWW-Authenticate".equalsIgnoreCase(name)) {
-                        if (challenges == null) {
-                            challenges = new LinkedList<String>();
+                    int responseCode = parseInt(startMatcher.group(1));
+                    String responseMessage = startMatcher.group(2);
+                    connection.setResponse(responseCode, responseMessage);
+
+                    Map<String, List<String>> cookies = null;
+                    List<String> challenges = null;
+
+                    for (String header = reader.readLine(); !header.isEmpty(); header = reader.readLine()) {
+                        int colonAt = header.indexOf(':');
+                        if (colonAt == -1) {
+                            throw new IllegalStateException("Bad HTTP/1.1 syntax");
                         }
-                        challenges.add(value);
+                        String name = header.substring(0, colonAt).trim();
+                        String value = header.substring(colonAt + 1).trim();
+                        // detect cookies
+                        if ("Set-Cookie".equalsIgnoreCase(name) || "Set-Cookie2".equalsIgnoreCase(name)) {
+                            if (cookies == null) {
+                                cookies = new LinkedHashMap<String, List<String>>();
+                            }
+                            List<String> values = cookies.get(name);
+                            if (values == null) {
+                                values = new LinkedList<String>();
+                                cookies.put(name, values);
+                            }
+                            values.add(value);
+                        }
+                        else if ("WWW-Authenticate".equalsIgnoreCase(name)) {
+                            if (challenges == null) {
+                                challenges = new LinkedList<String>();
+                            }
+                            challenges.add(value);
+                        }
+                        else {
+                            connection.addHeaderField(name, value);
+                        }
                     }
-                    else {
-                        connection.addHeaderField(name, value);
+
+                    if (cookies != null && !cookies.isEmpty()) {
+                        CookieHandler handler = CookieHandler.getDefault();
+                        if (handler != null) {
+                            connection.storeCookies(handler);
+                        }
+                    }
+
+                    state = State.HANDSHAKE_RECEIVED;
+
+                    switch (responseCode) {
+                    case HTTP_SWITCHING_PROTOCOLS:
+                    case HTTP_MOVED_PERM:
+                    case HTTP_MOVED_TEMP:
+                    case HTTP_SEE_OTHER:
+                        break;
+                    case HTTP_UNAUTHORIZED:
+                        // Note: check maximum attempts
+                        processChallenges(challenges);
+                        break;
+                    default:
+                        throw new IllegalStateException(format("Upgrade failed (%d)", responseCode));
                     }
                 }
-
-                if (cookies != null && !cookies.isEmpty()) {
-                    CookieHandler handler = CookieHandler.getDefault();
-                    if (handler != null) {
-                        connection.storeCookies(handler);
-                    }
-                }
-
-                state = State.HANDSHAKE_RECEIVED;
-
-                switch (responseCode) {
-                case HTTP_SWITCHING_PROTOCOLS:
-                case HTTP_MOVED_PERM:
-                case HTTP_MOVED_TEMP:
-                case HTTP_SEE_OTHER:
-                    break;
-                case HTTP_UNAUTHORIZED:
-                    // Note: check maximum attempts
-                    processChallenges(challenges);
-                    break;
-                default:
-                    throw new IllegalStateException(format("Upgrade failed (%d)", responseCode));
+                finally {
+                    reader.close();
                 }
 
                 return input;
@@ -397,31 +402,6 @@ abstract class HttpURLConnectionHandler {
             String protocol = url.getProtocol();
 
             return Authenticator.requestPasswordAuthentication(host, null, port, protocol, realm, scheme);
-        }
-
-        private String readLine(InputStream inputStream) throws IOException {
-            if (lineBytes == null) {
-                lineBytes = new ByteArrayOutputStream();
-            }
-
-            lineBytes.reset();
-
-            int b = 0;
-
-            do {
-                b = inputStream.read();
-                if ((b == -1) || (b == '\n')) {
-                    if (lineBytes.size() == 0) {
-                        return "";
-                    }
-
-                    return lineBytes.toString("UTF-8");
-                }
-
-                if (b != '\r') {
-                    lineBytes.write(b);
-                }
-            } while (true);
         }
     }
 }
