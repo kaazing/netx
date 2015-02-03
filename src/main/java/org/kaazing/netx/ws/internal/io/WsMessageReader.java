@@ -21,6 +21,7 @@ import static java.lang.String.format;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.util.Utf8Util;
@@ -29,6 +30,7 @@ public final class WsMessageReader extends MessageReader {
 //    private static final String CLASS_NAME = WsMessageReader.class.getName();
 //    private static final Logger LOG = Logger.getLogger(CLASS_NAME);
 
+    private final HttpURLConnection connection;
     private final InputStream in;
     private final WsOutputStream out;
     private final byte[] header;
@@ -47,12 +49,17 @@ public final class WsMessageReader extends MessageReader {
         READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
     };
 
-    public WsMessageReader(InputStream in, WsOutputStream out) {
-        if (in == null) {
-            throw new NullPointerException("Null InputStream passed in");
+    public WsMessageReader(HttpURLConnection connection, WsOutputStream out) throws IOException {
+        if (connection == null) {
+            throw new NullPointerException("Null HttpURLConnection passed in");
         }
 
-        this.in = in;
+        if (out == null) {
+            throw new NullPointerException("Null WsOutputStream passed in");
+        }
+
+        this.connection = connection;
+        this.in = connection.getInputStream();
         this.out = out;
         this.header = new byte[10];
         this.state = State.READ_FLAGS_AND_OPCODE;
@@ -232,7 +239,7 @@ public final class WsMessageReader extends MessageReader {
             break;
         default:
             out.writeClose(1002, null);
-            in.close();
+            connection.disconnect();
             throw new IOException(format("Protocol Violation: Reserved bits set %02X", flags));
         }
 
@@ -258,7 +265,7 @@ public final class WsMessageReader extends MessageReader {
             break;
         default:
             out.writeClose(1002, null);
-            in.close();
+            connection.disconnect();
             throw new IOException(format("Protocol Violation: Invalid opcode %d", opcode));
         }
 
@@ -279,7 +286,7 @@ public final class WsMessageReader extends MessageReader {
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
                         out.writeClose(1002, null);
-                        in.close();
+                        connection.disconnect();
                         throw new IOException("Masked server-to-client frame");
                     }
                     switch (header[1] & 0x7f) {
@@ -494,13 +501,13 @@ public final class WsMessageReader extends MessageReader {
             if (out.wasCloseSent()) {
                 // If the client had earlier initiated a CLOSE and this is server's response as part of the CLOSE handshake,
                 // then we should close the connection.
-                in.close();
+                connection.disconnect();
             }
             else {
                 // The server has initiated a CLOSE. The client should reflect the CLOSE including the code(if any) to
                 // complete the CLOSE handshake and then close the connection.
                 out.writeClose(code, reason);
-                in.close();
+                connection.disconnect();
             }
             break;
 
@@ -517,7 +524,7 @@ public final class WsMessageReader extends MessageReader {
 
             if ((buf != null) && (buf.length > 125)) {
                 out.writeClose(1002, null);
-                in.close();
+                connection.disconnect();
 
                 // ### TODO: Do we need to do this?
                 throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
@@ -536,7 +543,7 @@ public final class WsMessageReader extends MessageReader {
                 closeCode = 1002;
             }
             out.writeClose(closeCode, null);
-            in.close();
+            connection.disconnect();
 
             // ### TODO: Do we need to do this?
             throw new IOException("Protocol Violation: Received unexpected PONG");

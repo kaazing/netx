@@ -181,11 +181,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         ((WsOutputStream) getOutputStream()).writeClose(code, reasonBytes);
 
-        // ### TODO: Maybe,  the client should wait for the server to respond with a CLOSE.
         connection.disconnect();
 
         if ((reasonBytes != null) && (reasonBytes.length > 123)) {
-            throw new IOException("Reason is longer than 123 bytes");
+            throw new IOException("Protocol Violation: Reason is longer than 123 bytes");
         }
     }
 
@@ -263,7 +262,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         if (inputStream == null) {
             ensureConnected();
-            inputStream = new WsInputStream(connection.getInputStream(), (WsOutputStream) getOutputStream());
+            inputStream = new WsInputStream(connection, (WsOutputStream) getOutputStream());
         }
 
         return inputStream;
@@ -274,7 +273,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (messageReader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            messageReader = new WsMessageReader(connection.getInputStream(), (WsOutputStream) getOutputStream());
+            messageReader = new WsMessageReader(connection, (WsOutputStream) getOutputStream());
         }
 
         return messageReader;
@@ -356,7 +355,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            reader = new WsReader(connection.getInputStream(), (WsOutputStream) getOutputStream());
+            reader = new WsReader(connection, (WsOutputStream) getOutputStream());
         }
 
         return reader;

@@ -21,10 +21,12 @@ import static java.lang.String.format;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public final class WsInputStream extends InputStream {
 
+    private final HttpURLConnection connection;
     private final InputStream in;
     private final WsOutputStream out;
     private final byte[] header;
@@ -33,8 +35,17 @@ public final class WsInputStream extends InputStream {
     private int payloadOffset;
     private long payloadLength;
 
-    public WsInputStream(InputStream in, WsOutputStream out) {
-        this.in = in;
+    public WsInputStream(HttpURLConnection connection, WsOutputStream out) throws IOException {
+        if (connection == null) {
+            throw new NullPointerException("Null HttpURLConnection passed in");
+        }
+
+        if (out == null) {
+            throw new NullPointerException("Null WsOutputStream passed in");
+        }
+
+        this.connection = connection;
+        this.in = connection.getInputStream();
         this.out = out;
         this.header = new byte[10];
         this.payloadOffset = -1;
@@ -78,7 +89,7 @@ public final class WsInputStream extends InputStream {
                         break;
                     default:
                         out.writeClose(1002, null);
-                        in.close();
+                        connection.disconnect();
                         throw new IOException(format("Non-binary frame - opcode = %d", opcode));
                     }
                     break;
@@ -86,7 +97,7 @@ public final class WsInputStream extends InputStream {
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
                         out.writeClose(1002, null);
-                        in.close();
+                        connection.disconnect();
                         throw new IOException("Masked server-to-client frame");
                     }
                     switch (header[1] & 0x7f) {
@@ -213,13 +224,13 @@ public final class WsInputStream extends InputStream {
             if (out.wasCloseSent()) {
                 // If the client had earlier initiated a CLOSE and this is server's response as part of the CLOSE handshake,
                 // then we should close the connection.
-                in.close();
+                connection.disconnect();
             }
             else {
                 // The server has initiated a CLOSE. The client should reflect the CLOSE including the code(if any) to
                 // complete the CLOSE handshake and then close the connection.
                 out.writeClose(code, reason);
-                in.close();
+                connection.disconnect();
             }
             break;
 
@@ -236,7 +247,7 @@ public final class WsInputStream extends InputStream {
 
             if ((buf != null) && (buf.length > 125)) {
                 out.writeClose(1002, null);
-                in.close();
+                connection.disconnect();
 
                 // ### TODO: Do we need to do this?
                 throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
@@ -255,7 +266,7 @@ public final class WsInputStream extends InputStream {
                 closeCode = 1002;
             }
             out.writeClose(closeCode, null);
-            in.close();
+            connection.disconnect();
 
             // ### TODO: Do we need to do this?
             throw new IOException("Protocol Violation: Received unexpected PONG");

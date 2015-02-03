@@ -22,9 +22,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 
+import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class WsReader extends Reader {
+    private final HttpURLConnection connection;
     private final InputStream in;
     private final WsOutputStream out;
     private final byte[] header;
@@ -35,8 +37,17 @@ public class WsReader extends Reader {
     private int charBytes;
     private int remaining;
 
-    public WsReader(InputStream  in, WsOutputStream out) throws IOException {
-        this.in = in;
+    public WsReader(HttpURLConnection connection, WsOutputStream out) throws IOException {
+        if (connection == null) {
+            throw new NullPointerException("Null HttpURLConnection passed in");
+        }
+
+        if (out == null) {
+            throw new NullPointerException("Null WsOutputStream passed in");
+        }
+
+        this.connection = connection;
+        this.in = connection.getInputStream();
         this.out = out;
         this.header = new byte[10];
         this.payloadOffset = -1;
@@ -83,7 +94,7 @@ public class WsReader extends Reader {
                         break;
                     default:
                         out.writeClose(1002, null);
-                        in.close();
+                        connection.disconnect();
                         throw new IOException(format("Non-text frame - opcode = %d", opcode));
                     }
                     break;
@@ -91,7 +102,7 @@ public class WsReader extends Reader {
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
                         out.writeClose(1002, null);
-                        in.close();
+                        connection.disconnect();
                         throw new IOException("Masked server-to-client frame");
                     }
                     switch (header[1] & 0x7f) {
@@ -260,13 +271,13 @@ public class WsReader extends Reader {
             if (out.wasCloseSent()) {
                 // If the client had earlier initiated a CLOSE and this is server's response as part of the CLOSE handshake,
                 // then we should close the connection.
-                in.close();
+                connection.disconnect();
             }
             else {
                 // The server has initiated a CLOSE. The client should reflect the CLOSE including the code(if any) to
                 // complete the CLOSE handshake and then close the connection.
                 out.writeClose(code, reason);
-                in.close();
+                connection.disconnect();
             }
             break;
 
@@ -283,7 +294,7 @@ public class WsReader extends Reader {
 
             if ((buf != null) && (buf.length > 125)) {
                 out.writeClose(1002, null);
-                in.close();
+                connection.disconnect();
 
                 // ### TODO: Do we need to do this?
                 throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
@@ -302,7 +313,7 @@ public class WsReader extends Reader {
                 closeCode = 1002;
             }
             out.writeClose(closeCode, null);
-            in.close();
+            connection.disconnect();
 
             // ### TODO: Do we need to do this?
             throw new IOException("Protocol Violation: Received unexpected PONG");
