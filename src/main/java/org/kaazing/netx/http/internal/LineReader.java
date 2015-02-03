@@ -111,7 +111,7 @@ public final class LineReader extends Reader {
         StringBuilder builder = new StringBuilder();
 
         do {
-            char ch = (char) read();
+            int ch = in.read();
             if (ch == -1) {
                 if (builder.length() == 0) {
                     return null;
@@ -129,7 +129,7 @@ public final class LineReader extends Reader {
             }
 
             if (ch != CR) {
-                builder.append(ch);
+                builder.append((char) ch);
             }
         } while (true);
     }
