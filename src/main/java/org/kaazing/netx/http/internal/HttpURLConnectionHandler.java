@@ -25,10 +25,8 @@ import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.util.Arrays.fill;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -194,7 +192,7 @@ abstract class HttpURLConnectionHandler {
                 }
 
                 socket = security.createSocket(url);
-                output = socket.getOutputStream();
+                output = new TcpOutputStream(socket);
 
                 String method = connection.getRequestMethod();
                 Map<String, List<String>> headers = connection.getCachedRequestProperties();
@@ -235,7 +233,15 @@ abstract class HttpURLConnectionHandler {
         @Override
         public void disconnect() {
             try {
-                socket.close();
+                if (output != null) {
+                    output.close();
+                }
+                if (input != null) {
+                    input.close();
+                }
+                if (socket != null) {
+                    socket.close();
+                }
             }
             catch (IOException e) {
                 // ignore
@@ -250,13 +256,15 @@ abstract class HttpURLConnectionHandler {
 
             switch (state) {
             case HANDSHAKE_SENT:
-                input = socket.getInputStream();
+                input = new TcpInputStream(socket);
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(input, "US-ASCII"));
+                @SuppressWarnings("resource")
+                LineReader reader = new LineReader(input);
+
                 String start = reader.readLine();
                 connection.addHeaderField(null, start);
 
-                if (start == null) {
+                if ((start == null) || start.isEmpty()) {
                     throw new IllegalStateException("Bad HTTP/1.1 syntax");
                 }
                 Matcher startMatcher = PATTERN_START.matcher(start);
@@ -269,7 +277,8 @@ abstract class HttpURLConnectionHandler {
 
                 Map<String, List<String>> cookies = null;
                 List<String> challenges = null;
-                for (String header = reader.readLine(); !header.isEmpty(); header = reader.readLine()) {
+
+                for (String header = reader.readLine(); !header.isEmpty() && header != null; header = reader.readLine()) {
                     int colonAt = header.indexOf(':');
                     if (colonAt == -1) {
                         throw new IllegalStateException("Bad HTTP/1.1 syntax");
@@ -396,5 +405,109 @@ abstract class HttpURLConnectionHandler {
 
             return Authenticator.requestPasswordAuthentication(host, null, port, protocol, realm, scheme);
         }
+    }
+
+
+    private static final class TcpInputStream extends InputStream {
+
+        private final Socket socket;
+        private final InputStream input;
+
+        public TcpInputStream(Socket socket) throws IOException {
+            this.socket = socket;
+            this.input = socket.getInputStream();
+        }
+
+        @Override
+        public int read() throws IOException {
+            return input.read();
+        }
+
+        @Override
+        public int read(byte[] b) throws IOException {
+            return input.read(b);
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            return input.read(b, off, len);
+        }
+
+        @Override
+        public long skip(long n) throws IOException {
+            return input.skip(n);
+        }
+
+        @Override
+        public int available() throws IOException {
+            return input.available();
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (socket.isOutputShutdown()) {
+                socket.close();
+            }
+            else {
+                socket.shutdownInput();
+            }
+        }
+
+        @Override
+        public synchronized void mark(int readlimit) {
+            input.mark(readlimit);
+        }
+
+        @Override
+        public synchronized void reset() throws IOException {
+            input.reset();
+        }
+
+        @Override
+        public boolean markSupported() {
+            return input.markSupported();
+        }
+    }
+
+    private static final class TcpOutputStream extends OutputStream {
+
+        private final Socket socket;
+        private final OutputStream output;
+
+        public TcpOutputStream(Socket socket) throws IOException {
+            this.socket = socket;
+            this.output = socket.getOutputStream();
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            output.write(b);
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            output.write(b);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            output.write(b, off, len);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            output.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (socket.isInputShutdown()) {
+                socket.close();
+            }
+            else {
+                socket.shutdownOutput();
+            }
+        }
+
     }
 }
