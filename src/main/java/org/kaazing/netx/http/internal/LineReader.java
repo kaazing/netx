@@ -16,18 +16,22 @@
 
 package org.kaazing.netx.http.internal;
 
+import static java.lang.String.format;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.CharBuffer;
 
 public final class LineReader extends Reader {
+    private static Object DUMMY = new Object();
     private static final byte CR = '\r';
     private static final byte LF = '\n';
 
     private final InputStream in;
 
     public LineReader(InputStream in) {
-        super(in);
+        super(DUMMY);
         this.in = in;
     }
 
@@ -37,10 +41,18 @@ public final class LineReader extends Reader {
     }
 
     @Override
+    public void mark(int readAheadLimit) {
+        // no-op
+    }
+
+    @Override
+    public boolean markSupported() {
+        return false;
+    }
+
+    @Override
     public int read() throws IOException {
-        char[] buf = new char[1];
-        read(buf, 0, 1);
-        return buf[0];
+        return in.read();
     }
 
     @Override
@@ -50,19 +62,18 @@ public final class LineReader extends Reader {
 
     @Override
     public int read(char[] cbuf, int offset, int length) throws IOException {
-        if (length == 0) {
-            return 0;
-        }
-
         if ((offset < 0) || ((offset + length) > cbuf.length) || (length < 0)) {
             throw new IndexOutOfBoundsException();
+        }
+
+        if (length == 0) {
+            return 0;
         }
 
         int mark = offset;
 
         do {
-
-            int b = in.read();
+            int b = read();
             if (b == -1) {
                 break;
             }
@@ -77,12 +88,45 @@ public final class LineReader extends Reader {
         return offset - mark;
     }
 
+    @Override
+    public int read(CharBuffer target) {
+        throw new UnsupportedOperationException("Unsupported operation");
+    }
+
+    @Override
+    public boolean ready() {
+        return true;
+    }
+
+    @Override
+    public void reset() {
+        // no-op
+    }
+
+    @Override
+    public long skip(long n) {
+        // no-op
+        return 0;
+    }
+
     public String readLine() throws IOException {
-        StringBuilder builder = new StringBuilder("");
+        StringBuilder builder = new StringBuilder();
 
         do {
             char ch = (char) read();
-            if ((ch == -1) || (ch == LF)) {
+            if (ch == -1) {
+                if (builder.length() == 0) {
+                    return null;
+                }
+
+                return builder.toString();
+            }
+
+            if ((ch & 0x80) != 0) {
+                throw new IOException(format("Invalid ASCII character: '%c'", ch));
+            }
+
+            if (ch == LF) {
                 return builder.toString();
             }
 

@@ -272,7 +272,7 @@ abstract class HttpURLConnectionHandler {
                     Map<String, List<String>> cookies = null;
                     List<String> challenges = null;
 
-                    for (String header = reader.readLine(); !header.isEmpty(); header = reader.readLine()) {
+                    for (String header = reader.readLine(); !header.isEmpty() && header != null; header = reader.readLine()) {
                         int colonAt = header.indexOf(':');
                         if (colonAt == -1) {
                             throw new IllegalStateException("Bad HTTP/1.1 syntax");

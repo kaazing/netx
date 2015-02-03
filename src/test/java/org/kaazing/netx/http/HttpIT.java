@@ -118,7 +118,7 @@ public class HttpIT {
 
     @Test
     @Specification("response.with.status.code.101.and.write")
-    public void shouldHandle101AndReadImmediately() throws Exception {
+    public void shouldHandle101AndRead() throws Exception {
         URI uri = URI.create("http://localhost:8080/path?query");
         HttpURLConnection connection = (HttpURLConnection) helper.openConnection(uri);
         connection.setRequestMethod("GET");
