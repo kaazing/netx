@@ -248,85 +248,79 @@ abstract class HttpURLConnectionHandler {
 
             switch (state) {
             case HANDSHAKE_SENT:
-                LineReader reader = null;
+                input = socket.getInputStream();
 
-                try {
-                    input = socket.getInputStream();
+                @SuppressWarnings("resource")
+                LineReader reader = new LineReader(input);
 
-                    reader = new LineReader(input);
+                String start = reader.readLine();
+                connection.addHeaderField(null, start);
 
-                    String start = reader.readLine();
-                    connection.addHeaderField(null, start);
+                if ((start == null) || start.isEmpty()) {
+                    throw new IllegalStateException("Bad HTTP/1.1 syntax");
+                }
+                Matcher startMatcher = PATTERN_START.matcher(start);
+                if (!startMatcher.matches()) {
+                    throw new IllegalStateException("Bad HTTP/1.1 syntax");
+                }
+                int responseCode = parseInt(startMatcher.group(1));
+                String responseMessage = startMatcher.group(2);
+                connection.setResponse(responseCode, responseMessage);
 
-                    if ((start == null) || start.isEmpty()) {
+                Map<String, List<String>> cookies = null;
+                List<String> challenges = null;
+
+                for (String header = reader.readLine(); !header.isEmpty() && header != null; header = reader.readLine()) {
+                    int colonAt = header.indexOf(':');
+                    if (colonAt == -1) {
                         throw new IllegalStateException("Bad HTTP/1.1 syntax");
                     }
-                    Matcher startMatcher = PATTERN_START.matcher(start);
-                    if (!startMatcher.matches()) {
-                        throw new IllegalStateException("Bad HTTP/1.1 syntax");
+                    String name = header.substring(0, colonAt).trim();
+                    String value = header.substring(colonAt + 1).trim();
+                    // detect cookies
+                    if ("Set-Cookie".equalsIgnoreCase(name) || "Set-Cookie2".equalsIgnoreCase(name)) {
+                        if (cookies == null) {
+                            cookies = new LinkedHashMap<String, List<String>>();
+                        }
+                        List<String> values = cookies.get(name);
+                        if (values == null) {
+                            values = new LinkedList<String>();
+                            cookies.put(name, values);
+                        }
+                        values.add(value);
                     }
-                    int responseCode = parseInt(startMatcher.group(1));
-                    String responseMessage = startMatcher.group(2);
-                    connection.setResponse(responseCode, responseMessage);
-
-                    Map<String, List<String>> cookies = null;
-                    List<String> challenges = null;
-
-                    for (String header = reader.readLine(); !header.isEmpty() && header != null; header = reader.readLine()) {
-                        int colonAt = header.indexOf(':');
-                        if (colonAt == -1) {
-                            throw new IllegalStateException("Bad HTTP/1.1 syntax");
+                    else if ("WWW-Authenticate".equalsIgnoreCase(name)) {
+                        if (challenges == null) {
+                            challenges = new LinkedList<String>();
                         }
-                        String name = header.substring(0, colonAt).trim();
-                        String value = header.substring(colonAt + 1).trim();
-                        // detect cookies
-                        if ("Set-Cookie".equalsIgnoreCase(name) || "Set-Cookie2".equalsIgnoreCase(name)) {
-                            if (cookies == null) {
-                                cookies = new LinkedHashMap<String, List<String>>();
-                            }
-                            List<String> values = cookies.get(name);
-                            if (values == null) {
-                                values = new LinkedList<String>();
-                                cookies.put(name, values);
-                            }
-                            values.add(value);
-                        }
-                        else if ("WWW-Authenticate".equalsIgnoreCase(name)) {
-                            if (challenges == null) {
-                                challenges = new LinkedList<String>();
-                            }
-                            challenges.add(value);
-                        }
-                        else {
-                            connection.addHeaderField(name, value);
-                        }
+                        challenges.add(value);
                     }
-
-                    if (cookies != null && !cookies.isEmpty()) {
-                        CookieHandler handler = CookieHandler.getDefault();
-                        if (handler != null) {
-                            connection.storeCookies(handler);
-                        }
-                    }
-
-                    state = State.HANDSHAKE_RECEIVED;
-
-                    switch (responseCode) {
-                    case HTTP_SWITCHING_PROTOCOLS:
-                    case HTTP_MOVED_PERM:
-                    case HTTP_MOVED_TEMP:
-                    case HTTP_SEE_OTHER:
-                        break;
-                    case HTTP_UNAUTHORIZED:
-                        // Note: check maximum attempts
-                        processChallenges(challenges);
-                        break;
-                    default:
-                        throw new IllegalStateException(format("Upgrade failed (%d)", responseCode));
+                    else {
+                        connection.addHeaderField(name, value);
                     }
                 }
-                finally {
-                    reader.close();
+
+                if (cookies != null && !cookies.isEmpty()) {
+                    CookieHandler handler = CookieHandler.getDefault();
+                    if (handler != null) {
+                        connection.storeCookies(handler);
+                    }
+                }
+
+                state = State.HANDSHAKE_RECEIVED;
+
+                switch (responseCode) {
+                case HTTP_SWITCHING_PROTOCOLS:
+                case HTTP_MOVED_PERM:
+                case HTTP_MOVED_TEMP:
+                case HTTP_SEE_OTHER:
+                    break;
+                case HTTP_UNAUTHORIZED:
+                    // Note: check maximum attempts
+                    processChallenges(challenges);
+                    break;
+                default:
+                    throw new IllegalStateException(format("Upgrade failed (%d)", responseCode));
                 }
 
                 return input;

@@ -24,14 +24,13 @@ import java.io.Reader;
 import java.nio.CharBuffer;
 
 public final class LineReader extends Reader {
-    private static Object DUMMY = new Object();
     private static final byte CR = '\r';
     private static final byte LF = '\n';
 
     private final InputStream in;
 
     public LineReader(InputStream in) {
-        super(DUMMY);
+        super(in);
         this.in = in;
     }
 
@@ -41,13 +40,13 @@ public final class LineReader extends Reader {
     }
 
     @Override
-    public void mark(int readAheadLimit) {
-        // no-op
+    public void mark(int readLimit) {
+        in.mark(readLimit);
     }
 
     @Override
     public boolean markSupported() {
-        return false;
+        return true;
     }
 
     @Override
@@ -73,7 +72,7 @@ public final class LineReader extends Reader {
         int mark = offset;
 
         do {
-            int b = read();
+            int b = in.read();
             if (b == -1) {
                 break;
             }
@@ -94,19 +93,18 @@ public final class LineReader extends Reader {
     }
 
     @Override
-    public boolean ready() {
-        return true;
+    public boolean ready() throws IOException {
+        return in.available() > 0;
     }
 
     @Override
-    public void reset() {
-        // no-op
+    public void reset() throws IOException {
+        in.reset();
     }
 
     @Override
     public long skip(long n) {
-        // no-op
-        return 0;
+        throw new UnsupportedOperationException("Unsupported operation");
     }
 
     public String readLine() throws IOException {
