@@ -36,7 +36,7 @@ public final class LineReader extends Reader {
 
     @Override
     public void close() throws IOException {
-        // no-op -- to address warnings in Eclipse
+        in.close();
     }
 
     @Override
@@ -46,7 +46,7 @@ public final class LineReader extends Reader {
 
     @Override
     public boolean markSupported() {
-        return true;
+        return in.markSupported();
     }
 
     @Override
