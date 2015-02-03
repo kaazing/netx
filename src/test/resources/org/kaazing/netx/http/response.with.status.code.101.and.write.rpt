@@ -11,6 +11,8 @@ write status "101" "Switching Protocols"
 write header "Upgrade" "websocket"
 
 write "Hello, world"
+write "Howdy, world"
+write "Wassup, world"
 
 read "Hello, world"
 
