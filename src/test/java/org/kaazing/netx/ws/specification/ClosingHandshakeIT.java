@@ -495,7 +495,6 @@ public class ClosingHandshakeIT {
         k3po.join();
     }
 
-
     private static class RandomString {
 
         private static final char[] symbols;
@@ -527,5 +526,4 @@ public class ClosingHandshakeIT {
           return new String(buf);
         }
     }
-
 }

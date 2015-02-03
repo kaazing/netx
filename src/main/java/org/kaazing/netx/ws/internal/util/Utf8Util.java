@@ -19,11 +19,6 @@ package org.kaazing.netx.ws.internal.util;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.String.format;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-
 public final class Utf8Util {
     private Utf8Util() {
     }
@@ -50,14 +45,44 @@ public final class Utf8Util {
     }
 
     public static boolean isValidUTF8(byte[] input) {
-        CharsetDecoder cs = Charset.forName("UTF-8").newDecoder();
+        for (int index = 0; index < input.length; index++) {
+            try {
+                index += getNumberOfBytesInChar(input[index]);
+            }
+            catch (IllegalStateException ex) {
+                return false;
+            }
+        }
 
-        try {
-            cs.decode(ByteBuffer.wrap(input));
-            return true;
+        return true;
+//        CharsetDecoder cs = Charset.forName("UTF-8").newDecoder();
+//
+//        try {
+//            cs.decode(ByteBuffer.wrap(input));
+//            return true;
+//        }
+//        catch (CharacterCodingException e) {
+//            return false;
+//        }
+    }
+
+    private static int getNumberOfBytesInChar(int byte1) {
+        switch (~highestOneBit(~byte1 & 0xff) & 0xff) {
+        case 0x7F:
+            // \u0000 - \u007F
+            return 1;
+        case 0xDF:
+            // \u0080 - \u07FF
+            return 2;
+        case 0xEF:
+            // \u0800 - \uFFFF
+            return 3;
+        case 0xF7:
+            // \u10000 - \u1FFFFF
+            return 4;
+        default:
+            throw new IllegalStateException(format("Invalid UTF-8 sequence leader byte: %02x", byte1));
         }
-        catch (CharacterCodingException e) {
-            return false;
-        }
+
     }
 }

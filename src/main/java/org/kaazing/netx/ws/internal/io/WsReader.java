@@ -44,6 +44,10 @@ public class WsReader extends Reader {
 
     @Override
     public int read(char[] cbuf, int offset, int length) throws IOException {
+        if ((offset < 0) || ((offset + length) > cbuf.length) || (length < 0)) {
+            throw new IndexOutOfBoundsException();
+        }
+
         int mark = offset;
 
         // This loop will be entered only if the entire WebSocket frame has been drained. If there was fragmentation at the TCP
@@ -58,6 +62,17 @@ public class WsReader extends Reader {
                 header[headerOffset++] = (byte) headerByte;
                 switch (headerOffset) {
                 case 1:
+                    int flags = (header[0] & 0xF0) >> 4;
+                    switch (flags) {
+                    case 0:
+                    case 8:
+                        break;
+                    default:
+                        out.writeClose(1002, null);
+                        in.close();
+                        throw new IOException(format("Protocol Violation: Reserved bits set %02X", flags));
+                    }
+
                     int opcode = header[0] & 0x0F;
                     switch (opcode) {
                     case 0x00:
@@ -67,13 +82,16 @@ public class WsReader extends Reader {
                     case 0x0A:
                         break;
                     default:
-                        // TODO: skip
+                        out.writeClose(1002, null);
+                        in.close();
                         throw new IOException(format("Non-text frame - opcode = %d", opcode));
                     }
                     break;
                 case 2:
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
+                        out.writeClose(1002, null);
+                        in.close();
                         throw new IOException("Masked server-to-client frame");
                     }
                     switch (header[1] & 0x7f) {
@@ -126,7 +144,7 @@ public class WsReader extends Reader {
         // include multi-byte UTF-8 characters. The multi-byte characters can span across WebSocket frames or TCP fragments. If
         // there was fragmentation at the TCP layer before the entire frame was drained, this loop should be executed to drain
         // the payload.
-        while (offset < length) {
+        while ((offset - mark) < length) {
             int b = -1;
 
             while (remaining > 0) {
@@ -229,7 +247,7 @@ public class WsReader extends Reader {
                         throw new IOException("End of stream");
                     }
 
-                    if (!Utf8Util.isValidUTF8(reason)) {
+                    if ((reason.length > 123) || !Utf8Util.isValidUTF8(reason)) {
                         code = 1002;
                     }
 
@@ -253,7 +271,6 @@ public class WsReader extends Reader {
             break;
 
         case 0x09:
-        case 0x0A:
             byte[] buf = null;
             if (payloadLength > 0) {
                 buf = new byte[(int) payloadLength];
@@ -264,11 +281,31 @@ public class WsReader extends Reader {
                 }
             }
 
-            if (opcode == 0x09) {
-                // Send the PONG frame out with the same payload that was received with PING.
-                out.writePong(buf);
+            if ((buf != null) && (buf.length > 125)) {
+                out.writeClose(1002, null);
+                in.close();
+
+                // ### TODO: Do we need to do this?
+                throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
+            }
+            else {
+                if (opcode == 0x09) {
+                    // Send the PONG frame out with the same payload that was received with PING.
+                    out.writePong(buf);
+                }
             }
             break;
+
+        case 0x0A:
+            int closeCode = 0;
+            if (payloadLength > 125) {
+                closeCode = 1002;
+            }
+            out.writeClose(closeCode, null);
+            in.close();
+
+            // ### TODO: Do we need to do this?
+            throw new IOException("Protocol Violation: Received unexpected PONG");
 
         default:
             throw new IOException(format("Protocol Violation: Unrecognized opcode %d", opcode));

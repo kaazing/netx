@@ -66,6 +66,10 @@ public final class WsMessageReader extends MessageReader {
 
     @Override
     public synchronized int read(byte[] buf, int offset, int length) throws IOException {
+        if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
+            throw new IndexOutOfBoundsException();
+        }
+
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
         switch (state) {
         case READ_FLAGS_AND_OPCODE:
@@ -126,6 +130,10 @@ public final class WsMessageReader extends MessageReader {
 
     @Override
     public synchronized int read(char[] buf, int offset, int length) throws IOException {
+        if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
+            throw new IndexOutOfBoundsException();
+        }
+
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
         switch (state) {
         case READ_FLAGS_AND_OPCODE:
@@ -217,6 +225,17 @@ public final class WsMessageReader extends MessageReader {
 
         fin = (headerByte & 0x80) != 0;
 
+        int flags = (header[0] & 0xF0) >> 4;
+        switch (flags) {
+        case 0:
+        case 8:
+            break;
+        default:
+            out.writeClose(1002, null);
+            in.close();
+            throw new IOException(format("Protocol Violation: Reserved bits set %02X", flags));
+        }
+
         int opcode = headerByte & 0x0F;
         switch (opcode) {
         case 0x00:
@@ -238,7 +257,8 @@ public final class WsMessageReader extends MessageReader {
             headerByte = readHeaderByte();
             break;
         default:
-            // ### TODO: Perhaps send CLOSE frame with appropriate code, close the connection, and then throw the exception.
+            out.writeClose(1002, null);
+            in.close();
             throw new IOException(format("Protocol Violation: Invalid opcode %d", opcode));
         }
 
@@ -258,6 +278,8 @@ public final class WsMessageReader extends MessageReader {
                 case 2:
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
+                        out.writeClose(1002, null);
+                        in.close();
                         throw new IOException("Masked server-to-client frame");
                     }
                     switch (header[1] & 0x7f) {
@@ -355,7 +377,7 @@ public final class WsMessageReader extends MessageReader {
 
         int mark = offset;
 
-        while (offset < length) {
+        while ((offset - mark) < length) {
             int b = -1;
 
             while (remaining > 0) {
@@ -459,7 +481,7 @@ public final class WsMessageReader extends MessageReader {
                         throw new IOException("End of stream");
                     }
 
-                    if (!Utf8Util.isValidUTF8(reason)) {
+                    if ((reason.length > 123) || !Utf8Util.isValidUTF8(reason)) {
                         code = 1002;
                     }
 
@@ -483,7 +505,6 @@ public final class WsMessageReader extends MessageReader {
             break;
 
         case 0x09:
-        case 0x0A:
             byte[] buf = null;
             if (payloadLength > 0) {
                 buf = new byte[(int) payloadLength];
@@ -494,11 +515,31 @@ public final class WsMessageReader extends MessageReader {
                 }
             }
 
-            if (opcode == 0x09) {
-                // Send the PONG frame out with the same payload that was received with PING.
-                out.writePong(buf);
+            if ((buf != null) && (buf.length > 125)) {
+                out.writeClose(1002, null);
+                in.close();
+
+                // ### TODO: Do we need to do this?
+                throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
+            }
+            else {
+                if (opcode == 0x09) {
+                    // Send the PONG frame out with the same payload that was received with PING.
+                    out.writePong(buf);
+                }
             }
             break;
+
+        case 0x0A:
+            int closeCode = 0;
+            if (payloadLength > 125) {
+                closeCode = 1002;
+            }
+            out.writeClose(closeCode, null);
+            in.close();
+
+            // ### TODO: Do we need to do this?
+            throw new IOException("Protocol Violation: Received unexpected PONG");
 
         default:
             throw new IOException(format("Protocol Violation: Unrecognized opcode %d", opcode));

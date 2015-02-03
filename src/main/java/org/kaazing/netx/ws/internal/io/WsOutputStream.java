@@ -93,9 +93,9 @@ public final class WsOutputStream extends FilterOutputStream {
             }
 
             if (reason != null) {
-                if (reason.length > 123) {
-                    throw new IOException("Reason must not be more than 123 bytes");
-                }
+//                if (reason.length > 123) {
+//                    throw new IOException("Reason must not be more than 123 bytes");
+//                }
 
                 len += reason.length;
             }

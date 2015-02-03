@@ -17,7 +17,15 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URI;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,6 +34,10 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
+import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
+import org.kaazing.netx.ws.WsURLConnection;
 
 /**
  * RFC-6455
@@ -43,34 +55,103 @@ public class MaskingIT {
 
     @Test
     @Specification({
-        "server.send.masked.text/handshake.request.and.frame",
         "server.send.masked.text/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendsMaskWithTextFrame() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        AtomicInteger exceptionCaught = new AtomicInteger();
+        try {
+            reader.read();
+        }
+        catch (IOException ex) {
+            exceptionCaught.incrementAndGet();
+        }
+        assertEquals(1, exceptionCaught.get());
         k3po.join();
     }
 
     @Test
     @Specification({
-        "server.send.masked.binary/handshake.request.and.frame",
+        "server.send.masked.text/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendsMaskWithTextFrameUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        char[] cbuf = new char[0];
+        MessageType type = null;
+        AtomicInteger exceptionCaught = new AtomicInteger();
+        try {
+            while ((type = reader.next()) != MessageType.EOS) {
+                switch (type) {
+                case TEXT:
+                    reader.read(cbuf);
+                    break;
+                default:
+                    assertTrue(type == MessageType.TEXT);
+                    break;
+                }
+            }
+        }
+        catch (IOException ex) {
+            exceptionCaught.incrementAndGet();
+        }
+        assertEquals(1, exceptionCaught.get());
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
         "server.send.masked.binary/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendsMaskWithBinaryFrame() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        AtomicInteger exceptionCaught = new AtomicInteger();
+        try {
+            input.read();
+        }
+        catch (IOException ex) {
+            exceptionCaught.incrementAndGet();
+        }
+        assertEquals(1, exceptionCaught.get());
         k3po.join();
     }
 
     @Test
     @Specification({
-        "send.text.payload.not.masked/handshake.request.and.frame",
-        "send.text.payload.not.masked/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenSendTextFrameNotMasked() throws Exception {
+        "server.send.masked.binary/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendsMaskWithBinaryFrameUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] buf = new byte[0];
+        MessageType type = null;
+        AtomicInteger exceptionCaught = new AtomicInteger();
+        try {
+            while ((type = reader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    reader.read(buf);
+                    break;
+                default:
+                    assertTrue(type == MessageType.BINARY);
+                    break;
+                }
+            }
+        }
+        catch (IOException ex) {
+            exceptionCaught.incrementAndGet();
+        }
+        assertEquals(1, exceptionCaught.get());
         k3po.join();
     }
-
-    @Test
-    @Specification({
-        "send.binary.payload.not.masked/handshake.request.and.frame",
-        "send.binary.payload.not.masked/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenSendBinaryFrameNotMasked() throws Exception {
-        k3po.join();
-    }
-
 }

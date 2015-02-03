@@ -170,9 +170,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 //convert reason to UTF8 string
                 try {
                     reasonBytes = reason.getBytes("UTF8");
-                    if (reasonBytes.length > 123) {
-                        throw new IOException("Reason is longer than 123 bytes");
-                    }
                     reason = new String(reasonBytes, "UTF8");
                 } catch (UnsupportedEncodingException e) {
                     LOG.log(Level.FINEST, e.getMessage(), e);
@@ -186,6 +183,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         // ### TODO: Maybe,  the client should wait for the server to respond with a CLOSE.
         connection.disconnect();
+
+        if ((reasonBytes != null) && (reasonBytes.length > 123)) {
+            throw new IOException("Reason is longer than 123 bytes");
+        }
     }
 
     @Override
