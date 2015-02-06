@@ -28,6 +28,7 @@ public final class WsOutputStream extends FilterOutputStream {
     private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
 
     private final Random random;
+    private final byte[] mask;;
 
     private boolean closeSent;
 
@@ -35,6 +36,7 @@ public final class WsOutputStream extends FilterOutputStream {
         super(out);
         this.random = random;
         this.closeSent = false;
+        this.mask = new byte[4];
     }
 
     @Override
@@ -48,7 +50,6 @@ public final class WsOutputStream extends FilterOutputStream {
 
         encodePayloadLength(len);
 
-        byte[] mask = new byte[4];
         random.nextBytes(mask);
         out.write(mask);
 
@@ -93,10 +94,7 @@ public final class WsOutputStream extends FilterOutputStream {
             }
 
             if (reason != null) {
-//                if (reason.length > 123) {
-//                    throw new IOException("Reason must not be more than 123 bytes");
-//                }
-
+                // By this time, the reson.length being smaller than 123 must be validated. So, no need to repeat the check.
                 len += reason.length;
             }
         }
@@ -111,7 +109,6 @@ public final class WsOutputStream extends FilterOutputStream {
         else {
             assert len >= 2;
 
-            byte[] mask = new byte[4];
             random.nextBytes(mask);
             out.write(mask);
 
@@ -221,7 +218,6 @@ public final class WsOutputStream extends FilterOutputStream {
             return;
         }
 
-        byte[] mask = new byte[4];
         random.nextBytes(mask);
         out.write(mask);
 

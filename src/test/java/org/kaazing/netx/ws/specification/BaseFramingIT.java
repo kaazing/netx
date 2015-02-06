@@ -72,12 +72,7 @@ public class BaseFramingIT {
         out.write(writeBytes);
 
         byte[] readBytes = new byte[0];
-        // in.read(readBytes);
-        int b = in.read();
-
-        if (b == -1) {
-            b += 100;
-        }
+        in.read(readBytes);
 
         k3po.join();
 

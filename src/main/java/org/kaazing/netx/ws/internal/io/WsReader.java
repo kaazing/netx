@@ -155,10 +155,10 @@ public class WsReader extends Reader {
         // include multi-byte UTF-8 characters. The multi-byte characters can span across WebSocket frames or TCP fragments. If
         // there was fragmentation at the TCP layer before the entire frame was drained, this loop should be executed to drain
         // the payload.
-        while ((offset - mark) < length) {
+        while (payloadOffset < payloadLength) {
             int b = -1;
 
-            while (remaining > 0) {
+            while ((payloadOffset < payloadLength) && (remaining > 0)) {
                 // Read the remaining bytes of a multi-byte character. These bytes could be in two successive WebSocket frames.
                 b = in.read();
                 if (b == -1) {

@@ -17,6 +17,7 @@
 package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.Integer.highestOneBit;
+import static java.lang.String.format;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -25,16 +26,18 @@ import java.util.Random;
 
 public class WsWriter extends Writer {
     private final OutputStream out;
-    private final Random       random;
+    private final Random random;
+    private final byte[] mask;
 
     public WsWriter(OutputStream out, Random random) {
         this.out = out;
         this.random = random;
+        this.mask = new byte[4];
     }
 
     @Override
     public void write(char[] cbuf, int offset, int length) throws IOException {
-        int byteCount = getByteCount(cbuf);
+        int byteCount = getByteCount(cbuf, offset, length);
 
         out.write(0x81);
 
@@ -101,7 +104,6 @@ public class WsWriter extends Writer {
         }
 
         // Create the masking key.
-        byte[] mask = new byte[4];
         random.nextBytes(mask);
         out.write(mask);
 
@@ -130,10 +132,10 @@ public class WsWriter extends Writer {
         out.close();
     }
 
-    private static int getByteCount(char[] cbuf) {
+    private static int getByteCount(char[] cbuf, int offset, int length) {
         int count = 0;
 
-        for (int i = 0; i < cbuf.length; i++) {
+        for (int i = offset; i < length; i++) {
             count += expectedBytes(cbuf[i]);
         }
 
@@ -141,18 +143,19 @@ public class WsWriter extends Writer {
     }
 
     private static int expectedBytes(int value) {
-        if (value < 0x80) {
+        if ((value & 0xFFFFFF80) == 0) { // 1 byte
             return 1;
         }
-
-        if (value < 0x800) {
+        else if ((value & 0xFFFFF800) == 0) { // 2 bytes.
             return 2;
         }
-
-        if (value <= '\uFFFF') {
+        else if ((value & 0xFFFF0000) == 0) { // 3 bytes.
             return 3;
         }
+        else if ((value & 0xFF200000) == 0) { // 4 bytes.
+            return 4;
+        }
 
-        return 4;
+        throw new IllegalStateException(format("Invalid UTF-8 sequence leader byte: 0x%02X", value));
     }
 }

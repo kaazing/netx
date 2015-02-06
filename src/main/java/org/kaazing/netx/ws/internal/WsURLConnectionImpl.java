@@ -23,14 +23,11 @@ import static java.util.logging.Logger.getLogger;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
@@ -40,15 +37,12 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
@@ -62,9 +56,9 @@ import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
-    private static final Set<Parameter<?>> EMPTY_PARAMETERS = Collections.emptySet();
-
     private static final Logger LOG = getLogger(WsURLConnection.class.getPackage().getName());
+    private static final Set<Parameter<?>> EMPTY_PARAMETERS = Collections.emptySet();
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final String HEADER_CONNECTION = "Connection";
     private static final String HEADER_SEC_WEBSOCKET_ACCEPT = "Sec-WebSocket-Accept";
@@ -159,27 +153,20 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         byte[] reasonBytes = null;
 
         if (code != 0) {
-            //verify code and reason against RFC 6455
-            //if code is present, it must equal to 1000 or in range 3000 to 4999
+            // Verify code and reason against RFC 6455.
+            // If code is present, it must equal to 1000 or in range 3000 to 4999
             if (code != 1000 && (code < 3000 || code > 4999)) {
                     throw new IOException("code must equal to 1000 or in range 3000 to 4999");
             }
 
-            //if reason is present, it must not be longer than 123 bytes
+            // If reason is present, it must not be longer than 123 bytes
             if (reason != null && reason.length() > 0) {
-                //convert reason to UTF8 string
-                try {
-                    reasonBytes = reason.getBytes("UTF8");
-                    reason = new String(reasonBytes, "UTF8");
-                } catch (UnsupportedEncodingException e) {
-                    LOG.log(Level.FINEST, e.getMessage(), e);
-                    throw new IOException("Reason must be encodable to UTF8");
-                }
+                reasonBytes = reason.getBytes(UTF_8);
             }
 
         }
 
-        ((WsOutputStream) getOutputStream()).writeClose(code, reasonBytes);
+        getOutputStream().writeClose(code, reasonBytes);
 
         connection.disconnect();
 
@@ -258,29 +245,29 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public InputStream getInputStream() throws IOException {
+    public WsInputStream getInputStream() throws IOException {
 
         if (inputStream == null) {
             ensureConnected();
-            inputStream = new WsInputStream(connection, (WsOutputStream) getOutputStream());
+            inputStream = new WsInputStream(connection, getOutputStream());
         }
 
         return inputStream;
     }
 
     @Override
-    public MessageReader getMessageReader() throws IOException {
+    public WsMessageReader getMessageReader() throws IOException {
         if (messageReader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            messageReader = new WsMessageReader(connection, (WsOutputStream) getOutputStream());
+            messageReader = new WsMessageReader(connection, getOutputStream());
         }
 
         return messageReader;
     }
 
     @Override
-    public MessageWriter getMessageWriter() throws IOException {
+    public WsMessageWriter getMessageWriter() throws IOException {
 
         if (messageWriter == null) {
             // TODO: trigger lazy connect, same as HTTP
@@ -341,7 +328,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public OutputStream getOutputStream() throws IOException {
+    public WsOutputStream getOutputStream() throws IOException {
         if (outputStream == null) {
             ensureConnected();
             outputStream = new WsOutputStream(connection.getOutputStream(), random);
@@ -351,11 +338,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public Reader getReader() throws IOException {
+    public WsReader getReader() throws IOException {
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            reader = new WsReader(connection, (WsOutputStream) getOutputStream());
+            reader = new WsReader(connection, getOutputStream());
         }
 
         return reader;
