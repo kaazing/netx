@@ -17,7 +17,7 @@
 package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.Integer.highestOneBit;
-import static java.lang.String.format;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.byteCountUTF8;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -37,7 +37,7 @@ public class WsWriter extends Writer {
 
     @Override
     public void write(char[] cbuf, int offset, int length) throws IOException {
-        int byteCount = getByteCount(cbuf, offset, length);
+        int byteCount = byteCountUTF8(cbuf, offset, length);
 
         out.write(0x81);
 
@@ -130,32 +130,5 @@ public class WsWriter extends Writer {
     @Override
     public void close() throws IOException {
         out.close();
-    }
-
-    private static int getByteCount(char[] cbuf, int offset, int length) {
-        int count = 0;
-
-        for (int i = offset; i < length; i++) {
-            count += expectedBytes(cbuf[i]);
-        }
-
-        return count;
-    }
-
-    private static int expectedBytes(int value) {
-        if ((value & 0xFFFFFF80) == 0) { // 1 byte
-            return 1;
-        }
-        else if ((value & 0xFFFFF800) == 0) { // 2 bytes.
-            return 2;
-        }
-        else if ((value & 0xFFFF0000) == 0) { // 3 bytes.
-            return 3;
-        }
-        else if ((value & 0xFF200000) == 0) { // 4 bytes.
-            return 4;
-        }
-
-        throw new IllegalStateException(format("Invalid UTF-8 sequence leader byte: 0x%02X", value));
     }
 }

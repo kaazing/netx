@@ -17,12 +17,12 @@
 package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.String.format;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 import org.kaazing.netx.http.HttpURLConnection;
-import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public final class WsInputStream extends InputStream {
 
@@ -211,7 +211,7 @@ public final class WsInputStream extends InputStream {
                         throw new IOException("End of stream");
                     }
 
-                    if ((reason.length > 123) || !Utf8Util.isValidUTF8(reason)) {
+                    if ((reason.length > 123) || !validBytesUTF8(reason)) {
                         code = 1002;
                     }
 

@@ -971,32 +971,16 @@ public class BaseFramingIT {
         assertEquals(writeString, readString);
     }
 
-//    private static void hexDump(byte[] bytes) {
-//        StringBuilder hexDump = new StringBuilder("");
-//
-//        for (int i = 0; i < bytes.length; i++) {
-//            if (hexDump.length() > 0) {
-//                hexDump.append(", ");
-//            }
-//
-//            hexDump.append(String.format("%02x", 0xFF & bytes[i]).toUpperCase());
-//        }
-//
-//        String s = hexDump.toString();
-//        System.out.println("Number of bytes: " + bytes.length);
-//        System.out.println("Hex Dump: " + s);
-//    }
-
     private static class RandomString {
 
-        private static final char[] symbols;
+        private static final char[] SYMBOLS;
 
         static {
-          StringBuilder tmp = new StringBuilder();
-          for (char ch = 32; ch <= 126; ++ch) {
-            tmp.append(ch);
-          }
-          symbols = tmp.toString().toCharArray();
+            StringBuilder tmp = new StringBuilder();
+            for (char ch = 32; ch <= 126; ++ch) {
+                tmp.append(ch);
+            }
+            SYMBOLS = tmp.toString().toCharArray();
         }
 
         private final Random random = new Random();
@@ -1004,18 +988,18 @@ public class BaseFramingIT {
         private final char[] buf;
 
         public RandomString(int length) {
-          if (length < 1) {
-            throw new IllegalArgumentException("length < 1: " + length);
-          }
-          buf = new char[length];
+            if (length < 1) {
+                throw new IllegalArgumentException("length < 1: " + length);
+            }
+            buf = new char[length];
         }
 
         public String nextString() {
-          for (int idx = 0; idx < buf.length; ++idx) {
-            buf[idx] = symbols[random.nextInt(symbols.length)];
-          }
+            for (int idx = 0; idx < buf.length; ++idx) {
+                buf[idx] = SYMBOLS[random.nextInt(SYMBOLS.length)];
+            }
 
-          return new String(buf);
+            return new String(buf);
         }
     }
 }

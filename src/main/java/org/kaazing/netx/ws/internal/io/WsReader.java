@@ -16,14 +16,19 @@
 
 package org.kaazing.netx.ws.internal.io;
 
+import static java.lang.Character.charCount;
+import static java.lang.Character.toChars;
 import static java.lang.String.format;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 
 import org.kaazing.netx.http.HttpURLConnection;
-import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class WsReader extends Reader {
     private final HttpURLConnection connection;
@@ -34,8 +39,8 @@ public class WsReader extends Reader {
     private int headerOffset;
     private int payloadOffset;
     private long payloadLength;
-    private int charBytes;
-    private int remaining;
+    private int codePoint;
+    private int remainingBytes;
 
     public WsReader(HttpURLConnection connection, WsOutputStream out) throws IOException {
         if (connection == null) {
@@ -158,57 +163,49 @@ public class WsReader extends Reader {
         while (payloadOffset < payloadLength) {
             int b = -1;
 
-            while ((payloadOffset < payloadLength) && (remaining > 0)) {
-                // Read the remaining bytes of a multi-byte character. These bytes could be in two successive WebSocket frames.
+            while (codePoint != 0 || (payloadOffset < payloadLength && remainingBytes > 0)) {
+
+                // surrogate pair
+                if (codePoint != 0 && remainingBytes == 0) {
+                    int charCount = charCount(codePoint);
+                    if (offset + charCount > length) {
+                        return offset - mark;
+                    }
+                    toChars(codePoint, cbuf, offset);
+                    offset += charCount;
+                    codePoint = 0;
+                }
+
+                // detect EOF
                 b = in.read();
                 if (b == -1) {
                     return offset - mark;
                 }
-
                 payloadOffset++;
 
-                switch (remaining) {
-                case 3:
-                case 2:
-                    charBytes = (charBytes << 6) | (b & 0x3F);
-                    remaining--;
-                    break;
-                case 1:
-                    cbuf[offset++] = (char) ((charBytes << 6) | (b & 0x3F));
-                    remaining--;
-                    charBytes = 0;
-                    break;
-                case 0:
-                    break;
-                }
+                // character encoded in multiple bytes
+                codePoint = remainingDecodeUTF8(codePoint, remainingBytes--, b);
             }
 
+            // detect EOF
             b = in.read();
             if (b == -1) {
                 break;
             }
-
             payloadOffset++;
 
-            // Check if the byte read is the first of a multi-byte character.
-            remaining = Utf8Util.remainingUTF8Bytes(b);
-
-            switch (remaining) {
+            // detect character encoded in multiple bytes
+            remainingBytes = remainingBytesUTF8(b);
+            switch (remainingBytes) {
             case 0:
-                // ASCII char.
-                cbuf[offset++] = (char) (b & 0x7F);
-                break;
-            case 1:
-                charBytes = b & 0x1F;
-                break;
-            case 2:
-                charBytes = b & 0x0F;
-                break;
-            case 3:
-                charBytes = b & 0x07;
+                // no surrogate pair
+                int asciiCodePoint = initialDecodeUTF8(remainingBytes, b);
+                assert charCount(asciiCodePoint) == 1;
+                toChars(asciiCodePoint, cbuf, offset++);
                 break;
             default:
-                throw new IOException("Invalid UTF-8 byte sequence. UTF-8 char cannot span for more than 4 bytes.");
+                codePoint = initialDecodeUTF8(remainingBytes, b);
+                break;
             }
         }
 
@@ -218,7 +215,7 @@ public class WsReader extends Reader {
             payloadLength = 0;
         }
 
-        // Return the number of chars read.
+        // number of chars (not code points) read
         return offset - mark;
     }
 
@@ -258,7 +255,7 @@ public class WsReader extends Reader {
                         throw new IOException("End of stream");
                     }
 
-                    if ((reason.length > 123) || !Utf8Util.isValidUTF8(reason)) {
+                    if ((reason.length > 123) || !validBytesUTF8(reason)) {
                         code = 1002;
                     }
 

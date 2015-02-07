@@ -19,7 +19,6 @@ package org.kaazing.netx.ws.internal;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.logging.Logger.getLogger;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 
 import java.io.IOException;
@@ -37,7 +36,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
@@ -56,7 +54,7 @@ import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
-    private static final Logger LOG = getLogger(WsURLConnection.class.getPackage().getName());
+
     private static final Set<Parameter<?>> EMPTY_PARAMETERS = Collections.emptySet();
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
@@ -80,12 +78,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensions;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensionsRO;
 
-    private ReadyState      readyState;
-    private String          negotiatedProtocol;
-    private WsInputStream   inputStream;
-    private WsOutputStream  outputStream;
-    private WsReader        reader;
-    private WsWriter        writer;
+    private ReadyState readyState;
+    private String negotiatedProtocol;
+    private WsInputStream inputStream;
+    private WsOutputStream outputStream;
+    private WsReader reader;
+    private WsWriter writer;
     private WsMessageReader messageReader;
     private WsMessageWriter messageWriter;
 
@@ -270,7 +268,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public WsMessageWriter getMessageWriter() throws IOException {
 
         if (messageWriter == null) {
-            // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
             messageWriter = new WsMessageWriter(getOutputStream(), getWriter());
         }

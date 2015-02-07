@@ -16,16 +16,20 @@
 
 package org.kaazing.netx.ws.internal.io;
 
+import static java.lang.Character.charCount;
+import static java.lang.Character.toChars;
 import static java.lang.String.format;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
-import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public final class WsMessageReader extends MessageReader {
     private final HttpURLConnection connection;
@@ -39,10 +43,8 @@ public final class WsMessageReader extends MessageReader {
     private boolean fin;
     private long payloadLength;
     private int payloadOffset;
-    private int remaining;
-    private int charBytes;
-    private int charWidth;
-    private final ByteArrayOutputStream tempBuffer;
+    private int remainingBytes;
+    private int codePoint;
 
     private enum State {
         READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
@@ -63,7 +65,6 @@ public final class WsMessageReader extends MessageReader {
         this.header = new byte[10];
         this.state = State.READ_FLAGS_AND_OPCODE;
         this.payloadOffset = -1;
-        this.tempBuffer = new ByteArrayOutputStream();
     }
 
     @Override
@@ -178,13 +179,6 @@ public final class WsMessageReader extends MessageReader {
                 readHeaderByte();
             }
         } while (!finalFrame);
-
-        String tempStr = tempBuffer.toString("UTF-8");
-        char[] tempCharArray = tempStr.toCharArray();
-        byte[] tempByteArray = tempStr.getBytes("UTF-8");
-
-        String str = new String(buf, 0 , offset - mark);
-        byte[] arr = str.getBytes("UTF-8");
 
         state = State.READ_FLAGS_AND_OPCODE;
         return offset - mark;
@@ -343,7 +337,7 @@ public final class WsMessageReader extends MessageReader {
 
         if (buf.length < (offset + payloadLength)) {
             int size = buf.length - offset;
-            throw new IOException(format("Buffer size (%d) is too small to accommodate payload of size (%d)", size, payloadLength));
+            throw new IOException(format("Buffer size (%d) too small for payload size (%d)", size, payloadLength));
         }
 
         // Read the entire payload from the current frame into the buffer.
@@ -380,81 +374,53 @@ public final class WsMessageReader extends MessageReader {
 
         int mark = offset;
 
+        outer:
         while (payloadOffset < payloadLength) {
             int b = -1;
 
-            while ((payloadOffset < payloadLength) && (remaining > 0)) {
-                // Read the remaining bytes of a multi-byte character. These bytes could be in two successive WebSocket frames.
+            while (codePoint != 0 || (payloadOffset < payloadLength && remainingBytes > 0)) {
+
+                // surrogate pair
+                if (codePoint != 0 && remainingBytes == 0) {
+                    int charCount = charCount(codePoint);
+                    if (offset + charCount > length) {
+                        break outer;
+                    }
+                    toChars(codePoint, cbuf, offset);
+                    offset += charCount;
+                    codePoint = 0;
+                }
+
+                // detect EOF
                 b = in.read();
                 if (b == -1) {
-                    throw new IOException("End of stream before the entire payload could be read into the buffer");
+                    break outer;
                 }
-
-                tempBuffer.write(b);
                 payloadOffset++;
 
-                switch (remaining) {
-                case 3:
-                case 2:
-                    System.out.println(format("remaining: %d: b = 0x%08X; b & 0x3F = 0x%08X", remaining, b, (b & 0x3F)));
-                    System.out.println(format("charBytes = 0x%08X", charBytes));
-                    System.out.println(format("(charBytes << 6) = 0x%08X", (charBytes << 6)));
-                    charBytes = (charBytes << 6) | (b & 0x3F);
-                    System.out.println(format("charBytes = (charBytes << 6) | (b & 0x3F) = 0x%08X", charBytes));
-                    remaining--;
-                    break;
-                case 1:
-                    System.out.println(format("remaining: %d: b = 0x%08X; b & 0x3F = 0x%08X", remaining, b, (b & 0x3F)));
-                    System.out.println(format("charBytes = 0x%08X", charBytes));
-                    System.out.println(format("(charBytes << 6) = 0x%08X", (charBytes << 6)));
-                    cbuf[offset++] = (char) ((charBytes << 6) | (b & 0x3F));
-                    System.out.println(format("read: cbuf[%d] = (charBytes << 6) | (b & 0x3F) = 0x%08X", offset - 1, (int) cbuf[offset - 1], charBytes));
-                    int cw = expectedBytes((charBytes << 6) | (b & 0x3F));
-                    System.out.println(format("---- Expected Width = %d; Actual Width = %d", charWidth, cw));
-                    remaining--;
-                    charBytes = 0;
-                    break;
-                case 0:
-                    break;
-                }
+                // character encoded in multiple bytes
+                codePoint = remainingDecodeUTF8(codePoint, remainingBytes--, b);
             }
 
-            System.out.println(format("***************************************", payloadOffset));
-            if (payloadOffset < payloadLength) {
-                b = in.read();
-                if (b == -1) {
-                    break;
-                }
+            // detect EOF
+            b = in.read();
+            if (b == -1) {
+                break;
+            }
+            payloadOffset++;
 
-                tempBuffer.write(b);
-                payloadOffset++;
-
-                // Check if the byte read is the first of a multi-byte character.
-                remaining = Utf8Util.remainingUTF8Bytes(b);
-                charWidth = remaining + 1;
-                System.out.println(format("read: offset = %d; b = 0x%08X; width = %d bytes; remaining = %d bytes", offset, b, charWidth, remaining));
-
-                switch (remaining) {
-                case 0:
-                    // ASCII char.
-                    cbuf[offset++] = (char) (b & 0x7F);
-                    System.out.println(format("read: cbuf[%d] = 0x%08X", offset - 1, (b & 0x7F)));
-                    break;
-                case 1:
-                    charBytes = b & 0x1F;
-                    System.out.println(format("1:read: charBytes = (0x%08X & 0x1F) = 0x%08X", b, charBytes));
-                    break;
-                case 2:
-                    charBytes = b & 0x0F;
-                    System.out.println(format("2:read: charBytes = (0x%08X & 0x0F) = 0x%08X", b, charBytes));
-                    break;
-                case 3:
-                    charBytes = b & 0x07;
-                    System.out.println(format("3:read: charBytes = (0x%08X & 0x07) = 0x%08X", b, charBytes));
-                    break;
-                default:
-                    throw new IOException("Invalid UTF-8 byte sequence. UTF-8 char cannot span for more than 4 bytes.");
-                }
+            // detect character encoded in multiple bytes
+            remainingBytes = remainingBytesUTF8(b);
+            switch (remainingBytes) {
+            case 0:
+                // no surrogate pair
+                int asciiCodePoint = initialDecodeUTF8(remainingBytes, b);
+                assert charCount(asciiCodePoint) == 1;
+                toChars(asciiCodePoint, cbuf, offset++);
+                break;
+            default:
+                codePoint = initialDecodeUTF8(remainingBytes, b);
+                break;
             }
         }
 
@@ -505,7 +471,7 @@ public final class WsMessageReader extends MessageReader {
                         throw new IOException("End of stream");
                     }
 
-                    if ((reason.length > 123) || !Utf8Util.isValidUTF8(reason)) {
+                    if ((reason.length > 123) || !validBytesUTF8(reason)) {
                         code = 1002;
                     }
 
@@ -594,22 +560,5 @@ public final class WsMessageReader extends MessageReader {
         default:
             return length;
         }
-    }
-
-    private static int expectedBytes(int value) {
-        if ((value & 0xFFFFFF80) == 0) { // 1 byte
-            return 1;
-        }
-        else if ((value & 0xFFFFF800) == 0) { // 2 bytes.
-            return 2;
-        }
-        else if ((value & 0xFFFF0000) == 0) { // 3 bytes.
-            return 3;
-        }
-        else if ((value & 0xFF200000) == 0) { // 4 bytes.
-            return 4;
-        }
-
-        throw new IllegalStateException(format("Invalid UTF-8 sequence leader byte: 0x%02X", value));
     }
 }
