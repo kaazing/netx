@@ -110,7 +110,11 @@ public final class Utf8Util {
 
     public static boolean validBytesUTF8(byte[] input) {
         for (int index = 0; index < input.length;) {
-            int remaining = remainingBytesUTF8(input[index++]);
+            byte leadingByte = input[index++];
+            if ((leadingByte & 0xc0) == 0x80) {
+                return false;
+            }
+            int remaining = remainingBytesUTF8(leadingByte);
             switch (remaining) {
             case 0:
                 break;
@@ -119,7 +123,6 @@ public final class Utf8Util {
                     if ((input[index++] & 0xc0) != 0x80) {
                         return false;
                     }
-                    break;
                 }
             }
         }
