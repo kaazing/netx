@@ -407,10 +407,11 @@ public final class WsMessageReader extends MessageReader {
         int mark = offset;
 
         outer:
-        while (payloadOffset < payloadLength) {
+        for (;;) {
             int b = -1;
 
-            while (codePoint != 0 || (payloadOffset < payloadLength && remainingBytes > 0)) {
+            // code point may be split across frames
+            while (codePoint != 0 || remainingBytes > 0) {
 
                 // surrogate pair
                 if (codePoint != 0 && remainingBytes == 0) {
@@ -424,6 +425,11 @@ public final class WsMessageReader extends MessageReader {
                     break;
                 }
 
+                // detect EOP
+                if (payloadOffset == payloadLength) {
+                    break;
+                }
+
                 // detect EOF
                 b = in.read();
                 if (b == -1) {
@@ -433,6 +439,11 @@ public final class WsMessageReader extends MessageReader {
 
                 // character encoded in multiple bytes
                 codePoint = remainingDecodeUTF8(codePoint, remainingBytes--, b);
+            }
+
+            // detect EOP
+            if (payloadOffset == payloadLength) {
+                break;
             }
 
             // detect EOF

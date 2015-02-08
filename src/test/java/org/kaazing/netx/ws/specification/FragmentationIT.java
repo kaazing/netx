@@ -30,7 +30,6 @@ import java.net.URI;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -133,15 +132,13 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytesA = new byte[0];
-        byte[] readBytesB = new byte[0];
+        byte[] array = new byte[0];
 
-        reader.read(readBytesA);
-        writer.write(readBytesA);
-        reader.read(readBytesB);
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -155,15 +152,13 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytesA = new byte[0];
-        byte[] readBytesB = new byte[0];
+        byte[] array = new byte[0];
 
-        reader.read(readBytesA);
-        writer.write(readBytesA);
-        reader.read(readBytesB);
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -177,15 +172,13 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytesA = new byte[125];
-        byte[] readBytesB = new byte[125];
+        byte[] array = new byte[125];
 
-        reader.read(readBytesA);
-        writer.write(readBytesA);
-        reader.read(readBytesB);
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -199,15 +192,13 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytesA = new byte[125];
-        byte[] readBytesB = new byte[125];
+        byte[] array = new byte[125];
 
-        reader.read(readBytesA);
-        writer.write(readBytesA);
-        reader.read(readBytesB);
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -221,15 +212,13 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytesA = new byte[125];
-        byte[] readBytesB = new byte[125];
+        byte[] array = new byte[125];
 
-        reader.read(readBytesA);
-        writer.write(readBytesA);
-        reader.read(readBytesB);
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -243,15 +232,13 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytesA = new byte[125];
-        byte[] readBytesB = new byte[125];
+        byte[] array = new byte[125];
 
-        reader.read(readBytesA);
-        writer.write(readBytesA);
-        reader.read(readBytesB);
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -265,15 +252,13 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readCharsA = new char[0];
-        char[] readCharsB = new char[0];
+        char[] array = new char[0];
 
-        reader.read(readCharsA);
-        writer.write(readCharsA);
-        reader.read(readCharsB);
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
@@ -287,19 +272,16 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readCharsA = new char[0];
-        char[] readCharsB = new char[0];
+        char[] array = new char[0];
 
-        reader.read(readCharsA);
-        writer.write(readCharsA);
-        reader.read(readCharsB);
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.echo.text.payload.length.125.fragmented/handshake.response.and.frames" })
     public void shouldEchoServerSendTextFrameWithPayloadFragmented() throws Exception {
@@ -310,19 +292,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readCharsA = new char[125];
-        char[] readCharsB = new char[125];
+        char[] array = new char[125];
 
-        int n = reader.read(readCharsA);
-        writer.write(readCharsA, 0 , n);
-        reader.read(readCharsB, 0, n);
+        int length = reader.read(array);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.echo.text.payload.length.125.fragmented.but.not.utf8.aligned/handshake.response.and.frames" })
     public void shouldEchoServerSendTextFrameWithPayloadFragmentedEvenWhenNotUTF8Aligned() throws Exception {
@@ -333,19 +311,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readCharsA = new char[125];
-        char[] readCharsB = new char[125];
+        char[] array = new char[125];
 
-        int n = reader.read(readCharsA);
-        writer.write(readCharsA, 0 , n);
-        reader.read(readCharsB, 0, n);
+        int length = reader.read(array);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.echo.text.payload.length.125.fragmented.with.injected.ping.pong/handshake.response.and.frames" })
     public void shouldEchoServerSendTextFrameWithPayloadFragmentedAndInjectedPingPong() throws Exception {
@@ -356,19 +330,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readCharsA = new char[125];
-        char[] readCharsB = new char[125];
+        char[] array = new char[125];
 
-        reader.read(readCharsA);
-        writer.write(readCharsA);
-        reader.read(readCharsB);
+        int length = reader.read(array);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.echo.text.payload.length.125.fragmented.with.some.empty.fragments/handshake.response.and.frames" })
     public void shouldEchoServerSendTextFrameWithPayloadFragmentedWithSomeEmptyFragments() throws Exception {
@@ -379,19 +349,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readCharsA = new char[125];
-        char[] readCharsB = new char[125];
+        char[] array = new char[125];
 
-        reader.read(readCharsA);
-        writer.write(readCharsA);
-        reader.read(readCharsB);
+        int length = reader.read(array);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.echo.text.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldEchoServerSendTextFrameWithPayloadNotFragmented() throws Exception {
@@ -402,15 +368,12 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readCharsA = new char[125];
-        char[] readCharsB = new char[125];
+        char[] array = new char[125];
 
-        reader.read(readCharsA);
-        writer.write(readCharsA);
-        reader.read(readCharsB);
+        int length = reader.read(array);
+        writer.write(array, 0, length);
 
         k3po.join();
-        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
@@ -570,7 +533,6 @@ public class FragmentationIT {
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmentedUsingReader() throws Exception {
@@ -638,7 +600,6 @@ public class FragmentationIT {
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmentedUsingReader()
