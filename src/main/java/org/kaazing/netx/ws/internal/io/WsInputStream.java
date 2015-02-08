@@ -22,31 +22,26 @@ import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.kaazing.netx.http.HttpURLConnection;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public final class WsInputStream extends InputStream {
 
-    private final HttpURLConnection connection;
+    private final WsURLConnectionImpl connection;
     private final InputStream in;
-    private final WsOutputStream out;
     private final byte[] header;
 
     private int headerOffset;
     private int payloadOffset;
     private long payloadLength;
+    private IOException exception;
 
-    public WsInputStream(HttpURLConnection connection, WsOutputStream out) throws IOException {
+    public WsInputStream(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
             throw new NullPointerException("Null HttpURLConnection passed in");
         }
 
-        if (out == null) {
-            throw new NullPointerException("Null WsOutputStream passed in");
-        }
-
         this.connection = connection;
-        this.in = connection.getInputStream();
-        this.out = out;
+        this.in = connection.getTcpInputStream();
         this.header = new byte[10];
         this.payloadOffset = -1;
     }
@@ -63,6 +58,9 @@ public final class WsInputStream extends InputStream {
             while (payloadOffset == -1) {
                 int headerByte = in.read();
                 if (headerByte == -1) {
+                    if (exception != null) {
+                        throw exception;
+                    }
                     return -1;
                 }
                 header[headerOffset++] = (byte) headerByte;
@@ -70,9 +68,8 @@ public final class WsInputStream extends InputStream {
                 case 1:
                     if ((headerByte & 0x80) == 0) {
                         // Incorrect use of InputStream.
-                        out.writeClose(1002, null);
-                        connection.disconnect();
-                        throw new IOException("Incorrect use of InputStream. Use MessageReader to read fragmented frames.");
+                        connection.doClose(1000, null);
+                        exception = new IOException("Use MessageReader to read fragmented frames.");
                     }
 
                     int flags = (header[0] & 0xF0) >> 4;
@@ -81,18 +78,16 @@ public final class WsInputStream extends InputStream {
                     case 8:
                         break;
                     default:
-                        out.writeClose(1002, null);
-                        connection.disconnect();
-                        throw new IOException(format("Protocol Violation: Reserved bits set 0x%02X", flags));
+                        connection.doClose(1002, null);
+                        exception = new IOException(format("Protocol Violation: Reserved bits set 0x%02X", flags));
                     }
 
                     int opcode = header[0] & 0x0F;
                     switch (opcode) {
                     case 0x00:
                         // Incorrect use of InputStream.
-                        out.writeClose(1002, null);
-                        connection.disconnect();
-                        throw new IOException("Incorrect use of InputStream. Use MessageReader to read fragmented frames.");
+                        connection.doClose(1000, null);
+                        exception = new IOException("Use MessageReader to read fragmented frames.");
 
                     case 0x02:
                     case 0x08:
@@ -100,17 +95,15 @@ public final class WsInputStream extends InputStream {
                     case 0x0A:
                         break;
                     default:
-                        out.writeClose(1002, null);
-                        connection.disconnect();
-                        throw new IOException(format("Non-binary frame - opcode = %d", opcode));
+                        connection.doClose(1002, null);
+                        exception = new IOException(format("Non-binary frame - opcode = 0x%02X", opcode));
                     }
                     break;
                 case 2:
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
-                        out.writeClose(1002, null);
-                        connection.disconnect();
-                        throw new IOException("Masked server-to-client frame");
+                        connection.doClose(1002, null);
+                        exception = new IOException("Masked server-to-client frame");
                     }
                     switch (header[1] & 0x7f) {
                     case 126:
@@ -148,6 +141,9 @@ public final class WsInputStream extends InputStream {
             // If the current frame is either CLOSE, PING, or PONG, then we just filter out it's bytes.
             filterControlFrames();
             if ((header[0] & 0x0F) == 0x08) {
+                if (exception != null) {
+                    throw exception;
+                }
                 return -1;
             }
 
@@ -158,7 +154,14 @@ public final class WsInputStream extends InputStream {
             }
         }
 
+
         int b = in.read();
+
+        if (exception != null) {
+            connection.disconnect();
+            throw exception;
+        }
+
         if (b == -1) {
             return -1;
         }
@@ -233,8 +236,13 @@ public final class WsInputStream extends InputStream {
                 }
             }
 
-            out.writeClose(code, reason);
+            // Complete the CLOSE handshake and then disconnect.
+            connection.doClose(code, reason);
             connection.disconnect();
+
+            if (exception != null) {
+                throw exception;
+            }
             break;
 
         case 0x09:
@@ -249,16 +257,13 @@ public final class WsInputStream extends InputStream {
             }
 
             if ((buf != null) && (buf.length > 125)) {
-                out.writeClose(1002, null);
-                connection.disconnect();
-
-                // ### TODO: Do we need to do this?
-                throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
+                connection.doClose(1002, null);
+                exception = new IOException("Protocol Violation: PING payload is more than 125 bytes");
             }
             else {
                 if (opcode == 0x09) {
                     // Send the PONG frame out with the same payload that was received with PING.
-                    out.writePong(buf);
+                    connection.doPong(buf);
                 }
             }
             break;
@@ -268,11 +273,9 @@ public final class WsInputStream extends InputStream {
             if (payloadLength > 125) {
                 closeCode = 1002;
             }
-            out.writeClose(closeCode, null);
-            connection.disconnect();
-
-            // ### TODO: Do we need to do this?
-            throw new IOException("Protocol Violation: Received unexpected PONG");
+            connection.doClose(closeCode, null);
+            exception = new IOException("Protocol Violation: Received unexpected PONG");
+            break;
 
         default:
             throw new IOException(format("Protocol Violation: Unrecognized opcode %d", opcode));

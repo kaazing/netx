@@ -21,21 +21,19 @@ import static java.lang.String.format;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Random;
+
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState;
 
 public final class WsOutputStream extends FilterOutputStream {
     private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
 
-    private final Random random;
-    private final byte[] mask;;
+    private final byte[] mask;
+    private final WsURLConnectionImpl connection;
 
-    private boolean closeSent;
-
-    public WsOutputStream(OutputStream out, Random random) {
-        super(out);
-        this.random = random;
-        this.closeSent = false;
+    public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
+        super(connection.getTcpOutputStream());
+        this.connection = connection;
         this.mask = new byte[4];
     }
 
@@ -50,7 +48,7 @@ public final class WsOutputStream extends FilterOutputStream {
 
         encodePayloadLength(len);
 
-        random.nextBytes(mask);
+        connection.getRandom().nextBytes(mask);
         out.write(mask);
 
         byte[] masked = new byte[len];
@@ -63,10 +61,8 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     public void writeClose(int code, byte[] reason) throws IOException {
-        if (closeSent) {
-            // If the client has already sent CLOSE, then it should NOT be sent again during the closing handshake when the
-            // server responds with a CLOSE.
-            return;
+        if (connection.getReadyState() == ReadyState.CLOSED) {
+            throw new IOException("Connection closed");
         }
 
         int len = 0;
@@ -109,7 +105,7 @@ public final class WsOutputStream extends FilterOutputStream {
         else {
             assert len >= 2;
 
-            random.nextBytes(mask);
+            connection.getRandom().nextBytes(mask);
             out.write(mask);
 
             byte[] masked = new byte[len];
@@ -128,17 +124,16 @@ public final class WsOutputStream extends FilterOutputStream {
             }
 
             out.write(masked);
-            closeSent = true;
 
             // ### TODO: Check if there are better alternatives.
             // Give opportunity to the server to complete the CLOSE handshake by sleeping for 100ms. Without this K3PO is
             // complaints as the client closes the connection after sending the CLOSE frame.
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+//            try {
+//                Thread.sleep(100);
+//            } catch (InterruptedException e) {
+//                // TODO Auto-generated catch block
+//                e.printStackTrace();
+//            }
         }
     }
 
@@ -224,7 +219,7 @@ public final class WsOutputStream extends FilterOutputStream {
             return;
         }
 
-        random.nextBytes(mask);
+        connection.getRandom().nextBytes(mask);
         out.write(mask);
 
         byte[] masked = new byte[payload.length];

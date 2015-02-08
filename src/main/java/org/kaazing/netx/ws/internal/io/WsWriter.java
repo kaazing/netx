@@ -22,21 +22,27 @@ import static org.kaazing.netx.ws.internal.util.Utf8Util.byteCountUTF8;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
-import java.util.Random;
+
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState;
 
 public class WsWriter extends Writer {
+    private final WsURLConnectionImpl connection;
     private final OutputStream out;
-    private final Random random;
     private final byte[] mask;
 
-    public WsWriter(OutputStream out, Random random) {
-        this.out = out;
-        this.random = random;
+    public WsWriter(WsURLConnectionImpl connection) throws IOException {
+        this.connection = connection;
+        this.out = connection.getTcpOutputStream();
         this.mask = new byte[4];
     }
 
     @Override
     public void write(char[] cbuf, int offset, int length) throws IOException {
+        if (connection.getReadyState() == ReadyState.CLOSED) {
+            throw new IOException("Connection closed");
+        }
+
         int byteCount = byteCountUTF8(cbuf, offset, length);
 
         out.write(0x81);
@@ -104,7 +110,7 @@ public class WsWriter extends Writer {
         }
 
         // Create the masking key.
-        random.nextBytes(mask);
+        connection.getRandom().nextBytes(mask);
         out.write(mask);
 
         // ### TODO: Convert the char[] to UTF-8 byte[] payload instead of creating a String.

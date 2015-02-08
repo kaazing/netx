@@ -27,14 +27,13 @@ import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public final class WsMessageReader extends MessageReader {
-    private final HttpURLConnection connection;
+    private final WsURLConnectionImpl connection;
     private final InputStream in;
-    private final WsOutputStream out;
     private final byte[] header;
 
     private MessageType type;
@@ -45,23 +44,19 @@ public final class WsMessageReader extends MessageReader {
     private int payloadOffset;
     private int remainingBytes;
     private int codePoint;
+    private IOException exception;
 
     private enum State {
         INITIAL, READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
     };
 
-    public WsMessageReader(HttpURLConnection connection, WsOutputStream out) throws IOException {
+    public WsMessageReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
             throw new NullPointerException("Null HttpURLConnection passed in");
         }
 
-        if (out == null) {
-            throw new NullPointerException("Null WsOutputStream passed in");
-        }
-
         this.connection = connection;
-        this.in = connection.getInputStream();
-        this.out = out;
+        this.in = connection.getTcpInputStream();
         this.header = new byte[10];
         this.state = State.INITIAL;
         this.payloadOffset = -1;
@@ -105,15 +100,13 @@ public final class WsMessageReader extends MessageReader {
             int retval = readPayloadLength();
             if (retval == -1) {
                 throw new IOException("End of stream before the entire payload could be read into the buffer");
-                // return offset - mark;
             }
 
             bytesRead = readBinary(buf, offset, length);
 
             offset += bytesRead;
 
-            // Once the payload is read, use fin to figure out whether this was
-            // the final frame.
+            // Once the payload is read, use fin to figure out whether this was the final frame.
             finalFrame = fin;
 
             if (!finalFrame) {
@@ -122,6 +115,11 @@ public final class WsMessageReader extends MessageReader {
                 readHeaderByte();
             }
         } while (!finalFrame);
+
+        if (exception != null) {
+            connection.disconnect();
+            throw exception;
+        }
 
         state = State.INITIAL;
         return offset - mark;
@@ -165,7 +163,6 @@ public final class WsMessageReader extends MessageReader {
             int retval = readPayloadLength();
             if (retval == -1) {
                 throw new IOException("End of stream before the entire payload could be read into the buffer");
-                // return offset - mark;
             }
 
             charsRead = readText(buf, offset, length);
@@ -181,6 +178,11 @@ public final class WsMessageReader extends MessageReader {
                 readHeaderByte();
             }
         } while (!finalFrame);
+
+        if (exception != null) {
+            connection.disconnect();
+            throw exception;
+        }
 
         state = State.INITIAL;
         return offset - mark;
@@ -200,6 +202,11 @@ public final class WsMessageReader extends MessageReader {
             break;
         default:
             break;
+        }
+
+        if (exception != null) {
+            connection.disconnect();
+            throw exception;
         }
 
         return type;
@@ -232,9 +239,9 @@ public final class WsMessageReader extends MessageReader {
         case 8:
             break;
         default:
-            out.writeClose(1002, null);
-            connection.disconnect();
-            throw new IOException(format("Protocol Violation: Reserved bits set %02X", flags));
+            connection.doClose(1002, null);
+            exception = new IOException(format("Protocol Violation: Reserved bits set %02X", flags));
+            break;
         }
 
         int opcode = headerByte & 0x0F;
@@ -242,26 +249,26 @@ public final class WsMessageReader extends MessageReader {
         case 0x00:
             if (state == State.INITIAL) {
                 // The first frame cannot be a fragmented frame..
-                out.writeClose(1002, null);
-                connection.disconnect();
-                throw new IOException(format("Protocol Violation: First frame cannot be a fragmented frame", opcode));
+                connection.doClose(1002, null);
+                exception = new IOException(format("Protocol Violation: First frame cannot be a fragmented frame", opcode));
+                type = MessageType.EOS;
             }
             break;
         case 0x01:
             if (state == State.READ_FLAGS_AND_OPCODE) {
                 // In a subsequent fragmented frame, the opcode should NOT be set.
-                out.writeClose(1002, null);
-                connection.disconnect();
-                throw new IOException(format("Protocol Violation: Opcode 0x%02X expected only in the initial frame", opcode));
+                connection.doClose(1002, null);
+                String s = format("Protocol Violation: Opcode 0x%02X expected only in the initial frame", opcode);
+                exception = new IOException(s);
             }
             type = MessageType.TEXT;
             break;
         case 0x02:
             if (state == State.READ_FLAGS_AND_OPCODE) {
                 // In a subsequent fragmented frame, the opcode should NOT be set.
-                out.writeClose(1002, null);
-                connection.disconnect();
-                throw new IOException(format("Protocol Violation: Opcode 0x%02X expected only in the initial frame", opcode));
+                connection.doClose(1002, null);
+                String s = format("Protocol Violation: Opcode 0x%02X expected only in the initial frame", opcode);
+                exception = new IOException(s);
             }
             type = MessageType.BINARY;
             break;
@@ -270,9 +277,8 @@ public final class WsMessageReader extends MessageReader {
         case 0x0A:
             if (!fin) {
                 // Control frames cannot be fragmented.
-                out.writeClose(1002, null);
-                connection.disconnect();
-                throw new IOException(format("Protocol Violation: Fragmented control frame 0x%02X", headerByte));
+                connection.doClose(1002, null);
+                exception = new IOException(format("Protocol Violation: Fragmented control frame 0x%02X", headerByte));
             }
 
             filterControlFrames();
@@ -283,9 +289,9 @@ public final class WsMessageReader extends MessageReader {
             headerByte = readHeaderByte();
             break;
         default:
-            out.writeClose(1002, null);
-            connection.disconnect();
-            throw new IOException(format("Protocol Violation: Invalid opcode %d", opcode));
+            connection.doClose(1002, null);
+            exception = new IOException(format("Protocol Violation: Invalid opcode %d", opcode));
+            break;
         }
 
         state = State.READ_PAYLOAD_LENGTH;
@@ -304,9 +310,8 @@ public final class WsMessageReader extends MessageReader {
                 case 2:
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
-                        out.writeClose(1002, null);
-                        connection.disconnect();
-                        throw new IOException("Masked server-to-client frame");
+                        connection.doClose(1002, null);
+                        exception = new IOException("Masked server-to-client frame");
                     }
                     switch (header[1] & 0x7f) {
                     case 126:
@@ -375,7 +380,6 @@ public final class WsMessageReader extends MessageReader {
             bytesRead = in.read(buf, offset, (int) Math.min(len, payloadLength));
             if (bytesRead == -1) {
                 throw new IOException("End of stream before the entire payload could be read into the buffer");
-                // return offset - mark;
             }
 
             len -= bytesRead;
@@ -510,8 +514,12 @@ public final class WsMessageReader extends MessageReader {
                 }
             }
 
-            out.writeClose(code, reason);
+            connection.doClose(code, reason);
             connection.disconnect();
+
+            if (exception != null) {
+                throw exception;
+            }
             break;
 
         case 0x09:
@@ -521,21 +529,21 @@ public final class WsMessageReader extends MessageReader {
                 int bytesRead = in.read(buf);
 
                 if (bytesRead == -1) {
+                    if (exception != null) {
+                        throw exception;
+                    }
                     throw new IOException("End of stream");
                 }
             }
 
             if ((buf != null) && (buf.length > 125)) {
-                out.writeClose(1002, null);
-                connection.disconnect();
-
-                // ### TODO: Do we need to do this?
-                throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
+                connection.doClose(1002, null);
+                exception = new IOException("Protocol Violation: PING payload is more than 125 bytes");
             }
             else {
                 if (opcode == 0x09) {
                     // Send the PONG frame out with the same payload that was received with PING.
-                    out.writePong(buf);
+                    connection.doPong(buf);
                 }
             }
             break;
@@ -545,11 +553,8 @@ public final class WsMessageReader extends MessageReader {
             if (payloadLength > 125) {
                 closeCode = 1002;
             }
-            out.writeClose(closeCode, null);
-            connection.disconnect();
-
-            // ### TODO: Do we need to do this?
-            throw new IOException("Protocol Violation: Received unexpected PONG");
+            connection.doClose(closeCode, null);
+            exception = new IOException("Protocol Violation: Received unexpected PONG");
 
         default:
             throw new IOException(format("Protocol Violation: Unrecognized opcode %d", opcode));

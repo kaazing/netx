@@ -570,6 +570,7 @@ public class FragmentationIT {
     }
 
     @Test
+    @Ignore
     @Specification({
         "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmentedUsingReader() throws Exception {
@@ -637,6 +638,7 @@ public class FragmentationIT {
     }
 
     @Test
+    @Ignore
     @Specification({
         "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmentedUsingReader()

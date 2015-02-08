@@ -20,8 +20,11 @@ import static java.lang.String.format;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
+import static org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState.CLOSED;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URL;
@@ -67,6 +70,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private static final String HEADER_UPGRADE = "Upgrade";
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    private static final WebSocketExtensionParameterValues EMPTY_EXTENSION_PARAMETERS = new EmptyExtensionParameterValues();
 
     private final Random random;
     private final WebSocketExtensionFactory extensionFactory;
@@ -87,9 +91,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private WsMessageReader messageReader;
     private WsMessageWriter messageWriter;
 
-    private static final WebSocketExtensionParameterValues EMPTY_EXTENSION_PARAMETERS = new EmptyExtensionParameterValues();
-
-    enum ReadyState {
+    public enum ReadyState {
         INITIAL, OPEN, CLOSED;
     }
 
@@ -157,16 +159,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                     throw new IOException("code must equal to 1000 or in range 3000 to 4999");
             }
 
-            // If reason is present, it must not be longer than 123 bytes
             if (reason != null && reason.length() > 0) {
                 reasonBytes = reason.getBytes(UTF_8);
             }
-
         }
 
-        getOutputStream().writeClose(code, reasonBytes);
-
-        connection.disconnect();
+        doClose(code, reasonBytes);
+        readyState = CLOSED;
 
         if ((reasonBytes != null) && (reasonBytes.length > 123)) {
             throw new IOException("Protocol Violation: Reason is longer than 123 bytes");
@@ -244,10 +243,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public WsInputStream getInputStream() throws IOException {
-
         if (inputStream == null) {
             ensureConnected();
-            inputStream = new WsInputStream(connection, getOutputStream());
+            inputStream = new WsInputStream(this);
         }
 
         return inputStream;
@@ -258,7 +256,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (messageReader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            messageReader = new WsMessageReader(connection, getOutputStream());
+            messageReader = new WsMessageReader(this);
         }
 
         return messageReader;
@@ -266,10 +264,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public WsMessageWriter getMessageWriter() throws IOException {
-
         if (messageWriter == null) {
             ensureConnected();
-            messageWriter = new WsMessageWriter(getOutputStream(), getWriter());
+            messageWriter = new WsMessageWriter(this);
         }
 
         return messageWriter;
@@ -309,7 +306,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      * @throws IOException
      */
     public <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException {
-
         ensureConnected();
 
         WebSocketExtension extension = parameter.extension();
@@ -328,7 +324,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public WsOutputStream getOutputStream() throws IOException {
         if (outputStream == null) {
             ensureConnected();
-            outputStream = new WsOutputStream(connection.getOutputStream(), random);
+            outputStream = new WsOutputStream(this);
         }
 
         return outputStream;
@@ -339,7 +335,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            reader = new WsReader(connection, getOutputStream());
+            reader = new WsReader(this);
         }
 
         return reader;
@@ -359,11 +355,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public Writer getWriter() throws IOException {
-
         if (writer == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            writer = new WsWriter(connection.getOutputStream(), random);
+            writer = new WsWriter(this);
         }
 
         return writer;
@@ -481,6 +476,41 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         enabledExtensions.put(name, parameters);
     }
 
+    public void doClose(int code, byte[] reason) throws IOException {
+        getOutputStream().writeClose(code, reason);
+    }
+
+    public void doPong(byte[] buf) throws IOException {
+        getOutputStream().writePong(buf);
+    }
+
+    public void disconnect() {
+        // ### TODO: To allow K3PO enough time to read before the disconnect, let's sleep for 100ms.
+        try {
+            Thread.sleep(100);
+        }
+        catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        connection.disconnect();
+    }
+
+    public Random getRandom() {
+        return random;
+    }
+
+    public ReadyState getReadyState() {
+        return readyState;
+    }
+
+    public InputStream getTcpInputStream() throws IOException {
+        return connection.getInputStream();
+    }
+
+    public OutputStream getTcpOutputStream() throws IOException {
+        return connection.getOutputStream();
+    }
+
     public void setEnabledExtensions(
             Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
         this.enabledExtensions.clear();
@@ -488,7 +518,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     private void ensureConnected() throws IOException {
-
         switch (readyState) {
         case INITIAL:
             doConnect();
