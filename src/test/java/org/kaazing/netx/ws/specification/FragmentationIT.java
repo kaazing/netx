@@ -21,12 +21,14 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.URI;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -131,15 +133,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytes = new byte[0];
-        byte[] echoBytes = new byte[0];
+        byte[] readBytesA = new byte[0];
+        byte[] readBytesB = new byte[0];
 
-        reader.read(readBytes);
-        writer.write(readBytes);
-        reader.read(echoBytes);
+        reader.read(readBytesA);
+        writer.write(readBytesA);
+        reader.read(readBytesB);
 
         k3po.join();
-        assertArrayEquals(readBytes, echoBytes);
+        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -153,15 +155,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytes = new byte[0];
-        byte[] echoBytes = new byte[0];
+        byte[] readBytesA = new byte[0];
+        byte[] readBytesB = new byte[0];
 
-        reader.read(readBytes);
-        writer.write(readBytes);
-        reader.read(echoBytes);
+        reader.read(readBytesA);
+        writer.write(readBytesA);
+        reader.read(readBytesB);
 
         k3po.join();
-        assertArrayEquals(readBytes, echoBytes);
+        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -175,15 +177,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytes = new byte[125];
-        byte[] echoBytes = new byte[125];
+        byte[] readBytesA = new byte[125];
+        byte[] readBytesB = new byte[125];
 
-        reader.read(readBytes);
-        writer.write(readBytes);
-        reader.read(echoBytes);
+        reader.read(readBytesA);
+        writer.write(readBytesA);
+        reader.read(readBytesB);
 
         k3po.join();
-        assertArrayEquals(readBytes, echoBytes);
+        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -197,15 +199,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytes = new byte[125];
-        byte[] echoBytes = new byte[125];
+        byte[] readBytesA = new byte[125];
+        byte[] readBytesB = new byte[125];
 
-        reader.read(readBytes);
-        writer.write(readBytes);
-        reader.read(echoBytes);
+        reader.read(readBytesA);
+        writer.write(readBytesA);
+        reader.read(readBytesB);
 
         k3po.join();
-        assertArrayEquals(readBytes, echoBytes);
+        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -219,15 +221,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytes = new byte[125];
-        byte[] echoBytes = new byte[125];
+        byte[] readBytesA = new byte[125];
+        byte[] readBytesB = new byte[125];
 
-        reader.read(readBytes);
-        writer.write(readBytes);
-        reader.read(echoBytes);
+        reader.read(readBytesA);
+        writer.write(readBytesA);
+        reader.read(readBytesB);
 
         k3po.join();
-        assertArrayEquals(readBytes, echoBytes);
+        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -241,15 +243,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        byte[] readBytes = new byte[125];
-        byte[] echoBytes = new byte[125];
+        byte[] readBytesA = new byte[125];
+        byte[] readBytesB = new byte[125];
 
-        reader.read(readBytes);
-        writer.write(readBytes);
-        reader.read(echoBytes);
+        reader.read(readBytesA);
+        writer.write(readBytesA);
+        reader.read(readBytesB);
 
         k3po.join();
-        assertArrayEquals(readBytes, echoBytes);
+        assertArrayEquals(readBytesA, readBytesB);
     }
 
     @Test
@@ -263,15 +265,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readChars = new char[0];
-        char[] echoChars = new char[0];
+        char[] readCharsA = new char[0];
+        char[] readCharsB = new char[0];
 
-        reader.read(readChars);
-        writer.write(readChars);
-        reader.read(echoChars);
+        reader.read(readCharsA);
+        writer.write(readCharsA);
+        reader.read(readCharsB);
 
         k3po.join();
-        assertArrayEquals(readChars, echoChars);
+        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
@@ -285,18 +287,19 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readChars = new char[0];
-        char[] echoChars = new char[0];
+        char[] readCharsA = new char[0];
+        char[] readCharsB = new char[0];
 
-        reader.read(readChars);
-        writer.write(readChars);
-        reader.read(echoChars);
+        reader.read(readCharsA);
+        writer.write(readCharsA);
+        reader.read(readCharsB);
 
         k3po.join();
-        assertArrayEquals(readChars, echoChars);
+        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
+    @Ignore
     @Specification({
         "server.echo.text.payload.length.125.fragmented/handshake.response.and.frames" })
     public void shouldEchoServerSendTextFrameWithPayloadFragmented() throws Exception {
@@ -307,23 +310,38 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readChars = new char[125];
-        char[] echoChars = new char[125];
+        char[] readCharsA = new char[125];
+        char[] readCharsB = new char[125];
 
-        int n = reader.read(readChars);
-        writer.write(readChars, 0 , n);
-        reader.read(echoChars, 0, n);
+        int n = reader.read(readCharsA);
+        writer.write(readCharsA, 0 , n);
+        reader.read(readCharsB, 0, n);
 
         k3po.join();
-        assertArrayEquals(readChars, echoChars);
+        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
+    @Ignore
     @Specification({
-        "server.echo.text.payload.length.125.fragmented.but.not.utf8.aligned/handshake.request.and.frame",
         "server.echo.text.payload.length.125.fragmented.but.not.utf8.aligned/handshake.response.and.frames" })
     public void shouldEchoServerSendTextFrameWithPayloadFragmentedEvenWhenNotUTF8Aligned() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        char[] readCharsA = new char[125];
+        char[] readCharsB = new char[125];
+
+        int n = reader.read(readCharsA);
+        writer.write(readCharsA, 0 , n);
+        reader.read(readCharsB, 0, n);
+
         k3po.join();
+        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
@@ -338,15 +356,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readChars = new char[125];
-        char[] echoChars = new char[125];
+        char[] readCharsA = new char[125];
+        char[] readCharsB = new char[125];
 
-        reader.read(readChars);
-        writer.write(readChars);
-        reader.read(echoChars);
+        reader.read(readCharsA);
+        writer.write(readCharsA);
+        reader.read(readCharsB);
 
         k3po.join();
-        assertArrayEquals(readChars, echoChars);
+        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
@@ -361,15 +379,15 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readChars = new char[125];
-        char[] echoChars = new char[125];
+        char[] readCharsA = new char[125];
+        char[] readCharsB = new char[125];
 
-        reader.read(readChars);
-        writer.write(readChars);
-        reader.read(echoChars);
+        reader.read(readCharsA);
+        writer.write(readCharsA);
+        reader.read(readCharsB);
 
         k3po.join();
-        assertArrayEquals(readChars, echoChars);
+        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
@@ -384,64 +402,419 @@ public class FragmentationIT {
         MessageWriter writer = connection.getMessageWriter();
         MessageReader reader = connection.getMessageReader();
 
-        char[] readChars = new char[125];
-        char[] echoChars = new char[125];
+        char[] readCharsA = new char[125];
+        char[] readCharsB = new char[125];
 
-        reader.read(readChars);
-        writer.write(readChars);
-        reader.read(echoChars);
+        reader.read(readCharsA);
+        writer.write(readCharsA);
+        reader.read(readCharsB);
 
         k3po.join();
-        assertArrayEquals(readChars, echoChars);
+        assertArrayEquals(readCharsA, readCharsB);
     }
 
     @Test
     @Specification({
-        "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.request.and.frame",
         "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinued() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            input.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
         k3po.join();
+        assertEquals(1, expectedException.get());
     }
 
     @Test
     @Specification({
-        "server.send.close.payload.length.2.fragmented/handshake.request.and.frame",
+        "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinuedUsingReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readChars);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
+        "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinuedUsingMessageReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
         "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            input.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
         k3po.join();
+        assertEquals(1, expectedException.get());
     }
 
     @Test
     @Specification({
-        "server.send.continuation.payload.length.125.fragmented/handshake.request.and.frame",
+        "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmentedUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readChars);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
+    "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
         "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            input.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
         k3po.join();
+        assertEquals(1, expectedException.get());
     }
 
     @Test
     @Specification({
-        "server.send.continuation.payload.length.125.not.fragmented/handshake.request.and.frame",
+        "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmentedUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readChars);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
+        "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmentedUsingMessageReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
         "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            input.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
         k3po.join();
+        assertEquals(1, expectedException.get());
     }
 
     @Test
     @Specification({
-        "server.send.ping.payload.length.0.fragmented/handshake.request.and.frame",
+        "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmentedUsingReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readChars);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
+        "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmentedUsingMessageReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
         "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            input.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
         k3po.join();
+        assertEquals(1, expectedException.get());
     }
 
     @Test
     @Specification({
-        "server.send.pong.payload.length.0.fragmented/handshake.request.and.frame",
+        "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmentedUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readChars);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
+        "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
         "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            input.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
         k3po.join();
+        assertEquals(1, expectedException.get());
     }
+
+    @Test
+    @Specification({
+        "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmentedUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readChars);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+    @Test
+    @Specification({
+        "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+        AtomicInteger expectedException = new AtomicInteger();
+
+        try {
+            reader.read(readBytes);
+        }
+        catch (IOException ex) {
+            expectedException.incrementAndGet();
+        }
+        k3po.join();
+        assertEquals(1, expectedException.get());
+    }
+
+
 
     private static class RandomString {
 

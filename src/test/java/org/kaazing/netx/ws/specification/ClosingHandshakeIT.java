@@ -25,7 +25,6 @@ import java.io.Reader;
 import java.net.URI;
 import java.util.Random;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -191,7 +190,6 @@ public class ClosingHandshakeIT {
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.send.close.frame.with.code.1000.and.reason/handshake.response.and.frame" })
     public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000AndReason() throws Exception {
@@ -205,7 +203,6 @@ public class ClosingHandshakeIT {
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.send.close.frame.with.code.1000.and.reason/handshake.response.and.frame" })
     public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000AndReasonUsingReader() throws Exception {
@@ -219,7 +216,6 @@ public class ClosingHandshakeIT {
     }
 
     @Test
-    @Ignore
     @Specification({
         "server.send.close.frame.with.code.1000.and.reason/handshake.response.and.frame" })
     public void shouldCompleteCloseHandshakeWhenServerSendCloseFrameWithCode1000AndReasonUsingMessageReader() throws Exception {

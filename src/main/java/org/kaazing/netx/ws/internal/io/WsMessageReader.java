@@ -47,7 +47,7 @@ public final class WsMessageReader extends MessageReader {
     private int codePoint;
 
     private enum State {
-        READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
+        INITIAL, READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
     };
 
     public WsMessageReader(HttpURLConnection connection, WsOutputStream out) throws IOException {
@@ -63,7 +63,7 @@ public final class WsMessageReader extends MessageReader {
         this.in = connection.getInputStream();
         this.out = out;
         this.header = new byte[10];
-        this.state = State.READ_FLAGS_AND_OPCODE;
+        this.state = State.INITIAL;
         this.payloadOffset = -1;
     }
 
@@ -80,6 +80,7 @@ public final class WsMessageReader extends MessageReader {
 
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
         switch (state) {
+        case INITIAL:
         case READ_FLAGS_AND_OPCODE:
             readHeaderByte();
             break;
@@ -122,7 +123,7 @@ public final class WsMessageReader extends MessageReader {
             }
         } while (!finalFrame);
 
-        state = State.READ_FLAGS_AND_OPCODE;
+        state = State.INITIAL;
         return offset - mark;
     }
 
@@ -139,6 +140,7 @@ public final class WsMessageReader extends MessageReader {
 
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
         switch (state) {
+        case INITIAL:
         case READ_FLAGS_AND_OPCODE:
             readHeaderByte();
             break;
@@ -180,7 +182,7 @@ public final class WsMessageReader extends MessageReader {
             }
         } while (!finalFrame);
 
-        state = State.READ_FLAGS_AND_OPCODE;
+        state = State.INITIAL;
         return offset - mark;
     }
 
@@ -192,6 +194,7 @@ public final class WsMessageReader extends MessageReader {
     @Override
     public synchronized MessageType next() throws IOException {
         switch (state) {
+        case INITIAL:
         case READ_FLAGS_AND_OPCODE:
             readHeaderByte();
             break;
@@ -211,7 +214,7 @@ public final class WsMessageReader extends MessageReader {
     }
 
     private synchronized int readHeaderByte() throws IOException {
-        assert state == State.READ_FLAGS_AND_OPCODE;
+        assert state == State.READ_FLAGS_AND_OPCODE || state == State.INITIAL;
 
         int headerByte = in.read();
         if (headerByte == -1) {
@@ -237,16 +240,41 @@ public final class WsMessageReader extends MessageReader {
         int opcode = headerByte & 0x0F;
         switch (opcode) {
         case 0x00:
+            if (state == State.INITIAL) {
+                // The first frame cannot be a fragmented frame..
+                out.writeClose(1002, null);
+                connection.disconnect();
+                throw new IOException(format("Protocol Violation: First frame cannot be a fragmented frame", opcode));
+            }
             break;
         case 0x01:
+            if (state == State.READ_FLAGS_AND_OPCODE) {
+                // In a subsequent fragmented frame, the opcode should NOT be set.
+                out.writeClose(1002, null);
+                connection.disconnect();
+                throw new IOException(format("Protocol Violation: Opcode 0x%02X expected only in the initial frame", opcode));
+            }
             type = MessageType.TEXT;
             break;
         case 0x02:
+            if (state == State.READ_FLAGS_AND_OPCODE) {
+                // In a subsequent fragmented frame, the opcode should NOT be set.
+                out.writeClose(1002, null);
+                connection.disconnect();
+                throw new IOException(format("Protocol Violation: Opcode 0x%02X expected only in the initial frame", opcode));
+            }
             type = MessageType.BINARY;
             break;
         case 0x08:
         case 0x09:
         case 0x0A:
+            if (!fin) {
+                // Control frames cannot be fragmented.
+                out.writeClose(1002, null);
+                connection.disconnect();
+                throw new IOException(format("Protocol Violation: Fragmented control frame 0x%02X", headerByte));
+            }
+
             filterControlFrames();
             if ((header[0] & 0x0F) == 0x08) {
                 type = MessageType.EOS;
@@ -342,7 +370,7 @@ public final class WsMessageReader extends MessageReader {
 
         // Read the entire payload from the current frame into the buffer.
         while (payloadOffset < payloadLength) {
-            assert len + offset <= buf.length;
+            assert offset + payloadLength <= buf.length;
 
             bytesRead = in.read(buf, offset, (int) Math.min(len, payloadLength));
             if (bytesRead == -1) {
@@ -389,6 +417,7 @@ public final class WsMessageReader extends MessageReader {
                     toChars(codePoint, cbuf, offset);
                     offset += charCount;
                     codePoint = 0;
+                    break;
                 }
 
                 // detect EOF
@@ -481,17 +510,8 @@ public final class WsMessageReader extends MessageReader {
                 }
             }
 
-            if (out.wasCloseSent()) {
-                // If the client had earlier initiated a CLOSE and this is server's response as part of the CLOSE handshake,
-                // then we should close the connection.
-                connection.disconnect();
-            }
-            else {
-                // The server has initiated a CLOSE. The client should reflect the CLOSE including the code(if any) to
-                // complete the CLOSE handshake and then close the connection.
-                out.writeClose(code, reason);
-                connection.disconnect();
-            }
+            out.writeClose(code, reason);
+            connection.disconnect();
             break;
 
         case 0x09:

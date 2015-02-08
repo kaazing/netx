@@ -68,6 +68,13 @@ public final class WsInputStream extends InputStream {
                 header[headerOffset++] = (byte) headerByte;
                 switch (headerOffset) {
                 case 1:
+                    if ((headerByte & 0x80) == 0) {
+                        // Incorrect use of InputStream.
+                        out.writeClose(1002, null);
+                        connection.disconnect();
+                        throw new IOException("Incorrect use of InputStream. Use MessageReader to read fragmented frames.");
+                    }
+
                     int flags = (header[0] & 0xF0) >> 4;
                     switch (flags) {
                     case 0:
@@ -75,13 +82,18 @@ public final class WsInputStream extends InputStream {
                         break;
                     default:
                         out.writeClose(1002, null);
-                        in.close();
-                        throw new IOException(format("Protocol Violation: Reserved bits set %02X", flags));
+                        connection.disconnect();
+                        throw new IOException(format("Protocol Violation: Reserved bits set 0x%02X", flags));
                     }
 
                     int opcode = header[0] & 0x0F;
                     switch (opcode) {
                     case 0x00:
+                        // Incorrect use of InputStream.
+                        out.writeClose(1002, null);
+                        connection.disconnect();
+                        throw new IOException("Incorrect use of InputStream. Use MessageReader to read fragmented frames.");
+
                     case 0x02:
                     case 0x08:
                     case 0x09:
@@ -221,17 +233,8 @@ public final class WsInputStream extends InputStream {
                 }
             }
 
-            if (out.wasCloseSent()) {
-                // If the client had earlier initiated a CLOSE and this is server's response as part of the CLOSE handshake,
-                // then we should close the connection.
-                connection.disconnect();
-            }
-            else {
-                // The server has initiated a CLOSE. The client should reflect the CLOSE including the code(if any) to
-                // complete the CLOSE handshake and then close the connection.
-                out.writeClose(code, reason);
-                connection.disconnect();
-            }
+            out.writeClose(code, reason);
+            connection.disconnect();
             break;
 
         case 0x09:
