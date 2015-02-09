@@ -161,7 +161,7 @@ public class DataFramingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         char[] cbuf = new char[0];
- 
+
         try {
             for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
