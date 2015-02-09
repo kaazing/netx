@@ -17,15 +17,15 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URI;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -79,7 +79,7 @@ public class ControlIT {
         k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "client.send.close.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenClientSendCloseFrameWithPayloadTooLong() throws Exception {
@@ -88,17 +88,13 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         String reason = new RandomString(124).nextString();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             connection.close(1000, reason);
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
     @Test
@@ -131,7 +127,7 @@ public class ControlIT {
         k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "client.send.ping.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenClientSendPingFrameWithPayloadTooLong() throws Exception {
@@ -144,8 +140,12 @@ public class ControlIT {
         byte[] buf = new byte[126];
         random.nextBytes(buf);
 
-        out.writePing(buf);
-        k3po.join();
+        try {
+            out.writePing(buf);
+        }
+        finally {
+            k3po.join();
+        }
     }
 
     @Test
@@ -178,7 +178,7 @@ public class ControlIT {
         k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "client.send.pong.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenClientSendPongFrameWithPayloadTooLong() throws Exception {
@@ -191,8 +191,12 @@ public class ControlIT {
         byte[] buf = new byte[126];
         random.nextBytes(buf);
 
-        out.writePong(buf);
-        k3po.join();
+        try {
+            out.writePong(buf);
+        }
+        finally {
+            k3po.join();
+        }
     }
 
     @Test
@@ -298,7 +302,7 @@ public class ControlIT {
         k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadTooLong() throws Exception {
@@ -307,11 +311,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        input.read();
-        k3po.join();
+
+        try {
+            input.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadTooLongUsingReader() throws Exception {
@@ -320,11 +329,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        reader.read();
-        k3po.join();
+
+        try {
+            reader.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadTooLongUsingMessageReader() throws Exception {
@@ -334,19 +348,22 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
 
-        while ((type = reader.next()) != MessageType.EOS) {
-            switch (type) {
-            case BINARY:
-                reader.read(readBytes);
-                break;
-            default:
-                assertTrue(type == MessageType.BINARY);
-                break;
+        try {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+                switch (type) {
+                case BINARY:
+                    reader.read(readBytes);
+                    break;
+                default:
+                    assertSame(MessageType.BINARY, type);
+                    break;
+                }
             }
         }
-        k3po.join();
+        finally {
+            k3po.join();
+        }
     }
 
     @Test
@@ -451,7 +468,7 @@ public class ControlIT {
         k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.ping.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadTooLong() throws Exception {
@@ -460,20 +477,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             input.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.ping.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadTooLongUsingReader() throws Exception {
@@ -482,20 +495,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             reader.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.ping.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadTooLongUsingMessageReader() throws Exception {
@@ -505,28 +514,22 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
-
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
     @Test
@@ -538,17 +541,10 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
-        try {
-            input.read();
-        }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
-        }
+        input.read();
 
         k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
     @Test
@@ -560,17 +556,10 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
-        try {
-            reader.read();
-        }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
-        }
+        reader.read();
 
         k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
     @Test
@@ -583,27 +572,22 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
     @Test
@@ -615,17 +599,10 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
-        try {
-            input.read();
-        }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
-        }
+        input.read();
 
         k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
     @Test
@@ -637,17 +614,10 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
-        try {
-            reader.read();
-        }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
-        }
+        reader.read();
 
         k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
     @Test
@@ -658,32 +628,27 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        AtomicInteger exceptionCaught = new AtomicInteger();
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadTooLong() throws Exception {
@@ -692,20 +657,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             input.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadTooLongUsingReader() throws Exception {
@@ -714,20 +675,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             reader.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.126/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadTooLongUsingMessageReader() throws Exception {
@@ -735,32 +692,27 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        AtomicInteger exceptionCaught = new AtomicInteger();
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0b/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode11Frame() throws Exception {
@@ -769,20 +721,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             input.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0b/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode11FrameUsingReader() throws Exception {
@@ -791,20 +739,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             reader.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0b/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode11FrameUsingMessageReader() throws Exception {
@@ -812,109 +756,91 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        AtomicInteger exceptionCaught = new AtomicInteger();
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
-    "server.send.opcode.0x0c/handshake.response.and.frame" })
+        "server.send.opcode.0x0c/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode12Frame() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             input.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
-    "server.send.opcode.0x0c/handshake.response.and.frame" })
+        "server.send.opcode.0x0c/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode12FrameUsingReader() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             reader.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
-    "server.send.opcode.0x0c/handshake.response.and.frame" })
+        "server.send.opcode.0x0c/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode12FrameUsingMessageReader() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        AtomicInteger exceptionCaught = new AtomicInteger();
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0d/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode13Frame() throws Exception {
@@ -923,20 +849,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             input.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0d/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode13FrameUsingReader() throws Exception {
@@ -945,20 +867,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             reader.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0d/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode13FrameUsingMessageReader() throws Exception {
@@ -966,32 +884,27 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        AtomicInteger exceptionCaught = new AtomicInteger();
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0e/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode14Frame() throws Exception {
@@ -1000,20 +913,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             input.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0e/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode14FrameUsingReader() throws Exception {
@@ -1022,20 +931,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             reader.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0e/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode14FrameUsingMessageReader() throws Exception {
@@ -1043,32 +948,27 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        AtomicInteger exceptionCaught = new AtomicInteger();
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0f/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode15Frame() throws Exception {
@@ -1077,20 +977,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             input.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0f/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode15FrameUsingReader() throws Exception {
@@ -1099,20 +995,16 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
 
         try {
             reader.read();
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x0f/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode15FrameUsingMessageReader() throws Exception {
@@ -1120,29 +1012,25 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        AtomicInteger exceptionCaught = new AtomicInteger();
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
-        MessageType type = null;
+
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(readBytes);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (Exception ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-
-        k3po.join();
-        assertEquals(1, exceptionCaught.get());
     }
 
 

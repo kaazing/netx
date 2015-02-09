@@ -17,15 +17,13 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URI;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,7 +51,7 @@ public class DataFramingIT {
 
     // TODO: invalid UTF-8 in text frame (opcode 0x01) RFC-6455, section 8.1
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x03/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode3Frame() throws Exception {
@@ -62,18 +60,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             input.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x03/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode3FrameUsingReader() throws Exception {
@@ -82,18 +78,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             reader.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x03/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode3FrameUsingMessageReader() throws Exception {
@@ -103,28 +97,25 @@ public class DataFramingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         char[] cbuf = new char[0];
-        MessageType type = null;
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case TEXT:
                     reader.read(cbuf);
                     break;
                 default:
-                    assertTrue(type == MessageType.TEXT);
+                    assertSame(MessageType.TEXT, type);
                     break;
                 }
             }
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x04/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode4Frame() throws Exception {
@@ -133,18 +124,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             input.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x04/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode4FrameUsingReader() throws Exception {
@@ -153,18 +142,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             reader.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x04/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode4FrameUsingMessageReader() throws Exception {
@@ -174,28 +161,25 @@ public class DataFramingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         char[] cbuf = new char[0];
-        MessageType type = null;
-        AtomicInteger exceptionCaught = new AtomicInteger();
+ 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case TEXT:
                     reader.read(cbuf);
                     break;
                 default:
-                    assertTrue(type == MessageType.TEXT);
+                    assertSame(MessageType.TEXT, type);
                     break;
                 }
             }
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x05/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode5Frame() throws Exception {
@@ -204,18 +188,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             input.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x05/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode5FrameUsingReader() throws Exception {
@@ -224,18 +206,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             reader.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x05/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode5FrameUsingMessageReader() throws Exception {
@@ -245,28 +225,25 @@ public class DataFramingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         char[] cbuf = new char[0];
-        MessageType type = null;
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case TEXT:
                     reader.read(cbuf);
                     break;
                 default:
-                    assertTrue(type == MessageType.TEXT);
+                    assertSame(MessageType.TEXT, type);
                     break;
                 }
             }
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x06/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode6Frame() throws Exception {
@@ -275,18 +252,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             input.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x06/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode6FrameUsingReader() throws Exception {
@@ -295,18 +270,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             reader.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x06/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode6FrameUsingMessageReader() throws Exception {
@@ -316,28 +289,25 @@ public class DataFramingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         char[] cbuf = new char[0];
-        MessageType type = null;
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case TEXT:
                     reader.read(cbuf);
                     break;
                 default:
-                    assertTrue(type == MessageType.TEXT);
+                    assertSame(MessageType.TEXT, type);
                     break;
                 }
             }
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x07/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode7Frame() throws Exception {
@@ -346,18 +316,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             input.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x07/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode7FrameUsingReader() throws Exception {
@@ -366,18 +334,16 @@ public class DataFramingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             reader.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.opcode.0x07/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendOpcode7FrameUsingMessageReader() throws Exception {
@@ -387,25 +353,22 @@ public class DataFramingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         char[] cbuf = new char[0];
-        MessageType type = null;
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case TEXT:
                     reader.read(cbuf);
                     break;
                 default:
-                    assertTrue(type == MessageType.TEXT);
+                    assertSame(MessageType.TEXT, type);
                     break;
                 }
             }
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
 }

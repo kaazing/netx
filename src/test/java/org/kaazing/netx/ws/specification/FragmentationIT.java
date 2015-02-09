@@ -28,7 +28,6 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.URI;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -376,7 +375,7 @@ public class FragmentationIT {
         k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinued() throws Exception {
@@ -386,19 +385,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             input.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinuedUsingReader()
@@ -409,19 +405,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         char[] readChars = new char[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readChars);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinuedUsingMessageReader()
@@ -432,19 +425,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmented() throws Exception {
@@ -454,19 +444,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             input.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmentedUsingReader() throws Exception {
@@ -476,19 +463,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         char[] readChars = new char[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readChars);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
     "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
@@ -498,19 +482,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmented() throws Exception {
@@ -520,19 +501,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             input.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmentedUsingReader() throws Exception {
@@ -542,19 +520,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         char[] readChars = new char[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readChars);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmentedUsingMessageReader()
@@ -565,19 +540,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmented() throws Exception {
@@ -587,19 +559,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             input.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmentedUsingReader()
@@ -610,19 +579,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         char[] readChars = new char[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readChars);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmentedUsingMessageReader()
@@ -633,19 +599,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmented() throws Exception {
@@ -655,19 +618,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             input.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmentedUsingReader() throws Exception {
@@ -677,19 +637,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         char[] readChars = new char[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readChars);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
@@ -699,19 +656,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmented() throws Exception {
@@ -721,19 +675,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             input.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmentedUsingReader() throws Exception {
@@ -743,19 +694,16 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         char[] readChars = new char[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readChars);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
     public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
@@ -765,30 +713,27 @@ public class FragmentationIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[125];
-        AtomicInteger expectedException = new AtomicInteger();
 
         try {
             reader.read(readBytes);
         }
-        catch (IOException ex) {
-            expectedException.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        k3po.join();
-        assertEquals(1, expectedException.get());
     }
 
 
 
     private static class RandomString {
 
-        private static final char[] symbols;
+        private static final char[] SYMBOLS;
 
         static {
-          StringBuilder tmp = new StringBuilder();
-          for (char ch = 32; ch <= 126; ++ch) {
-            tmp.append(ch);
-          }
-          symbols = tmp.toString().toCharArray();
+            StringBuilder symbols = new StringBuilder();
+            for (char ch = 32; ch <= 126; ++ch) {
+                symbols.append(ch);
+            }
+            SYMBOLS = symbols.toString().toCharArray();
         }
 
         private final Random random = new Random();
@@ -804,7 +749,7 @@ public class FragmentationIT {
 
         public String nextString() {
           for (int idx = 0; idx < buf.length; ++idx) {
-            buf[idx] = symbols[random.nextInt(symbols.length)];
+            buf[idx] = SYMBOLS[random.nextInt(SYMBOLS.length)];
           }
 
           return new String(buf);

@@ -17,15 +17,13 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URI;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -53,7 +51,7 @@ public class MaskingIT {
     @Rule
     public final TestRule chain = outerRule(k3po).around(timeout);
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.masked.text/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendsMaskWithTextFrame() throws Exception {
@@ -62,18 +60,16 @@ public class MaskingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             reader.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.masked.text/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendsMaskWithTextFrameUsingMessageReader() throws Exception {
@@ -83,28 +79,25 @@ public class MaskingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         char[] cbuf = new char[0];
-        MessageType type = null;
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case TEXT:
                     reader.read(cbuf);
                     break;
                 default:
-                    assertTrue(type == MessageType.TEXT);
+                    assertSame(MessageType.TEXT, type);
                     break;
                 }
             }
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.masked.binary/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendsMaskWithBinaryFrame() throws Exception {
@@ -113,18 +106,16 @@ public class MaskingIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
             input.read();
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.masked.binary/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendsMaskWithBinaryFrameUsingMessageReader() throws Exception {
@@ -134,24 +125,21 @@ public class MaskingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         MessageReader reader = connection.getMessageReader();
         byte[] buf = new byte[0];
-        MessageType type = null;
-        AtomicInteger exceptionCaught = new AtomicInteger();
+
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
                 switch (type) {
                 case BINARY:
                     reader.read(buf);
                     break;
                 default:
-                    assertTrue(type == MessageType.BINARY);
+                    assertSame(MessageType.BINARY, type);
                     break;
                 }
             }
         }
-        catch (IOException ex) {
-            exceptionCaught.incrementAndGet();
+        finally {
+            k3po.join();
         }
-        assertEquals(1, exceptionCaught.get());
-        k3po.join();
     }
 }
