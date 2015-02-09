@@ -38,6 +38,11 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     @Override
+    public void close() throws IOException {
+        out.close();
+    }
+
+    @Override
     public void write(int b) throws IOException {
         write(new byte[] { (byte) b });
     }
@@ -124,16 +129,7 @@ public final class WsOutputStream extends FilterOutputStream {
             }
 
             out.write(masked);
-
-            // ### TODO: Check if there are better alternatives.
-            // Give opportunity to the server to complete the CLOSE handshake by sleeping for 100ms. Without this K3PO is
-            // complaints as the client closes the connection after sending the CLOSE frame.
-//            try {
-//                Thread.sleep(100);
-//            } catch (InterruptedException e) {
-//                // TODO Auto-generated catch block
-//                e.printStackTrace();
-//            }
+            out.flush();
         }
     }
 

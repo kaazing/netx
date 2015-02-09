@@ -38,14 +38,11 @@ import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.internal.io.WsOutputStream;
 
 /**
  * RFC-6455, section 5.5 "Control Frames"
  */
 public class ControlIT {
-    private final Random random = new Random();
-
     private final K3poRule k3po = new K3poRule().setScriptRoot("org/kaazing/specification/ws/control");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
@@ -91,108 +88,6 @@ public class ControlIT {
 
         try {
             connection.close(1000, reason);
-        }
-        finally {
-            k3po.join();
-        }
-    }
-
-    @Test
-    @Specification({
-        "client.send.ping.payload.length.0/handshake.response.and.frame" })
-    public void shouldPongClientPingFrameWithEmptyPayload() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        WsOutputStream output = (WsOutputStream) connection.getOutputStream();
-        output.writePing(null);
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.send.ping.payload.length.125/handshake.response.and.frame" })
-    public void shouldPongClientPingFrameWithPayload() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        WsOutputStream out = (WsOutputStream) connection.getOutputStream();
-
-        byte[] buf = new byte[125];
-        random.nextBytes(buf);
-
-        out.writePing(buf);
-        k3po.join();
-    }
-
-    @Test(expected = IOException.class)
-    @Specification({
-        "client.send.ping.payload.length.126/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenClientSendPingFrameWithPayloadTooLong() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        WsOutputStream out = (WsOutputStream) connection.getOutputStream();
-
-        byte[] buf = new byte[126];
-        random.nextBytes(buf);
-
-        try {
-            out.writePing(buf);
-        }
-        finally {
-            k3po.join();
-        }
-    }
-
-    @Test
-    @Specification({
-        "client.send.pong.payload.length.0/handshake.response.and.frame" })
-    public void shouldReceiveClientPongFrameWithEmptyPayload() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        WsOutputStream output = (WsOutputStream) connection.getOutputStream();
-        output.writePong(null);
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.send.pong.payload.length.125/handshake.response.and.frame" })
-    public void shouldReceiveClientPongFrameWithPayload() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        WsOutputStream out = (WsOutputStream) connection.getOutputStream();
-
-        byte[] buf = new byte[125];
-        random.nextBytes(buf);
-
-        out.writePong(buf);
-        k3po.join();
-    }
-
-    @Test(expected = IOException.class)
-    @Specification({
-        "client.send.pong.payload.length.126/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenClientSendPongFrameWithPayloadTooLong() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        WsOutputStream out = (WsOutputStream) connection.getOutputStream();
-
-        byte[] buf = new byte[126];
-        random.nextBytes(buf);
-
-        try {
-            out.writePong(buf);
         }
         finally {
             k3po.join();
@@ -532,7 +427,7 @@ public class ControlIT {
         }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.0/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithEmptyPayload() throws Exception {
@@ -542,27 +437,33 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
 
-        input.read();
-
-        k3po.join();
+        try {
+            input.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.0/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithEmptyPayloadUsingReader() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
 
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Reader reader = connection.getReader();
+        try {
+            WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+            Reader reader = connection.getReader();
 
-        reader.read();
-
-        k3po.join();
+            reader.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.0/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithEmptyPayloadUsingMessageReader() throws Exception {
@@ -590,7 +491,7 @@ public class ControlIT {
         }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.125/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithPayload() throws Exception {
@@ -600,27 +501,33 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
 
-        input.read();
-
-        k3po.join();
+        try {
+            input.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.125/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithPayloadUsingReader() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
 
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        Reader reader = connection.getReader();
+        try {
+            WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+            Reader reader = connection.getReader();
 
-        reader.read();
-
-        k3po.join();
+            reader.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.pong.payload.length.125/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithPayloadUsingMessageReader() throws Exception {

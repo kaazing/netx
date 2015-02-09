@@ -19,6 +19,11 @@ package org.kaazing.netx.ws.internal.io;
 import static java.lang.Character.charCount;
 import static java.lang.Character.toChars;
 import static java.lang.String.format;
+import static org.kaazing.netx.ws.WsURLConnection.WS_ABNORMAL_CLOSE;
+import static org.kaazing.netx.ws.WsURLConnection.WS_MISSING_STATUS_CODE;
+import static org.kaazing.netx.ws.WsURLConnection.WS_NORMAL_CLOSE;
+import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
+import static org.kaazing.netx.ws.WsURLConnection.WS_UNSUCCESSFUL_TLS_HANDSHAKE;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
@@ -40,7 +45,6 @@ public class WsReader extends Reader {
     private long payloadLength;
     private int codePoint;
     private int remainingBytes;
-    private IOException exception;
 
     public WsReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -54,21 +58,11 @@ public class WsReader extends Reader {
     }
 
     @Override
-    public int read() throws IOException {
-        int n = super.read();
-
-        if (exception != null) {
-            connection.disconnect();
-            throw exception;
-        }
-
-        return n;
-    }
-
-    @Override
     public int read(char[] cbuf, int offset, int length) throws IOException {
         if ((offset < 0) || ((offset + length) > cbuf.length) || (length < 0)) {
-            throw new IndexOutOfBoundsException();
+            int len = offset + length;
+            throw new IndexOutOfBoundsException(format("offset = %d; (offset + length) = %d; buffer length = %d",
+                                                      offset, len, cbuf.length));
         }
 
         int mark = offset;
@@ -80,9 +74,7 @@ public class WsReader extends Reader {
             while (payloadOffset == -1) {
                 int headerByte = in.read();
                 if (headerByte == -1) {
-                    if (exception != null) {
-                        throw exception;
-                    }
+                    connection.disconnect();
                     return -1;
                 }
                 header[headerOffset++] = (byte) headerByte;
@@ -90,8 +82,8 @@ public class WsReader extends Reader {
                 case 1:
                     if ((headerByte & 0x80) == 0) {
                         // Incorrect use of Reader.
-                        connection.doClose(1000, null);
-                        exception = new IOException("Use MessageReader to read fragmented frames.");
+                        connection.doClose(WS_NORMAL_CLOSE, null);
+                        throw new IOException("Use MessageReader to read fragmented frames.");
                     }
 
                     int flags = (header[0] & 0xF0) >> 4;
@@ -100,32 +92,31 @@ public class WsReader extends Reader {
                     case 8:
                         break;
                     default:
-                        connection.doClose(1002, null);
-                        exception = new IOException(format("Protocol Violation: Reserved bits set 0x%02X", flags));
+                        connection.doClose(WS_PROTOCOL_ERROR, null);
+                        throw new IOException(format("Protocol Violation: Reserved bits set 0x%02X", flags));
                     }
 
                     int opcode = header[0] & 0x0F;
                     switch (opcode) {
                     case 0x00:
                         // Incorrect use of Reader.
-                        connection.doClose(1000, null);
-                        exception = new IOException("Use MessageReader to read fragmented frames.");
-
+                        connection.doClose(WS_NORMAL_CLOSE, null);
+                        throw new IOException("Use MessageReader to read fragmented frames.");
                     case 0x01:
                     case 0x08:
                     case 0x09:
                     case 0x0A:
                         break;
                     default:
-                        connection.doClose(1002, null);
-                        exception = new IOException(format("Non-text frame - opcode = 0x%02X", opcode));
+                        connection.doClose(WS_PROTOCOL_ERROR, null);
+                        throw new IOException(format("Non-text frame - opcode = 0x%02X", opcode));
                     }
                     break;
                 case 2:
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
-                        connection.doClose(1002, null);
-                        exception = new IOException("Masked server-to-client frame");
+                        connection.doClose(WS_PROTOCOL_ERROR, null);
+                        throw new IOException("Masked server-to-client frame");
                     }
                     switch (header[1] & 0x7f) {
                     case 126:
@@ -163,9 +154,6 @@ public class WsReader extends Reader {
             // If the current frame is either CLOSE, PING, or PONG, then we just filter out it's bytes.
             filterControlFrames();
             if ((header[0] & 0x0F) == 0x08) {
-                if (exception != null) {
-                    throw exception;
-                }
                 return -1;
             }
 
@@ -200,6 +188,7 @@ public class WsReader extends Reader {
                 // detect EOF
                 b = in.read();
                 if (b == -1) {
+                    connection.disconnect();
                     return offset - mark;
                 }
                 payloadOffset++;
@@ -211,7 +200,8 @@ public class WsReader extends Reader {
             // detect EOF
             b = in.read();
             if (b == -1) {
-                break;
+                connection.disconnect();
+                return -1;
             }
             payloadOffset++;
 
@@ -228,11 +218,6 @@ public class WsReader extends Reader {
                 codePoint = initialDecodeUTF8(remainingBytes, b);
                 break;
             }
-        }
-
-        if (exception != null) {
-            connection.disconnect();
-            throw exception;
         }
 
         if (payloadOffset == payloadLength) {
@@ -265,11 +250,20 @@ public class WsReader extends Reader {
             if (payloadLength >= 2) {
                 // Read the first two bytes as the CLOSE code.
                 int b1 = in.read();
+                if (b1 == -1) {
+                    connection.disconnect();
+                    throw new IOException("End of stream");
+                }
+
                 int b2 = in.read();
+                if (b1 == -1) {
+                    connection.disconnect();
+                    throw new IOException("End of stream");
+                }
 
                 code = ((b1 & 0xFF) << 8) | (b2 & 0xFF);
-                if ((code == 1005) || (code == 1006) || (code == 1015)) {
-                    code = 1002;
+                if ((code == WS_MISSING_STATUS_CODE) || (code == WS_ABNORMAL_CLOSE) || (code == WS_UNSUCCESSFUL_TLS_HANDSHAKE)) {
+                    code = WS_PROTOCOL_ERROR;
                 }
 
                 // If reason is also received, then just drain those bytes.
@@ -278,24 +272,24 @@ public class WsReader extends Reader {
                     int bytesRead = in.read(reason);
 
                     if (bytesRead == -1) {
+                        connection.disconnect();
                         throw new IOException("End of stream");
                     }
 
                     if ((reason.length > 123) || !validBytesUTF8(reason)) {
-                        code = 1002;
+                        code = WS_PROTOCOL_ERROR;
                     }
 
-                    if (code != 1000) {
+                    if (code != WS_NORMAL_CLOSE) {
                         reason = null;
                     }
                 }
             }
 
             connection.doClose(code, reason);
-            connection.disconnect();
 
-            if (exception != null) {
-                throw exception;
+            if (code == WS_PROTOCOL_ERROR) {
+                throw new IOException("Protocol Violation");
             }
             break;
 
@@ -306,13 +300,14 @@ public class WsReader extends Reader {
                 int bytesRead = in.read(buf);
 
                 if (bytesRead == -1) {
+                    connection.disconnect();
                     throw new IOException("End of stream");
                 }
             }
 
             if ((buf != null) && (buf.length > 125)) {
-                connection.doClose(1002, null);
-                exception = new IOException("Protocol Violation: PING payload is more than 125 bytes");
+                connection.doClose(WS_PROTOCOL_ERROR, null);
+                throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
             }
             else {
                 if (opcode == 0x09) {
@@ -325,13 +320,13 @@ public class WsReader extends Reader {
         case 0x0A:
             int closeCode = 0;
             if (payloadLength > 125) {
-                closeCode = 1002;
+                closeCode = WS_PROTOCOL_ERROR;
             }
             connection.doClose(closeCode, null);
-            exception = new IOException("Protocol Violation: Received unexpected PONG");
-            break;
+            throw new IOException("Protocol Violation: Received unexpected PONG");
 
         default:
+            connection.doClose(WS_PROTOCOL_ERROR, null);
             throw new IOException(format("Protocol Violation: Unrecognized opcode %d", opcode));
         }
 

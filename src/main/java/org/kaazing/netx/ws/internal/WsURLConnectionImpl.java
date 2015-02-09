@@ -165,7 +165,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         doClose(code, reasonBytes);
-        readyState = CLOSED;
 
         if ((reasonBytes != null) && (reasonBytes.length > 123)) {
             throw new IOException("Protocol Violation: Reason is longer than 123 bytes");
@@ -478,6 +477,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     public void doClose(int code, byte[] reason) throws IOException {
         getOutputStream().writeClose(code, reason);
+        outputStream.close();
+        disconnect();
+        readyState = CLOSED;
     }
 
     public void doPong(byte[] buf) throws IOException {
@@ -485,14 +487,29 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     public void disconnect() {
-        // ### TODO: To allow K3PO enough time to read before the disconnect, let's sleep for 100ms.
         try {
-            Thread.sleep(100);
+            if (outputStream != null) {
+                outputStream.close();
+            }
+            if (inputStream != null) {
+                inputStream.close();
+            }
+            if (writer != null) {
+                writer.close();
+            }
+            if (reader != null) {
+                reader.close();
+            }
+            if (messageReader != null) {
+                messageReader.close();
+            }
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
-        catch (Exception ex) {
-            ex.printStackTrace();
+        catch (IOException e) {
+            // ignore
         }
-        connection.disconnect();
     }
 
     public Random getRandom() {

@@ -16,6 +16,7 @@
 
 package org.kaazing.netx.ws;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,7 +44,7 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
  * }
  * </pre>
  */
-public abstract class WsURLConnection extends URLConnection {
+public abstract class WsURLConnection extends URLConnection implements Closeable {
     /**
      * Connection has been closed normally.
      */
@@ -125,6 +126,7 @@ public abstract class WsURLConnection extends URLConnection {
      *
      * @throws IOException    if the disconnect did not succeed
      */
+    @Override
     public abstract void close() throws IOException;
 
     /**

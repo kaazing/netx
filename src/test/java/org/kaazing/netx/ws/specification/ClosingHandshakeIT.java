@@ -20,6 +20,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URI;
@@ -239,7 +240,7 @@ public class ClosingHandshakeIT {
         k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8Reason() throws Exception {
@@ -248,11 +249,16 @@ public class ClosingHandshakeIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
-        in.read();
-        k3po.join();
+
+        try {
+            in.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8ReasonUsingReader()
@@ -262,11 +268,16 @@ public class ClosingHandshakeIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        reader.read();
-        k3po.join();
+
+        try {
+            reader.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1000.and.invalid.utf8.reason/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1000AndInvalidUTF8ReasonUsingMessageReader()
@@ -278,17 +289,22 @@ public class ClosingHandshakeIT {
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
-        while ((type = reader.next()) != MessageType.EOS) {
-            switch (type) {
-            case BINARY:
-                reader.read(readBytes);
-                break;
-            default:
-                assertTrue(type == MessageType.BINARY);
-                break;
+
+        try {
+            while ((type = reader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    reader.read(readBytes);
+                    break;
+                default:
+                    assertTrue(type == MessageType.BINARY);
+                    break;
+                }
             }
         }
-        k3po.join();
+        finally {
+            k3po.join();
+        }
     }
 
     @Test
@@ -341,7 +357,7 @@ public class ClosingHandshakeIT {
         k3po.join();
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1005/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1005() throws Exception {
@@ -350,11 +366,16 @@ public class ClosingHandshakeIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
-        in.read();
-        k3po.join();
+
+        try {
+            in.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1005/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1005UsingReader() throws Exception {
@@ -363,11 +384,16 @@ public class ClosingHandshakeIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        reader.read();
-        k3po.join();
+
+        try {
+            reader.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1005/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1005UsingMessageReader() throws Exception {
@@ -378,20 +404,25 @@ public class ClosingHandshakeIT {
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
-        while ((type = reader.next()) != MessageType.EOS) {
-            switch (type) {
-            case BINARY:
-                reader.read(readBytes);
-                break;
-            default:
-                assertTrue(type == MessageType.BINARY);
-                break;
+
+        try {
+            while ((type = reader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    reader.read(readBytes);
+                    break;
+                default:
+                    assertTrue(type == MessageType.BINARY);
+                    break;
+                }
             }
         }
-        k3po.join();
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1006/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1006() throws Exception {
@@ -400,11 +431,16 @@ public class ClosingHandshakeIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
-        in.read();
-        k3po.join();
+
+        try {
+            in.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1006/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1006UsingReader() throws Exception {
@@ -413,11 +449,16 @@ public class ClosingHandshakeIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        reader.read();
-        k3po.join();
+
+        try {
+            reader.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1006/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1006UsingMessageReader() throws Exception {
@@ -428,20 +469,25 @@ public class ClosingHandshakeIT {
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
-        while ((type = reader.next()) != MessageType.EOS) {
-            switch (type) {
-            case BINARY:
-                reader.read(readBytes);
-                break;
-            default:
-                assertTrue(type == MessageType.BINARY);
-                break;
+
+        try {
+            while ((type = reader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    reader.read(readBytes);
+                    break;
+                default:
+                    assertTrue(type == MessageType.BINARY);
+                    break;
+                }
             }
         }
-        k3po.join();
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1015/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1015() throws Exception {
@@ -450,11 +496,16 @@ public class ClosingHandshakeIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
-        in.read();
-        k3po.join();
+
+        try {
+            in.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1015/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1015UsingReader() throws Exception {
@@ -463,11 +514,16 @@ public class ClosingHandshakeIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
-        reader.read();
-        k3po.join();
+
+        try {
+            reader.read();
+        }
+        finally {
+            k3po.join();
+        }
     }
 
-    @Test
+    @Test(expected = IOException.class)
     @Specification({
         "server.send.close.frame.with.code.1015/handshake.response.and.frame" })
     public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithCode1015UsingMessageReader() throws Exception {
@@ -478,17 +534,22 @@ public class ClosingHandshakeIT {
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
-        while ((type = reader.next()) != MessageType.EOS) {
-            switch (type) {
-            case BINARY:
-                reader.read(readBytes);
-                break;
-            default:
-                assertTrue(type == MessageType.BINARY);
-                break;
+
+        try {
+            while ((type = reader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    reader.read(readBytes);
+                    break;
+                default:
+                    assertTrue(type == MessageType.BINARY);
+                    break;
+                }
             }
         }
-        k3po.join();
+        finally {
+            k3po.join();
+        }
     }
 
     private static class RandomString {
