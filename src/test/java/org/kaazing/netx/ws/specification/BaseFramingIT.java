@@ -19,8 +19,9 @@ package org.kaazing.netx.ws.specification;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.MessageType.BINARY;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -102,7 +103,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -167,7 +168,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -232,7 +233,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -297,7 +298,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -362,7 +363,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -427,7 +428,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -492,7 +493,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -557,7 +558,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -624,7 +625,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -689,7 +690,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -756,7 +757,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -823,7 +824,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -891,7 +892,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -959,7 +960,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }

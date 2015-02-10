@@ -37,6 +37,24 @@ import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public final class WsMessageReader extends MessageReader {
+    private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
+    private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
+    private static final String MSG_NON_BINARY_FRAME = "Non-text frame - opcode = 0x%02X";
+    private static final String MSG_NON_TEXT_FRAME = "Non-binary frame - opcode = 0x%02X";
+    private static final String MSG_MASKED_FRAME_FROM_SERVER = "Masked server-to-client frame";
+    private static final String MSG_END_OF_STREAM = "End of stream";
+    private static final String MSG_BUFFER_SIZE_SMALL = "Buffer size %d too small for payload size %d";
+    private static final String MSG_PING_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PING payload is more than %d bytes";
+    private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
+    private static final String MSG_PONG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PONG payload is more than %d bytes";
+    private static final String MSG_UNRECOGNIZED_OPCODE = "Protocol Violation: Unrecognized opcode %d";
+    private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
+    private static final String MSG_FIRST_FRAME_FRAGMENTED = "Protocol Violation: First frame cannot be a fragmented frame";
+    private static final String MSG_UNEXPECTED_OPCODE = "Protocol Violation: Opcode 0x%02X expected only in the initial frame";
+    private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
+
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
+
     private final WsURLConnectionImpl connection;
     private final InputStream in;
     private final byte[] header;
@@ -56,7 +74,7 @@ public final class WsMessageReader extends MessageReader {
 
     public WsMessageReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
-            throw new NullPointerException("Null HttpURLConnection passed in");
+            throw new NullPointerException(MSG_NULL_CONNECTION);
         }
 
         this.connection = connection;
@@ -74,10 +92,8 @@ public final class WsMessageReader extends MessageReader {
     @Override
     public synchronized int read(byte[] buf, int offset, int length) throws IOException {
         if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
-            connection.doClose(WS_NORMAL_CLOSE, null);
             int len = offset + length;
-            throw new IndexOutOfBoundsException(format("offset = %d; (offset + length) = %d; buffer length = %d",
-                                                      offset, len, buf.length));
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
         }
 
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
@@ -92,11 +108,9 @@ public final class WsMessageReader extends MessageReader {
 
         switch (type) {
         case EOS:
-            connection.disconnect();
-            throw new IOException("Connection is closed");
+            return -1;
         case TEXT:
-            connection.doClose(WS_NORMAL_CLOSE, null);
-            throw new IOException("Cannot decode the payload as a binary message");
+            throw new IOException(MSG_NON_BINARY_FRAME);
         default:
             break;
         }
@@ -108,8 +122,7 @@ public final class WsMessageReader extends MessageReader {
         do {
             int retval = readPayloadLength();
             if (retval == -1) {
-                connection.disconnect();
-                throw new IOException("End of stream before the entire payload could be read into the buffer");
+                connection.doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
             }
 
             bytesRead = readBinary(buf, offset, length);
@@ -138,10 +151,8 @@ public final class WsMessageReader extends MessageReader {
     @Override
     public synchronized int read(char[] buf, int offset, int length) throws IOException {
         if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
-            connection.doClose(WS_NORMAL_CLOSE, null);
             int len = offset + length;
-            throw new IndexOutOfBoundsException(format("offset = %d; (offset + length) = %d; buffer length = %d",
-                                                      offset, len, buf.length));
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
         }
 
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
@@ -156,11 +167,9 @@ public final class WsMessageReader extends MessageReader {
 
         switch (type) {
         case EOS:
-            connection.disconnect();
-            throw new IOException("Connection is closed");
+            return -1;
         case BINARY:
-            connection.doClose(WS_NORMAL_CLOSE, null);
-            throw new IOException("Cannot decode the payload as a text message");
+            throw new IOException(MSG_NON_TEXT_FRAME);
         default:
             break;
         }
@@ -172,8 +181,7 @@ public final class WsMessageReader extends MessageReader {
         do {
             int retval = readPayloadLength();
             if (retval == -1) {
-                connection.disconnect();
-                throw new IOException("End of stream before the entire payload could be read into the buffer");
+                connection.doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
             }
 
             charsRead = readText(buf, offset, length);
@@ -213,8 +221,6 @@ public final class WsMessageReader extends MessageReader {
         return type;
     }
 
-
-    // ### TODO: May not need this.
     public void close() throws IOException {
         in.close();
         type = null;
@@ -226,7 +232,6 @@ public final class WsMessageReader extends MessageReader {
 
         int headerByte = in.read();
         if (headerByte == -1) {
-            connection.disconnect();
             type = MessageType.EOS;
             return -1;
         }
@@ -241,8 +246,8 @@ public final class WsMessageReader extends MessageReader {
         case 8:
             break;
         default:
-            connection.doClose(WS_PROTOCOL_ERROR, null);
-            throw new IOException(format("Protocol Violation: Reserved bits set %02X", flags));
+            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_RESERVED_BITS_SET, flags));
+            break;
         }
 
         int opcode = headerByte & 0x0F;
@@ -250,24 +255,21 @@ public final class WsMessageReader extends MessageReader {
         case 0x00:
             if (state == State.INITIAL) {
                 // The first frame cannot be a fragmented frame..
-                connection.doClose(WS_PROTOCOL_ERROR, null);
                 type = MessageType.EOS;
-                throw new IOException(format("Protocol Violation: First frame cannot be a fragmented frame", opcode));
+                connection.doFail(WS_PROTOCOL_ERROR, MSG_FIRST_FRAME_FRAGMENTED);
             }
             break;
         case 0x01:
             if (state == State.READ_FLAGS_AND_OPCODE) {
                 // In a subsequent fragmented frame, the opcode should NOT be set.
-                connection.doClose(WS_PROTOCOL_ERROR, null);
-                throw new IOException(format("Protocol Violation: Opcode 0x%02X expected only in the initial frame", opcode));
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, opcode));
             }
             type = MessageType.TEXT;
             break;
         case 0x02:
             if (state == State.READ_FLAGS_AND_OPCODE) {
                 // In a subsequent fragmented frame, the opcode should NOT be set.
-                connection.doClose(WS_PROTOCOL_ERROR, null);
-                throw new IOException(format("Protocol Violation: Opcode 0x%02X expected only in the initial frame", opcode));
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, opcode));
             }
             type = MessageType.BINARY;
             break;
@@ -276,8 +278,7 @@ public final class WsMessageReader extends MessageReader {
         case 0x0A:
             if (!fin) {
                 // Control frames cannot be fragmented.
-                connection.doClose(WS_PROTOCOL_ERROR, null);
-                throw new IOException(format("Protocol Violation: Fragmented control frame 0x%02X", headerByte));
+                connection.doFail(WS_PROTOCOL_ERROR, MSG_FRAGMENTED_CONTROL_FRAME);
             }
 
             filterControlFrames();
@@ -288,8 +289,8 @@ public final class WsMessageReader extends MessageReader {
             headerByte = readHeaderByte();
             break;
         default:
-            connection.doClose(WS_PROTOCOL_ERROR, null);
-            throw new IOException(format("Protocol Violation: Invalid opcode %d", opcode));
+            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opcode));
+            break;
         }
 
         state = State.READ_PAYLOAD_LENGTH;
@@ -308,8 +309,7 @@ public final class WsMessageReader extends MessageReader {
                 case 2:
                     boolean masked = (header[1] & 0x80) != 0x00;
                     if (masked) {
-                        connection.doClose(WS_PROTOCOL_ERROR, null);
-                        throw new IOException("Masked server-to-client frame");
+                        connection.doFail(WS_PROTOCOL_ERROR, MSG_MASKED_FRAME_FROM_SERVER);
                     }
                     switch (header[1] & 0x7f) {
                     case 126:
@@ -367,9 +367,8 @@ public final class WsMessageReader extends MessageReader {
         int mark = offset;
 
         if (buf.length < (offset + payloadLength)) {
-            connection.doClose(WS_NORMAL_CLOSE, null);
             int size = buf.length - offset;
-            throw new IOException(format("Buffer size (%d) too small for payload size (%d)", size, payloadLength));
+            throw new IOException(format(MSG_BUFFER_SIZE_SMALL, size, payloadLength));
         }
 
         // Read the entire payload from the current frame into the buffer.
@@ -378,8 +377,7 @@ public final class WsMessageReader extends MessageReader {
 
             bytesRead = in.read(buf, offset, (int) Math.min(len, payloadLength));
             if (bytesRead == -1) {
-                connection.disconnect();
-                throw new IOException("End of stream before the entire payload could be read into the buffer");
+                connection.doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
             }
 
             len -= bytesRead;
@@ -412,7 +410,6 @@ public final class WsMessageReader extends MessageReader {
 
             // code point may be split across frames
             while (codePoint != 0 || remainingBytes > 0) {
-
                 // surrogate pair
                 if (codePoint != 0 && remainingBytes == 0) {
                     int charCount = charCount(codePoint);
@@ -472,8 +469,7 @@ public final class WsMessageReader extends MessageReader {
 
         // Unlike WsReader, WsMessageReader has to ensure that the entire payload has been read.
         if (payloadOffset < payloadLength) {
-            connection.doClose(WS_NORMAL_CLOSE, null);
-            throw new IOException("End of stream before the entire payload could be read into the buffer");
+            connection.doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
         }
 
         // Entire WebSocket frame has been read. Reset the state.
@@ -497,38 +493,42 @@ public final class WsMessageReader extends MessageReader {
         switch (opcode) {
         case 0x08:
             int code = 0;
+            int closeCodeRO = 0;
             byte[] reason = null;
 
             if (payloadLength >= 2) {
                 // Read the first two bytes as the CLOSE code.
                 int b1 = in.read();
                 if (b1 == -1) {
-                    connection.disconnect();
-                    throw new IOException("End of stream");
+                    connection.doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
                 }
 
                 int b2 = in.read();
-                if (b1 == -1) {
-                    connection.disconnect();
-                    throw new IOException("End of stream");
+                if (b2 == -1) {
+                    connection.doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
                 }
 
                 code = ((b1 & 0xFF) << 8) | (b2 & 0xFF);
-                if ((code == WS_MISSING_STATUS_CODE) || (code == WS_ABNORMAL_CLOSE) || (code == WS_UNSUCCESSFUL_TLS_HANDSHAKE)) {
+                closeCodeRO = code;
+
+                switch (code) {
+                case WS_MISSING_STATUS_CODE:
+                case WS_ABNORMAL_CLOSE:
+                case WS_UNSUCCESSFUL_TLS_HANDSHAKE:
                     code = WS_PROTOCOL_ERROR;
+                    break;
+                default:
+                    break;
                 }
 
                 // If reason is also received, then just drain those bytes.
                 if (payloadLength > 2) {
                     reason = new byte[(int) (payloadLength - 2)];
-                    int bytesRead = in.read(reason);
+                    int reasonBytesRead = readContrlFramePayload(reason, 0, reason.length);
 
-                    if (bytesRead == -1) {
-                        connection.disconnect();
-                        throw new IOException("End of stream");
-                    }
+                    assert reasonBytesRead == (payloadLength - 2);
 
-                    if ((reason.length > 123) || !validBytesUTF8(reason)) {
+                    if ((reason.length > (MAX_COMMAND_FRAME_PAYLOAD - 2)) || !validBytesUTF8(reason)) {
                         code = WS_PROTOCOL_ERROR;
                     }
 
@@ -541,46 +541,34 @@ public final class WsMessageReader extends MessageReader {
             connection.doClose(code, reason);
 
             if (code == WS_PROTOCOL_ERROR) {
-                throw new IOException("Protocol Violation");
+                throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, reason));
             }
-
             break;
 
         case 0x09:
-            byte[] buf = null;
-            if (payloadLength > 0) {
-                buf = new byte[(int) payloadLength];
-
-                int bytesRead = in.read(buf);
-                if (bytesRead == -1) {
-                    connection.disconnect();
-                    throw new IOException("End of stream");
-                }
+            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PING_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
 
-            if ((buf != null) && (buf.length > 125)) {
-                connection.doClose(WS_PROTOCOL_ERROR, null);
-                throw new IOException("Protocol Violation: PING payload is more than 125 bytes");
-            }
-            else {
-                if (opcode == 0x09) {
-                    // Send the PONG frame out with the same payload that was received with PING.
-                    connection.doPong(buf);
-                }
-            }
+            byte[] pingBuf = new byte[(int) payloadLength];
+            int pingBytesRead = readContrlFramePayload(pingBuf, 0, pingBuf.length);
+
+            assert pingBytesRead == payloadLength;
+            connection.doPong(pingBuf);
             break;
 
         case 0x0A:
-            int closeCode = 0;
-            if (payloadLength > 125) {
-                closeCode = WS_PROTOCOL_ERROR;
+            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PONG_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
-            connection.doClose(closeCode, null);
-            throw new IOException("Protocol Violation: Received unexpected PONG");
+            byte[] pongBuf = new byte[(int) payloadLength];
+            int pongBytesRead = readContrlFramePayload(pongBuf, 0, pongBuf.length);
+            assert pongBytesRead == payloadLength;
+            break;
 
         default:
-            connection.doClose(WS_PROTOCOL_ERROR, null);
-            throw new IOException(format("Protocol Violation: Unrecognized opcode %d", opcode));
+            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opcode));
+            break;
         }
 
         // Get ready to read the next frame after CLOSE frame is sent out.
@@ -588,6 +576,23 @@ public final class WsMessageReader extends MessageReader {
         payloadOffset = -1;
         headerOffset = 0;
         state = State.READ_FLAGS_AND_OPCODE;
+    }
+
+    private int readContrlFramePayload(byte[] buf, int offset, int length) throws IOException {
+        int mark = offset;
+
+        while (offset < buf.length) {
+            int bytesRead = in.read(buf, offset, length);
+
+            if (bytesRead == -1) {
+                connection.doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
+            }
+
+            offset += bytesRead;
+            length -= bytesRead;
+        }
+
+        return offset - mark;
     }
 
     private static int payloadLength(byte[] header) {

@@ -130,6 +130,7 @@ public final class WsOutputStream extends FilterOutputStream {
 
             out.write(masked);
             out.flush();
+            out.close();
         }
     }
 

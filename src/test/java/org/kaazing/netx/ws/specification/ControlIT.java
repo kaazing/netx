@@ -18,8 +18,8 @@ package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.MessageType.BINARY;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -138,7 +138,7 @@ public class ControlIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -189,7 +189,7 @@ public class ControlIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -251,7 +251,7 @@ public class ControlIT {
                     reader.read(readBytes);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -305,7 +305,7 @@ public class ControlIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -356,7 +356,7 @@ public class ControlIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -417,7 +417,7 @@ public class ControlIT {
                     reader.read(readBytes);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -427,7 +427,7 @@ public class ControlIT {
         }
     }
 
-    @Test(expected = IOException.class)
+    @Test
     @Specification({
         "server.send.pong.payload.length.0/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithEmptyPayload() throws Exception {
@@ -437,33 +437,25 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
 
-        try {
-            input.read();
-        }
-        finally {
-            k3po.join();
-        }
+        input.read();
+        k3po.join();
     }
 
-    @Test(expected = IOException.class)
+    @Test
     @Specification({
         "server.send.pong.payload.length.0/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithEmptyPayloadUsingReader() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
 
-        try {
-            WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-            Reader reader = connection.getReader();
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
 
-            reader.read();
-        }
-        finally {
-            k3po.join();
-        }
+        reader.read();
+        k3po.join();
     }
 
-    @Test(expected = IOException.class)
+    @Test
     @Specification({
         "server.send.pong.payload.length.0/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithEmptyPayloadUsingMessageReader() throws Exception {
@@ -474,24 +466,20 @@ public class ControlIT {
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
 
-        try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
-                switch (type) {
-                case BINARY:
-                    reader.read(readBytes);
-                    break;
-                default:
-                    assertSame(MessageType.BINARY, type);
-                    break;
-                }
+        for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertSame(BINARY, type);
+                break;
             }
         }
-        finally {
-            k3po.join();
-        }
+        k3po.join();
     }
 
-    @Test(expected = IOException.class)
+    @Test
     @Specification({
         "server.send.pong.payload.length.125/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithPayload() throws Exception {
@@ -500,34 +488,24 @@ public class ControlIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
-
-        try {
-            input.read();
-        }
-        finally {
-            k3po.join();
-        }
+        input.read();
+        k3po.join();
     }
 
-    @Test(expected = IOException.class)
+    @Test
     @Specification({
         "server.send.pong.payload.length.125/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithPayloadUsingReader() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
 
-        try {
-            WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-            Reader reader = connection.getReader();
-
-            reader.read();
-        }
-        finally {
-            k3po.join();
-        }
+        reader.read();
+        k3po.join();
     }
 
-    @Test(expected = IOException.class)
+    @Test
     @Specification({
         "server.send.pong.payload.length.125/handshake.response.and.frame" })
     public void shouldReceiveServerPongFrameWithPayloadUsingMessageReader() throws Exception {
@@ -538,21 +516,17 @@ public class ControlIT {
         MessageReader reader = connection.getMessageReader();
         byte[] readBytes = new byte[0];
 
-        try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
-                switch (type) {
-                case BINARY:
-                    reader.read(readBytes);
-                    break;
-                default:
-                    assertSame(MessageType.BINARY, type);
-                    break;
-                }
+        for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            switch (type) {
+            case BINARY:
+                reader.read(readBytes);
+                break;
+            default:
+                assertSame(BINARY, type);
+                break;
             }
         }
-        finally {
-            k3po.join();
-        }
+        k3po.join();
     }
 
     @Test(expected = IOException.class)
@@ -609,7 +583,7 @@ public class ControlIT {
                     reader.read(readBytes);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -673,7 +647,7 @@ public class ControlIT {
                     reader.read(readBytes);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -737,7 +711,7 @@ public class ControlIT {
                     reader.read(readBytes);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -801,7 +775,7 @@ public class ControlIT {
                     reader.read(readBytes);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -865,7 +839,7 @@ public class ControlIT {
                     reader.read(readBytes);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -930,7 +904,7 @@ public class ControlIT {
                     reader.read(readBytes);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }

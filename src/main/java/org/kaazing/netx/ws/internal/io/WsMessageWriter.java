@@ -32,6 +32,11 @@ public class WsMessageWriter extends MessageWriter {
         this.writer = connection.getWriter();
     }
 
+    public void close() throws IOException {
+        writer.close();
+        out.close();
+    }
+
     @Override
     public void write(char[] buf) throws IOException {
         write(buf, 0, buf.length);

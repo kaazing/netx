@@ -477,9 +477,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     public void doClose(int code, byte[] reason) throws IOException {
         getOutputStream().writeClose(code, reason);
-        outputStream.close();
         disconnect();
         readyState = CLOSED;
+    }
+
+    public void doFail(int code, String exceptionMessage) throws IOException {
+        doClose(code, null);
+        throw new IOException(exceptionMessage);
     }
 
     public void doPong(byte[] buf) throws IOException {
@@ -491,17 +495,20 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             if (outputStream != null) {
                 outputStream.close();
             }
-            if (inputStream != null) {
-                inputStream.close();
-            }
             if (writer != null) {
                 writer.close();
+            }
+            if (messageReader != null) {
+                messageReader.close();
+            }
+            if (inputStream != null) {
+                inputStream.close();
             }
             if (reader != null) {
                 reader.close();
             }
-            if (messageReader != null) {
-                messageReader.close();
+            if (messageWriter != null) {
+                messageWriter.close();
             }
             if (connection != null) {
                 connection.disconnect();
