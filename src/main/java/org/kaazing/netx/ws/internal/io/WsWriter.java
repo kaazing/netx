@@ -103,21 +103,14 @@ public class WsWriter extends Writer {
             break;
         }
 
-        // Create a section of the buf that is to be written.
-        char[] arr = new char[length];
-        for (int i = 0; i < length; i++) {
-            arr[i] = cbuf[offset + i];
-        }
-
         // Create the masking key.
         connection.getRandom().nextBytes(mask);
         out.write(mask);
 
         // ### TODO: Convert the char[] to UTF-8 byte[] payload instead of creating a String.
-        byte[] bytes = String.valueOf(arr).getBytes("UTF-8");
+        byte[] bytes = String.valueOf(cbuf, offset, length).getBytes("UTF-8");
 
         // Mask the payload.
-
         byte[] masked = new byte[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
             int ioff = offset + i;
