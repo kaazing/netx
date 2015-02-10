@@ -16,6 +16,7 @@
 
 package org.kaazing.netx.ws;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,7 +44,72 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
  * }
  * </pre>
  */
-public abstract class WsURLConnection extends URLConnection {
+public abstract class WsURLConnection extends URLConnection implements Closeable {
+    /**
+     * Connection has been closed normally.
+     */
+    public static final int WS_NORMAL_CLOSE = 1000;
+
+    /**
+     * End-point is going away.
+     */
+    public static final int WS_ENDPOINT_GOING_AWAY = 1001;
+
+    /**
+     * Connection terminated due to protocol error.
+     */
+    public static final int WS_PROTOCOL_ERROR = 1002;
+
+    /**
+     * Connection terminated due to incorrect message type.
+     */
+    public static final int WS_INCORRECT_MESSAGE_TYPE = 1003;
+
+    /**
+     * Reserved for future use.
+     */
+    public static final int WS_FUTURE_USE = 1004;
+
+    /**
+     * No status code was present.
+     */
+    public static final int WS_MISSING_STATUS_CODE = 1005;
+
+    /**
+     * Connection was closed abnormally, e.g., without sending or receiving a Close control frame.
+     */
+    public static final int WS_ABNORMAL_CLOSE = 1006;
+
+    /**
+     * Connection terminated due to inconsistency between the data and the message type.
+     */
+    public static final int WS_INCONSISTENT_DATA_MESSAGE_TYPE = 1007;
+
+    /**
+     * Connection terminated as the received a message violates the policy.
+     */
+    public static final int WS_VIOLATE_POLICY = 1008;
+
+    /**
+     * Connection terminated as the received message is too big to process.
+     */
+    public static final int WS_MESSAGE_TOO_BIG = 1009;
+
+    /**
+     * Connection terminated by the client because an extension could not be negotiated with the server during the handshake.
+     */
+    public static final int WS_UNSUCCESSFUL_EXTENSION_NEGOTIATION = 1010;
+
+    /**
+     * Connection terminated by the server because of an unexpected condition.
+     */
+    public static final int WS_SERVER_TERMINATED_CONNECTION = 1011;
+
+    /**
+     * Connection was closed due to a failure to perform a TLS handshake.
+     */
+    public static final int WS_UNSUCCESSFUL_TLS_HANDSHAKE = 1015;
+
 
     /**
      * Creates a new {@code WsURLConnection}.
@@ -60,6 +126,7 @@ public abstract class WsURLConnection extends URLConnection {
      *
      * @throws IOException    if the disconnect did not succeed
      */
+    @Override
     public abstract void close() throws IOException;
 
     /**

@@ -17,18 +17,29 @@
 package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.Integer.highestOneBit;
+import static java.lang.String.format;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Random;
+
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState;
 
 public final class WsOutputStream extends FilterOutputStream {
-    private final Random random;
+    private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
 
-    public WsOutputStream(OutputStream out, Random random) {
-        super(out);
-        this.random = random;
+    private final byte[] mask;
+    private final WsURLConnectionImpl connection;
+
+    public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
+        super(connection.getTcpOutputStream());
+        this.connection = connection;
+        this.mask = new byte[4];
+    }
+
+    @Override
+    public void close() throws IOException {
+        out.close();
     }
 
     @Override
@@ -40,6 +51,108 @@ public final class WsOutputStream extends FilterOutputStream {
     public void write(byte[] b, int off, int len) throws IOException {
         out.write(0x82);
 
+        encodePayloadLength(len);
+
+        connection.getRandom().nextBytes(mask);
+        out.write(mask);
+
+        byte[] masked = new byte[len];
+        for (int i = 0; i < len; i++) {
+            int ioff = off + i;
+            masked[i] = (byte) (b[ioff] ^ mask[i % mask.length]);
+        }
+
+        out.write(masked);
+    }
+
+    public void writeClose(int code, byte[] reason) throws IOException {
+        if (connection.getReadyState() == ReadyState.CLOSED) {
+            throw new IOException("Connection closed");
+        }
+
+        int len = 0;
+
+        if (code != 0) {
+            switch (code) {
+            case 1000:
+            case 1001:
+            case 1002:
+            case 1003:
+            case 1007:
+            case 1008:
+            case 1009:
+            case 1010:
+            case 1011:
+            case 1005:
+                len += 2;
+                break;
+            default:
+                if ((code >= 3000) && (code <= 4999)) {
+                    len += 2;
+                }
+
+                throw new IOException(format("Invalid CLOSE code %d", code));
+            }
+
+            if (reason != null) {
+                // By this time, the reson.length being smaller than 123 must be validated. So, no need to repeat the check.
+                len += reason.length;
+            }
+        }
+
+        out.write(0x88);
+
+        encodePayloadLength(len);
+
+        if (len == 0) {
+            out.write(EMPTY_MASK);
+        }
+        else {
+            assert len >= 2;
+
+            connection.getRandom().nextBytes(mask);
+            out.write(mask);
+
+            byte[] masked = new byte[len];
+            for (int i = 0; i < len; i++) {
+                switch (i) {
+                case 0:
+                    masked[i] = (byte) (((code >> 8) & 0xFF) ^ mask[i % mask.length]);
+                    break;
+                case 1:
+                    masked[i] = (byte) (((code >> 0) & 0xFF) ^ mask[i % mask.length]);
+                    break;
+                default:
+                    masked[i] = (byte) (reason[i - 2] ^ mask[i % mask.length]);
+                    break;
+                }
+            }
+
+            out.write(masked);
+            out.flush();
+            out.close();
+        }
+    }
+
+    public void writePing(byte[] payload) throws IOException {
+        out.write(0x89);
+
+        int len = payload == null ? 0 : payload.length;
+        encodePayloadLength(len);
+
+        encodePayload(payload);
+    }
+
+    public void writePong(byte[] payload) throws IOException {
+        out.write(0x8A);
+
+        int len = payload == null ? 0 : payload.length;
+        encodePayloadLength(len);
+
+        encodePayload(payload);
+    }
+
+    private void encodePayloadLength(int len) throws IOException {
         switch (highestOneBit(len)) {
         case 0x0000:
         case 0x0001:
@@ -95,18 +208,22 @@ public final class WsOutputStream extends FilterOutputStream {
             out.write((int) ((length >> 0) & 0xff));
             break;
         }
+    }
 
-        byte[] mask = new byte[4];
-        random.nextBytes(mask);
+    private void encodePayload(byte[] payload) throws IOException {
+        if (payload == null) {
+            out.write(EMPTY_MASK);
+            return;
+        }
+
+        connection.getRandom().nextBytes(mask);
         out.write(mask);
 
-        byte[] masked = new byte[len];
-        for (int i = 0; i < len; i++) {
-            int ioff = off + i;
-            masked[i] = (byte) (b[ioff] ^ mask[i % mask.length]);
+        byte[] masked = new byte[payload.length];
+        for (int i = 0; i < payload.length; i++) {
+            masked[i] = (byte) (payload[i] ^ mask[i % mask.length]);
         }
 
         out.write(masked);
     }
-
 }

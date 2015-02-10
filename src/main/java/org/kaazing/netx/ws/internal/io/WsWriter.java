@@ -17,24 +17,33 @@
 package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.Integer.highestOneBit;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.byteCountUTF8;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
-import java.util.Random;
+
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState;
 
 public class WsWriter extends Writer {
+    private final WsURLConnectionImpl connection;
     private final OutputStream out;
-    private final Random       random;
+    private final byte[] mask;
 
-    public WsWriter(OutputStream out, Random random) {
-        this.out = out;
-        this.random = random;
+    public WsWriter(WsURLConnectionImpl connection) throws IOException {
+        this.connection = connection;
+        this.out = connection.getTcpOutputStream();
+        this.mask = new byte[4];
     }
 
     @Override
     public void write(char[] cbuf, int offset, int length) throws IOException {
-        int byteCount = getByteCount(cbuf);
+        if (connection.getReadyState() == ReadyState.CLOSED) {
+            throw new IOException("Connection closed");
+        }
+
+        int byteCount = byteCountUTF8(cbuf, offset, length);
 
         out.write(0x81);
 
@@ -94,19 +103,14 @@ public class WsWriter extends Writer {
             break;
         }
 
-        // Create a section of the buf that is to be written.
-        char[] arr = new char[length];
-        for (int i = 0; i < length; i++) {
-            arr[i] = cbuf[offset + i];
-        }
-
         // Create the masking key.
-        byte[] mask = new byte[4];
-        random.nextBytes(mask);
+        connection.getRandom().nextBytes(mask);
         out.write(mask);
 
+        // ### TODO: Convert the char[] to UTF-8 byte[] payload instead of creating a String.
+        byte[] bytes = String.valueOf(cbuf, offset, length).getBytes("UTF-8");
+
         // Mask the payload.
-        byte[] bytes = String.valueOf(arr).getBytes("UTF-8");
         byte[] masked = new byte[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
             int ioff = offset + i;
@@ -125,31 +129,5 @@ public class WsWriter extends Writer {
     @Override
     public void close() throws IOException {
         out.close();
-    }
-
-    private static int getByteCount(char[] cbuf) {
-        int count = 0;
-
-        for (int i = 0; i < cbuf.length; i++) {
-            count += expectedBytes(cbuf[i]);
-        }
-
-        return count;
-    }
-
-    private static int expectedBytes(int value) {
-        if (value < 0x80) {
-            return 1;
-        }
-
-        if (value < 0x800) {
-            return 2;
-        }
-
-        if (value <= '\uFFFF') {
-            return 3;
-        }
-
-        return 4;
     }
 }

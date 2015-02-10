@@ -17,7 +17,17 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.Writer;
+import java.net.URI;
+import java.util.Random;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,11 +36,16 @@ import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
+import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageWriter;
+import org.kaazing.netx.ws.WsURLConnection;
 
 /**
  * RFC-6455, section 5.4 "Fragmentation"
  */
 public class FragmentationIT {
+    private final Random random = new Random();
 
     private final K3poRule k3po = new K3poRule().setScriptRoot("org/kaazing/specification/ws/fragmentation");
 
@@ -41,162 +56,704 @@ public class FragmentationIT {
 
     @Test
     @Specification({
-        "client.send.continuation.payload.length.125.not.fragmented/handshake.request.and.frame",
-        "client.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenClientSendContinuationFrameWithPayloadNotFragmented() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.send.continuation.payload.length.125.fragmented/handshake.request.and.frames",
-        "client.send.continuation.payload.length.125.fragmented/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenClientSendContinuationFrameWithPayloadFragmented() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.echo.text.payload.length.125.not.fragmented/handshake.request.and.frame",
         "client.echo.text.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldEchoClientSendTextFrameWithPayloadNotFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
+
+        String writeString = new RandomString(125).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf = new char[writeString.toCharArray().length];
+        int offset = 0;
+        int length = cbuf.length;
+        int charsRead = 0;
+
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
+        String readString = String.valueOf(cbuf);
+
         k3po.join();
+
+        assertEquals(writeString, readString);
     }
 
     @Test
     @Specification({
-        "client.echo.text.payload.length.0.fragmented/handshake.request.and.frames",
-        "client.echo.text.payload.length.0.fragmented/handshake.response.and.frame" })
-    public void shouldEchoClientSendTextFrameWithEmptyPayloadFragmented() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.echo.text.payload.length.0.fragmented.with.injected.ping.pong/handshake.request.and.frames",
-        "client.echo.text.payload.length.0.fragmented.with.injected.ping.pong/handshake.response.and.frame" })
-    public void shouldEchoClientSendTextFrameWithEmptyPayloadFragmentedAndInjectedPingPong() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.echo.text.payload.length.125.fragmented/handshake.request.and.frames",
-        "client.echo.text.payload.length.125.fragmented/handshake.response.and.frame" })
-    public void shouldEchoClientSendTextFrameWithPayloadFragmented() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.echo.text.payload.length.125.fragmented.with.some.empty.fragments/handshake.request.and.frames",
-        "client.echo.text.payload.length.125.fragmented.with.some.empty.fragments/handshake.response.and.frame" })
-    public void shouldEchoClientSendTextFrameWithPayloadFragmentedWithSomeEmptyFragments() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.echo.text.payload.length.125.fragmented.but.not.utf8.aligned/handshake.request.and.frames",
-        "client.echo.text.payload.length.125.fragmented.but.not.utf8.aligned/handshake.response.and.frame" })
-    public void shouldEchoClientSendTextFrameWithPayloadFragmentedEvenWhenNotUTF8Aligned() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.echo.text.payload.length.125.fragmented.with.injected.ping.pong/handshake.request.and.frames",
-        "client.echo.text.payload.length.125.fragmented.with.injected.ping.pong/handshake.response.and.frame" })
-    public void shouldEchoClientSendTextFrameWithPayloadFragmentedAndInjectedPingPong() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.send.text.payload.length.125.fragmented.but.not.continued/handshake.request.and.frames",
-        "client.send.text.payload.length.125.fragmented.but.not.continued/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenClientSendTextFrameWithPayloadFragmentedButNotContinued() throws Exception {
-        k3po.join();
-    }
-
-    @Test
-    @Specification({
-        "client.echo.binary.payload.length.125.not.fragmented/handshake.request.and.frame",
         "client.echo.binary.payload.length.125.not.fragmented/handshake.response.and.frame" })
     public void shouldEchoClientSendBinaryFrameWithPayloadNotFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        OutputStream out = connection.getOutputStream();
+        InputStream in = connection.getInputStream();
+
+        byte[] writeBytes = new byte[125];
+        random.nextBytes(writeBytes);
+        out.write(writeBytes);
+
+        byte[] readBytes = new byte[125];
+        int offset = 0;
+        int length = readBytes.length;
+        int bytesRead = 0;
+
+        while ((bytesRead != -1) && (length > 0)) {
+            bytesRead = in.read(readBytes, offset, length);
+            if (bytesRead != -1) {
+                offset += bytesRead;
+                length -= bytesRead;
+            }
+        }
+
+        k3po.join();
+        assertArrayEquals(writeBytes, readBytes);
+    }
+
+
+    @Test
+    @Specification({
+        "server.echo.binary.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldEchoServerSendBinaryFrameWithEmptyPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] array = new byte[0];
+
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.echo.binary.payload.length.0.fragmented/handshake.request.and.frames",
-        "client.echo.binary.payload.length.0.fragmented/handshake.response.and.frame" })
-    public void shouldEchoClientSendBinaryFrameWithEmptyPayloadFragmented() throws Exception {
+        "server.echo.binary.payload.length.0.fragmented.with.injected.ping.pong/handshake.response.and.frames" })
+    public void shouldEchoServerSendBinaryFrameWithEmptyPayloadFragmentedAndInjectedPingPong() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] array = new byte[0];
+
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.echo.binary.payload.length.0.fragmented.with.injected.ping.pong/handshake.request.and.frames",
-        "client.echo.binary.payload.length.0.fragmented.with.injected.ping.pong/handshake.response.and.frame" })
-    public void shouldEchoClientSendBinaryFrameWithEmptyPayloadFragmentedAndInjectedPingPong() throws Exception {
+        "server.echo.binary.payload.length.125.fragmented/handshake.response.and.frames" })
+    public void shouldEchoServerSendBinaryFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] array = new byte[125];
+
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.echo.binary.payload.length.125.fragmented/handshake.request.and.frames",
-        "client.echo.binary.payload.length.125.fragmented/handshake.response.and.frame" })
-    public void shouldEchoClientSendBinaryFrameWithPayloadFragmented() throws Exception {
+        "server.echo.binary.payload.length.125.fragmented.with.injected.ping.pong/handshake.response.and.frames" })
+    public void shouldEchoServerSendBinaryFrameWithPayloadFragmentedAndInjectedPingPong() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] array = new byte[125];
+
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.echo.binary.payload.length.125.fragmented.with.some.empty.fragments/handshake.request.and.frames",
-        "client.echo.binary.payload.length.125.fragmented.with.some.empty.fragments/handshake.response.and.frame" })
-    public void shouldEchoClientSendBinaryFrameWithPayloadFragmentedWithSomeEmptyFragments() throws Exception {
+        "server.echo.binary.payload.length.125.fragmented.with.some.empty.fragments/handshake.response.and.frames" })
+    public void shouldEchoServerSendBinaryFrameWithPayloadFragmentedWithSomeEmptyFragments() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] array = new byte[125];
+
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.echo.binary.payload.length.125.fragmented.with.injected.ping.pong/handshake.request.and.frames",
-        "client.echo.binary.payload.length.125.fragmented.with.injected.ping.pong/handshake.response.and.frame" })
-    public void shouldEchoClientSendBinaryFrameWithPayloadFragmentedAndInjectedPingPong() throws Exception {
+        "server.echo.binary.payload.length.125.not.fragmented/handshake.response.and.frame" })
+    public void shouldEchoServerSendBinaryFrameWithPayloadNotFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        byte[] array = new byte[125];
+
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.send.binary.payload.length.125.fragmented.but.not.continued/handshake.request.and.frames",
-        "client.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenClientSendBinaryFrameWithPayloadFragmentedButNotContinued() throws Exception {
+        "server.echo.text.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldEchoServerSendTextFrameWithEmptyPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        char[] array = new char[0];
+
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.send.close.payload.length.2.fragmented/handshake.request.and.frames",
-        "client.send.close.payload.length.2.fragmented/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenClientSendCloseFrameWithPayloadFragmented() throws Exception {
+        "server.echo.text.payload.length.0.fragmented.with.injected.ping.pong/handshake.response.and.frames" })
+    public void shouldEchoServerSendTextFrameWithEmptyPayloadFragmentedAndInjectedPingPong() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        char[] array = new char[0];
+
+        int length = reader.read(array);
+        assertEquals(array.length, length);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.send.ping.payload.length.0.fragmented/handshake.request.and.frames",
-        "client.send.ping.payload.length.0.fragmented/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenSendPingFrameWithPayloadFragmented() throws Exception {
+        "server.echo.text.payload.length.125.fragmented/handshake.response.and.frames" })
+    public void shouldEchoServerSendTextFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        char[] array = new char[125];
+
+        int length = reader.read(array);
+        writer.write(array, 0, length);
+
         k3po.join();
     }
 
     @Test
     @Specification({
-        "client.send.pong.payload.length.0.fragmented/handshake.request.and.frames",
-        "client.send.pong.payload.length.0.fragmented/handshake.response.and.frame" })
-    public void shouldFailWebSocketConnectionWhenClientSendPongFrameWithPayloadFragmented() throws Exception {
+        "server.echo.text.payload.length.125.fragmented.but.not.utf8.aligned/handshake.response.and.frames" })
+    public void shouldEchoServerSendTextFrameWithPayloadFragmentedEvenWhenNotUTF8Aligned() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        char[] array = new char[125];
+
+        int length = reader.read(array);
+        writer.write(array, 0, length);
+
         k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.echo.text.payload.length.125.fragmented.with.injected.ping.pong/handshake.response.and.frames" })
+    public void shouldEchoServerSendTextFrameWithPayloadFragmentedAndInjectedPingPong() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        char[] array = new char[125];
+
+        int length = reader.read(array);
+        writer.write(array, 0, length);
+
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.echo.text.payload.length.125.fragmented.with.some.empty.fragments/handshake.response.and.frames" })
+    public void shouldEchoServerSendTextFrameWithPayloadFragmentedWithSomeEmptyFragments() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        char[] array = new char[125];
+
+        int length = reader.read(array);
+        writer.write(array, 0, length);
+
+        k3po.join();
+    }
+
+    @Test
+    @Specification({
+        "server.echo.text.payload.length.125.not.fragmented/handshake.response.and.frame" })
+    public void shouldEchoServerSendTextFrameWithPayloadNotFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageWriter writer = connection.getMessageWriter();
+        MessageReader reader = connection.getMessageReader();
+
+        char[] array = new char[125];
+
+        int length = reader.read(array);
+        writer.write(array, 0, length);
+
+        k3po.join();
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinued() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+
+        try {
+            input.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinuedUsingReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+
+        try {
+            reader.read(readChars);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.binary.payload.length.125.fragmented.but.not.continued/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendBinaryFrameWithPayloadFragmentedButNotContinuedUsingMessageReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+
+        try {
+            reader.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+
+        try {
+            input.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmentedUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+
+        try {
+            reader.read(readChars);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+    "server.send.close.payload.length.2.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendCloseFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+
+        try {
+            reader.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+
+        try {
+            input.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmentedUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+
+        try {
+            reader.read(readChars);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.continuation.payload.length.125.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadFragmentedUsingMessageReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+
+        try {
+            reader.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+
+        try {
+            input.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmentedUsingReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+
+        try {
+            reader.read(readChars);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.continuation.payload.length.125.not.fragmented/handshake.response.and.frame" })
+    public void shouldFailWebSocketConnectionWhenServerSendContinuationFrameWithPayloadNotFragmentedUsingMessageReader()
+            throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+
+        try {
+            reader.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+
+        try {
+            input.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmentedUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+
+        try {
+            reader.read(readChars);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.ping.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPingFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+
+        try {
+            reader.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmented() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        InputStream input = connection.getInputStream();
+        byte[] readBytes = new byte[125];
+
+        try {
+            input.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmentedUsingReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Reader reader = connection.getReader();
+        char[] readChars = new char[125];
+
+        try {
+            reader.read(readChars);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+    @Test(expected = IOException.class)
+    @Specification({
+        "server.send.pong.payload.length.0.fragmented/handshake.response.and.frames" })
+    public void shouldFailWebSocketConnectionWhenServerSendPongFrameWithPayloadFragmentedUsingMessageReader() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        MessageReader reader = connection.getMessageReader();
+        byte[] readBytes = new byte[125];
+
+        try {
+            reader.read(readBytes);
+        }
+        finally {
+            k3po.join();
+        }
+    }
+
+
+
+    private static class RandomString {
+
+        private static final char[] SYMBOLS;
+
+        static {
+            StringBuilder symbols = new StringBuilder();
+            for (char ch = 32; ch <= 126; ++ch) {
+                symbols.append(ch);
+            }
+            SYMBOLS = symbols.toString().toCharArray();
+        }
+
+        private final Random random = new Random();
+
+        private final char[] buf;
+
+        public RandomString(int length) {
+          if (length < 1) {
+            throw new IllegalArgumentException("length < 1: " + length);
+          }
+          buf = new char[length];
+        }
+
+        public String nextString() {
+          for (int idx = 0; idx < buf.length; ++idx) {
+            buf[idx] = SYMBOLS[random.nextInt(SYMBOLS.length)];
+          }
+
+          return new String(buf);
+        }
     }
 
 }

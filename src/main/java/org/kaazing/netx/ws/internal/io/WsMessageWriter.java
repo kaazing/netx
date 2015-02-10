@@ -21,14 +21,20 @@ import java.io.OutputStream;
 import java.io.Writer;
 
 import org.kaazing.netx.ws.MessageWriter;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public class WsMessageWriter extends MessageWriter {
     private final OutputStream out;
     private final Writer writer;
 
-    public WsMessageWriter(OutputStream out, Writer writer) {
-        this.out = out;
-        this.writer = writer;
+    public WsMessageWriter(WsURLConnectionImpl connection) throws IOException {
+        this.out = connection.getOutputStream();
+        this.writer = connection.getWriter();
+    }
+
+    public void close() throws IOException {
+        writer.close();
+        out.close();
     }
 
     @Override

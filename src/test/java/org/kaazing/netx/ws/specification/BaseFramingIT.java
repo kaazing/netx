@@ -19,8 +19,9 @@ package org.kaazing.netx.ws.specification;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.MessageType.BINARY;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -77,8 +78,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -104,7 +103,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -112,8 +111,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -146,8 +143,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -173,7 +168,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -181,8 +176,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -215,8 +208,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -242,7 +233,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -250,8 +241,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -284,8 +273,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -311,7 +298,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -319,8 +306,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -353,8 +338,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -380,7 +363,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -388,8 +371,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -422,8 +403,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -449,7 +428,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -457,8 +436,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -491,8 +468,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -518,7 +493,7 @@ public class BaseFramingIT {
                 reader.read(readBytes);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -526,8 +501,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertArrayEquals(writeBytes, readBytes);
-
-        connection.close();
     }
 
     @Test
@@ -561,8 +534,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -587,7 +558,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -597,8 +568,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -632,8 +601,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -658,7 +625,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -666,7 +633,6 @@ public class BaseFramingIT {
         String readString = String.valueOf(cbuf);
         k3po.join();
         assertEquals(writeString, readString);
-        connection.close();
     }
 
     @Test
@@ -700,8 +666,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -726,7 +690,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -736,8 +700,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -771,8 +733,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -797,7 +757,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -807,8 +767,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -842,8 +800,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -868,7 +824,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -878,8 +834,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -914,8 +868,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -940,7 +892,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -950,8 +902,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -986,8 +936,6 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
     }
 
     @Test
@@ -1012,7 +960,7 @@ public class BaseFramingIT {
                 reader.read(cbuf);
                 break;
             default:
-                assertTrue(type == MessageType.BINARY);
+                assertSame(BINARY, type);
                 break;
             }
         }
@@ -1022,60 +970,18 @@ public class BaseFramingIT {
         k3po.join();
 
         assertEquals(writeString, readString);
-
-        connection.close();
-    }
-
-    private int getByteCount(String str) {
-        char[] buf = str.toCharArray();
-        int count = 0;
-
-        for (int i = 0; i < buf.length; i++) {
-            count += expectedBytes(buf[i]);
-        }
-
-        return count;
-
-    }
-    private int expectedBytes(int value) {
-        if (value < 0x80) {
-            return 1;
-        }
-        if (value < 0x800) {
-            return 2;
-        }
-        if (value <= '\uFFFF') {
-            return 3;
-        }
-        return 4;
-    }
-
-    private static void hexDump(byte[] bytes) {
-        StringBuilder hexDump = new StringBuilder("");
-
-        for (int i = 0; i < bytes.length; i++) {
-            if (hexDump.length() > 0) {
-                hexDump.append(", ");
-            }
-
-            hexDump.append(String.format("%02x", 0xFF & bytes[i]).toUpperCase());
-        }
-
-        String s = hexDump.toString();
-        System.out.println("Number of bytes: " + bytes.length);
-        System.out.println("Hex Dump: " + s);
     }
 
     private static class RandomString {
 
-        private static final char[] symbols;
+        private static final char[] SYMBOLS;
 
         static {
-          StringBuilder tmp = new StringBuilder();
-          for (char ch = 32; ch <= 126; ++ch) {
-            tmp.append(ch);
-          }
-          symbols = tmp.toString().toCharArray();
+            StringBuilder tmp = new StringBuilder();
+            for (char ch = 32; ch <= 126; ++ch) {
+                tmp.append(ch);
+            }
+            SYMBOLS = tmp.toString().toCharArray();
         }
 
         private final Random random = new Random();
@@ -1083,18 +989,18 @@ public class BaseFramingIT {
         private final char[] buf;
 
         public RandomString(int length) {
-          if (length < 1) {
-            throw new IllegalArgumentException("length < 1: " + length);
-          }
-          buf = new char[length];
+            if (length < 1) {
+                throw new IllegalArgumentException("length < 1: " + length);
+            }
+            buf = new char[length];
         }
 
         public String nextString() {
-          for (int idx = 0; idx < buf.length; ++idx) {
-            buf[idx] = symbols[random.nextInt(symbols.length)];
-          }
+            for (int idx = 0; idx < buf.length; ++idx) {
+                buf[idx] = SYMBOLS[random.nextInt(SYMBOLS.length)];
+            }
 
-          return new String(buf);
+            return new String(buf);
         }
     }
 }

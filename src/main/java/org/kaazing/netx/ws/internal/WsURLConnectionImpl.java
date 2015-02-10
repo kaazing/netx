@@ -19,18 +19,17 @@ package org.kaazing.netx.ws.internal;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
-import static java.util.logging.Logger.getLogger;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
+import static org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState.CLOSED;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
@@ -40,15 +39,11 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
@@ -62,9 +57,9 @@ import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
-    private static final Set<Parameter<?>> EMPTY_PARAMETERS = Collections.emptySet();
 
-    private static final Logger LOG = getLogger(WsURLConnection.class.getPackage().getName());
+    private static final Set<Parameter<?>> EMPTY_PARAMETERS = Collections.emptySet();
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final String HEADER_CONNECTION = "Connection";
     private static final String HEADER_SEC_WEBSOCKET_ACCEPT = "Sec-WebSocket-Accept";
@@ -75,6 +70,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private static final String HEADER_UPGRADE = "Upgrade";
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    private static final WebSocketExtensionParameterValues EMPTY_EXTENSION_PARAMETERS = new EmptyExtensionParameterValues();
 
     private final Random random;
     private final WebSocketExtensionFactory extensionFactory;
@@ -86,18 +82,16 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensions;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensionsRO;
 
-    private ReadyState      readyState;
-    private String          negotiatedProtocol;
-    private WsInputStream   inputStream;
-    private WsOutputStream  outputStream;
-    private WsReader        reader;
-    private WsWriter        writer;
+    private ReadyState readyState;
+    private String negotiatedProtocol;
+    private WsInputStream inputStream;
+    private WsOutputStream outputStream;
+    private WsReader reader;
+    private WsWriter writer;
     private WsMessageReader messageReader;
     private WsMessageWriter messageWriter;
 
-    private static final WebSocketExtensionParameterValues EMPTY_EXTENSION_PARAMETERS = new EmptyExtensionParameterValues();
-
-    enum ReadyState {
+    public enum ReadyState {
         INITIAL, OPEN, CLOSED;
     }
 
@@ -156,31 +150,25 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public void close(int code, String reason) throws IOException {
+        byte[] reasonBytes = null;
+
         if (code != 0) {
-            //verify code and reason against RFC 6455
-            //if code is present, it must equal to 1000 or in range 3000 to 4999
+            // Verify code and reason against RFC 6455.
+            // If code is present, it must equal to 1000 or in range 3000 to 4999
             if (code != 1000 && (code < 3000 || code > 4999)) {
-                    throw new IllegalArgumentException("code must equal to 1000 or in range 3000 to 4999");
+                    throw new IOException("code must equal to 1000 or in range 3000 to 4999");
             }
 
-            //if reason is present, it must not be longer than 123 bytes
             if (reason != null && reason.length() > 0) {
-                //convert reason to UTF8 string
-                try {
-                    byte[] reasonBytes = reason.getBytes("UTF8");
-                    if (reasonBytes.length > 123) {
-                        throw new IllegalArgumentException("Reason is longer than 123 bytes");
-                    }
-                    reason = new String(reasonBytes, "UTF8");
-
-                } catch (UnsupportedEncodingException e) {
-                    LOG.log(Level.FINEST, e.getMessage(), e);
-                    throw new IllegalArgumentException("Reason must be encodable to UTF8");
-                }
+                reasonBytes = reason.getBytes(UTF_8);
             }
         }
 
-        // ### TODO: Send the CLOSE frame out.
+        doClose(code, reasonBytes);
+
+        if ((reasonBytes != null) && (reasonBytes.length > 123)) {
+            throw new IOException("Protocol Violation: Reason is longer than 123 bytes");
+        }
     }
 
     @Override
@@ -253,34 +241,31 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public InputStream getInputStream() throws IOException {
-
+    public WsInputStream getInputStream() throws IOException {
         if (inputStream == null) {
             ensureConnected();
-            inputStream = new WsInputStream(connection.getInputStream());
+            inputStream = new WsInputStream(this);
         }
 
         return inputStream;
     }
 
     @Override
-    public MessageReader getMessageReader() throws IOException {
+    public WsMessageReader getMessageReader() throws IOException {
         if (messageReader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            messageReader = new WsMessageReader(connection.getInputStream());
+            messageReader = new WsMessageReader(this);
         }
 
         return messageReader;
     }
 
     @Override
-    public MessageWriter getMessageWriter() throws IOException {
-
+    public WsMessageWriter getMessageWriter() throws IOException {
         if (messageWriter == null) {
-            // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            messageWriter = new WsMessageWriter(getOutputStream(), getWriter());
+            messageWriter = new WsMessageWriter(this);
         }
 
         return messageWriter;
@@ -320,7 +305,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
      * @throws IOException
      */
     public <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException {
-
         ensureConnected();
 
         WebSocketExtension extension = parameter.extension();
@@ -336,21 +320,21 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public OutputStream getOutputStream() throws IOException {
+    public WsOutputStream getOutputStream() throws IOException {
         if (outputStream == null) {
             ensureConnected();
-            outputStream = new WsOutputStream(connection.getOutputStream(), random);
+            outputStream = new WsOutputStream(this);
         }
 
         return outputStream;
     }
 
     @Override
-    public Reader getReader() throws IOException {
+    public WsReader getReader() throws IOException {
         if (reader == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            reader = new WsReader(connection.getInputStream());
+            reader = new WsReader(this);
         }
 
         return reader;
@@ -370,11 +354,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public Writer getWriter() throws IOException {
-
         if (writer == null) {
             // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
-            writer = new WsWriter(connection.getOutputStream(), random);
+            writer = new WsWriter(this);
         }
 
         return writer;
@@ -492,6 +475,66 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         enabledExtensions.put(name, parameters);
     }
 
+    public void doClose(int code, byte[] reason) throws IOException {
+        getOutputStream().writeClose(code, reason);
+        disconnect();
+        readyState = CLOSED;
+    }
+
+    public void doFail(int code, String exceptionMessage) throws IOException {
+        doClose(code, null);
+        throw new IOException(exceptionMessage);
+    }
+
+    public void doPong(byte[] buf) throws IOException {
+        getOutputStream().writePong(buf);
+    }
+
+    public void disconnect() {
+        try {
+            if (outputStream != null) {
+                outputStream.close();
+            }
+            if (writer != null) {
+                writer.close();
+            }
+            if (messageReader != null) {
+                messageReader.close();
+            }
+            if (inputStream != null) {
+                inputStream.close();
+            }
+            if (reader != null) {
+                reader.close();
+            }
+            if (messageWriter != null) {
+                messageWriter.close();
+            }
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        catch (IOException e) {
+            // ignore
+        }
+    }
+
+    public Random getRandom() {
+        return random;
+    }
+
+    public ReadyState getReadyState() {
+        return readyState;
+    }
+
+    public InputStream getTcpInputStream() throws IOException {
+        return connection.getInputStream();
+    }
+
+    public OutputStream getTcpOutputStream() throws IOException {
+        return connection.getOutputStream();
+    }
+
     public void setEnabledExtensions(
             Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
         this.enabledExtensions.clear();
@@ -499,7 +542,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     private void ensureConnected() throws IOException {
-
         switch (readyState) {
         case INITIAL:
             doConnect();
