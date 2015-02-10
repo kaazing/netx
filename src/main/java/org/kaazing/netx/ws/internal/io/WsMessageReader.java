@@ -128,6 +128,7 @@ public final class WsMessageReader extends MessageReader {
             bytesRead = readBinary(buf, offset, length);
 
             offset += bytesRead;
+            length -= bytesRead;
 
             // Once the payload is read, use fin to figure out whether this was the final frame.
             finalFrame = fin;
@@ -187,6 +188,7 @@ public final class WsMessageReader extends MessageReader {
             charsRead = readText(buf, offset, length);
 
             offset += charsRead;
+            length -= charsRead;
 
             // Once the payload is read, use fin to figure out whether this was the final frame.
             finalFrame = fin;
@@ -373,7 +375,7 @@ public final class WsMessageReader extends MessageReader {
 
         // Read the entire payload from the current frame into the buffer.
         while (payloadOffset < payloadLength) {
-            assert offset + payloadLength <= buf.length;
+            assert offset + len <= buf.length;
 
             bytesRead = in.read(buf, offset, (int) Math.min(len, payloadLength));
             if (bytesRead == -1) {
