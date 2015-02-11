@@ -19,15 +19,11 @@ package org.kaazing.netx.ws.internal.io;
 import static java.lang.Character.charCount;
 import static java.lang.Character.toChars;
 import static java.lang.String.format;
-import static org.kaazing.netx.ws.WsURLConnection.WS_ABNORMAL_CLOSE;
-import static org.kaazing.netx.ws.WsURLConnection.WS_MISSING_STATUS_CODE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_NORMAL_CLOSE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
-import static org.kaazing.netx.ws.WsURLConnection.WS_UNSUCCESSFUL_TLS_HANDSHAKE;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,16 +40,12 @@ public final class WsMessageReader extends MessageReader {
     private static final String MSG_MASKED_FRAME_FROM_SERVER = "Masked server-to-client frame";
     private static final String MSG_END_OF_STREAM = "End of stream";
     private static final String MSG_BUFFER_SIZE_SMALL = "Buffer size %d too small for payload size %d";
-    private static final String MSG_PING_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PING payload is more than %d bytes";
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
-    private static final String MSG_PONG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PONG payload is more than %d bytes";
     private static final String MSG_UNRECOGNIZED_OPCODE = "Protocol Violation: Unrecognized opcode %d";
-    private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
     private static final String MSG_FIRST_FRAME_FRAGMENTED = "Protocol Violation: First frame cannot be a fragmented frame";
     private static final String MSG_UNEXPECTED_OPCODE = "Protocol Violation: Opcode 0x%02X expected only in the initial frame";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
 
-    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
@@ -411,7 +403,7 @@ public final class WsMessageReader extends MessageReader {
             int b = -1;
 
             // code point may be split across frames
-            while (codePoint != 0 || remainingBytes > 0) {
+            while (codePoint != 0 || (payloadOffset < payloadLength && remainingBytes > 0)) {
                 // surrogate pair
                 if (codePoint != 0 && remainingBytes == 0) {
                     int charCount = charCount(codePoint);
@@ -432,7 +424,6 @@ public final class WsMessageReader extends MessageReader {
                 // detect EOF
                 b = in.read();
                 if (b == -1) {
-                    connection.disconnect();
                     break outer;
                 }
                 payloadOffset++;
@@ -449,7 +440,6 @@ public final class WsMessageReader extends MessageReader {
             // detect EOF
             b = in.read();
             if (b == -1) {
-                connection.disconnect();
                 break;
             }
             payloadOffset++;
@@ -492,109 +482,13 @@ public final class WsMessageReader extends MessageReader {
 
         readPayloadLength();
 
-        switch (opcode) {
-        case 0x08:
-            int code = 0;
-            int closeCodeRO = 0;
-            byte[] reason = null;
-
-            if (payloadLength >= 2) {
-                // Read the first two bytes as the CLOSE code.
-                int b1 = in.read();
-                if (b1 == -1) {
-                    connection.doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
-                }
-
-                int b2 = in.read();
-                if (b2 == -1) {
-                    connection.doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
-                }
-
-                code = ((b1 & 0xFF) << 8) | (b2 & 0xFF);
-                closeCodeRO = code;
-
-                switch (code) {
-                case WS_MISSING_STATUS_CODE:
-                case WS_ABNORMAL_CLOSE:
-                case WS_UNSUCCESSFUL_TLS_HANDSHAKE:
-                    code = WS_PROTOCOL_ERROR;
-                    break;
-                default:
-                    break;
-                }
-
-                // If reason is also received, then just drain those bytes.
-                if (payloadLength > 2) {
-                    reason = new byte[(int) (payloadLength - 2)];
-                    int reasonBytesRead = readContrlFramePayload(reason, 0, reason.length);
-
-                    assert reasonBytesRead == (payloadLength - 2);
-
-                    if ((reason.length > (MAX_COMMAND_FRAME_PAYLOAD - 2)) || !validBytesUTF8(reason)) {
-                        code = WS_PROTOCOL_ERROR;
-                    }
-
-                    if (code != WS_NORMAL_CLOSE) {
-                        reason = null;
-                    }
-                }
-            }
-
-            connection.doClose(code, reason);
-
-            if (code == WS_PROTOCOL_ERROR) {
-                throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, reason));
-            }
-            break;
-
-        case 0x09:
-            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
-                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PING_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
-            }
-
-            byte[] pingBuf = new byte[(int) payloadLength];
-            int pingBytesRead = readContrlFramePayload(pingBuf, 0, pingBuf.length);
-
-            assert pingBytesRead == payloadLength;
-            connection.doPong(pingBuf);
-            break;
-
-        case 0x0A:
-            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
-                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PONG_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
-            }
-            byte[] pongBuf = new byte[(int) payloadLength];
-            int pongBytesRead = readContrlFramePayload(pongBuf, 0, pongBuf.length);
-            assert pongBytesRead == payloadLength;
-            break;
-
-        default:
-            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opcode));
-            break;
-        }
+        connection.doControlFrame(opcode, payloadLength);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;
         payloadOffset = -1;
         headerOffset = 0;
         state = State.READ_FLAGS_AND_OPCODE;
-    }
-
-    private int readContrlFramePayload(byte[] buf, int offset, int length) throws IOException {
-        int mark = offset;
-
-        while (offset < buf.length) {
-            int bytesRead = in.read(buf, offset, length);
-
-            if (bytesRead == -1) {
-                connection.doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
-            }
-
-            offset += bytesRead;
-            length -= bytesRead;
-        }
-
-        return offset - mark;
     }
 
     private static int payloadLength(byte[] header) {

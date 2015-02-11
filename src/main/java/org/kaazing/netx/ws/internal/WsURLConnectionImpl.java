@@ -21,6 +21,7 @@ import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 import static org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState.CLOSED;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +58,13 @@ import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
+    private static final String MSG_END_OF_STREAM = "End of stream";
+    private static final String MSG_PING_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PING payload is more than %d bytes";
+    private static final String MSG_PONG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PONG payload is more than %d bytes";
+    private static final String MSG_UNRECOGNIZED_OPCODE = "Protocol Violation: Unrecognized opcode %d";
+    private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
+
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private static final Set<Parameter<?>> EMPTY_PARAMETERS = Collections.emptySet();
     private static final Charset UTF_8 = Charset.forName("UTF-8");
@@ -481,6 +489,91 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         readyState = CLOSED;
     }
 
+    public void doControlFrame(int opcode, long payloadLength) throws IOException {
+        InputStream in = connection.getInputStream();
+
+        switch (opcode) {
+        case 0x08:
+            int code = 0;
+            int closeCodeRO = 0;
+            byte[] reason = null;
+
+            if (payloadLength >= 2) {
+                // Read the first two bytes as the CLOSE code.
+                int b1 = in.read();
+                if (b1 == -1) {
+                    doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
+                }
+
+                int b2 = in.read();
+                if (b2 == -1) {
+                    doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
+                }
+
+                code = ((b1 & 0xFF) << 8) | (b2 & 0xFF);
+                closeCodeRO = code;
+
+                switch (code) {
+                case WS_MISSING_STATUS_CODE:
+                case WS_ABNORMAL_CLOSE:
+                case WS_UNSUCCESSFUL_TLS_HANDSHAKE:
+                    code = WS_PROTOCOL_ERROR;
+                    break;
+                default:
+                    break;
+                }
+
+                // If reason is also received, then just drain those bytes.
+                if (payloadLength > 2) {
+                    reason = new byte[(int) (payloadLength - 2)];
+                    int reasonBytesRead = readControlFramePayload(reason, 0, reason.length);
+
+                    assert reasonBytesRead == (payloadLength - 2);
+
+                    if ((reason.length > (MAX_COMMAND_FRAME_PAYLOAD - 2)) || !validBytesUTF8(reason)) {
+                        code = WS_PROTOCOL_ERROR;
+                    }
+
+                    if (code != WS_NORMAL_CLOSE) {
+                        reason = null;
+                    }
+                }
+            }
+
+            doClose(code, reason);
+
+            if (code == WS_PROTOCOL_ERROR) {
+                throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, (reason == null) ? 0 : reason.length));
+            }
+            break;
+
+        case 0x09:
+            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+                doFail(WS_PROTOCOL_ERROR, format(MSG_PING_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
+            }
+
+            byte[] pingBuf = new byte[(int) payloadLength];
+            int pingBytesRead = readControlFramePayload(pingBuf, 0, pingBuf.length);
+
+            assert pingBytesRead == payloadLength;
+            doPong(pingBuf);
+            break;
+
+        case 0x0A:
+            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+                doFail(WS_PROTOCOL_ERROR, format(MSG_PONG_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
+            }
+            byte[] pongBuf = new byte[(int) payloadLength];
+            int pongBytesRead = readControlFramePayload(pongBuf, 0, pongBuf.length);
+            assert pongBytesRead == payloadLength;
+            break;
+
+        default:
+            doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opcode));
+            break;
+        }
+    }
+
     public void doFail(int code, String exceptionMessage) throws IOException {
         doClose(code, null);
         throw new IOException(exceptionMessage);
@@ -614,6 +707,24 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         catch (NoSuchAlgorithmException e) {
             return false;
         }
+    }
+
+    private int readControlFramePayload(byte[] buf, int offset, int length) throws IOException {
+        InputStream in = connection.getInputStream();
+        int mark = offset;
+
+        while (offset < buf.length) {
+            int bytesRead = in.read(buf, offset, length);
+
+            if (bytesRead == -1) {
+                doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
+            }
+
+            offset += bytesRead;
+            length -= bytesRead;
+        }
+
+        return offset - mark;
     }
 
     private void negotiateProtocol(Collection<String> enabledProtocols, String negotiatedProtocol) throws IOException {
