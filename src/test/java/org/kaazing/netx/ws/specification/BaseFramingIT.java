@@ -606,6 +606,147 @@ public class BaseFramingIT {
     @Test
     @Specification({
         "echo.text.payload.length.125/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength125ReadInPartsOfEqualLength() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
+
+        String writeString = new RandomString(125).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf1 = new char[25];
+        char[] cbuf2 = new char[25];
+        char[] cbuf3 = new char[25];
+        char[] cbuf4 = new char[25];
+        char[] cbuf5 = new char[25];
+
+        int offset1 = 0;
+        int offset2 = 0;
+        int offset3 = 0;
+        int offset4 = 0;
+        int offset5 = 0;
+
+        int length1 = cbuf1.length;
+        int length2 = cbuf2.length;
+        int length3 = cbuf3.length;
+        int length4 = cbuf4.length;
+        int length5 = cbuf5.length;
+
+        int charsRead1 = 0;
+        int charsRead2 = 0;
+        int charsRead3 = 0;
+        int charsRead4 = 0;
+        int charsRead5 = 0;
+
+        while ((charsRead1 != -1) && (length1 > 0)) {
+            charsRead1 = reader.read(cbuf1, offset1, length1);
+            if (charsRead1 != -1) {
+                offset1 += charsRead1;
+                length1 -= charsRead1;
+            }
+        }
+        while ((charsRead2 != -1) && (length2 > 0)) {
+            charsRead2 = reader.read(cbuf2, offset2, length2);
+            if (charsRead2 != -1) {
+                offset2 += charsRead2;
+                length2 -= charsRead2;
+            }
+        }
+        while ((charsRead3 != -1) && (length3 > 0)) {
+            charsRead3 = reader.read(cbuf3, offset3, length3);
+            if (charsRead3 != -1) {
+                offset3 += charsRead3;
+                length3 -= charsRead3;
+            }
+        }
+        while ((charsRead4 != -1) && (length4 > 0)) {
+            charsRead4 = reader.read(cbuf4, offset4, length4);
+            if (charsRead4 != -1) {
+                offset4 += charsRead4;
+                length4 -= charsRead4;
+            }
+        }
+        while ((charsRead5 != -1) && (length5 > 0)) {
+            charsRead5 = reader.read(cbuf5, offset5, length5);
+            if (charsRead5 != -1) {
+                offset5 += charsRead5;
+                length5 -= charsRead5;
+            }
+        }
+
+        StringBuilder sb = new StringBuilder().append(cbuf1).append(cbuf2).append(cbuf3).append(cbuf4).append(cbuf5);
+
+        String readString = sb.toString();
+        k3po.join();
+        assertEquals(writeString, readString);
+    }
+
+    @Test
+    @Specification({
+        "echo.text.payload.length.125/handshake.response.and.frame" })
+    public void shouldEchoTextFrameWithPayloadLength125ReadInPartsOfDifferentLength() throws Exception {
+        URLConnectionHelper helper = URLConnectionHelper.newInstance();
+        URI location = URI.create("ws://localhost:8080/path");
+
+        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        Writer writer = connection.getWriter();
+        Reader reader = connection.getReader();
+
+        String writeString = new RandomString(125).nextString();
+        writer.write(writeString.toCharArray());
+
+        char[] cbuf1 = new char[50];
+        char[] cbuf2 = new char[50];
+        char[] cbuf3 = new char[50];
+
+        int offset1 = 0;
+        int offset2 = 0;
+        int offset3 = 0;
+
+        int length1 = cbuf1.length;
+        int length2 = cbuf2.length;
+        int length3 = cbuf3.length;
+
+        int charsRead1 = 0;
+        int charsRead2 = 0;
+        int charsRead3 = 0;
+
+        while ((charsRead1 != -1) && (length1 > 0)) {
+            charsRead1 = reader.read(cbuf1, offset1, length1);
+            if (charsRead1 != -1) {
+                offset1 += charsRead1;
+                length1 -= charsRead1;
+            }
+        }
+        while ((charsRead2 != -1) && (length2 > 0)) {
+            charsRead2 = reader.read(cbuf2, offset2, length2);
+            if (charsRead2 != -1) {
+                offset2 += charsRead2;
+                length2 -= charsRead2;
+            }
+        }
+
+        while ((charsRead3 != -1) && (length3 > 0)) {
+            charsRead3 = reader.read(cbuf3, offset3, length3);
+            if (charsRead3 != -1) {
+                offset3 += charsRead3;
+                length3 -= charsRead3;
+            }
+        }
+
+        StringBuilder sb = new StringBuilder().append(cbuf1).append(cbuf2).append(cbuf3, 0, offset3);
+
+        String readString = sb.toString();
+        k3po.join();
+        assertEquals(writeString, readString);
+    }
+
+    @Test
+    @Specification({
+        "echo.text.payload.length.125/handshake.response.and.frame" })
     public void shouldEchoTextFrameWithPayloadLength125UsingMessageWriterAndMessageReader() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path");
