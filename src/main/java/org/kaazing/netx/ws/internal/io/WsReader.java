@@ -16,13 +16,8 @@
 
 package org.kaazing.netx.ws.internal.io;
 
-import static java.lang.Character.charCount;
-import static java.lang.Character.toChars;
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +34,9 @@ public class WsReader extends Reader {
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
 
+    private static final int MAX_TEXT_PAYLOAD_LENGTH = 8192;
+
+
     private final WsURLConnectionImpl connection;
     private final InputStream in;
     private final byte[] header;
@@ -46,8 +44,7 @@ public class WsReader extends Reader {
     private int headerOffset;
     private int payloadOffset;
     private long payloadLength;
-    private int codePoint;
-    private int remainingBytes;
+    private char[] receiveBuffer;
 
     public WsReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -58,6 +55,7 @@ public class WsReader extends Reader {
         this.in = connection.getTcpInputStream();
         this.header = new byte[10];
         this.payloadOffset = -1;
+        this.receiveBuffer = new char[MAX_TEXT_PAYLOAD_LENGTH];
     }
 
     @Override
@@ -67,7 +65,7 @@ public class WsReader extends Reader {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, cbuf.length));
         }
 
-        int mark = offset;
+        int charsRead = 0;
 
         // This loop will be entered only if the entire WebSocket frame has been drained. If there was fragmentation at the TCP
         // level, this method will be invoked again with different offset and length. At that time, we will just use the
@@ -157,61 +155,23 @@ public class WsReader extends Reader {
                 payloadOffset = -1;
                 headerOffset = 0;
             }
-        }
-
-        // payloadOffset and payloadLength are in terms of bytes. However, off and len are in terms of chars. The payload can
-        // include multi-byte UTF-8 characters. The multi-byte characters can span across WebSocket frames or TCP fragments. If
-        // there was fragmentation at the TCP layer before the entire frame was drained, this loop should be executed to drain
-        // the payload.
-        while (payloadOffset < payloadLength) {
-            int b = -1;
-
-            while (codePoint != 0 || (payloadOffset < payloadLength && remainingBytes > 0)) {
-
-                // surrogate pair
-                if (codePoint != 0 && remainingBytes == 0) {
-                    int charCount = charCount(codePoint);
-                    if (offset + charCount > length) {
-                        return offset - mark;
-                    }
-                    toChars(codePoint, cbuf, offset);
-                    offset += charCount;
-                    codePoint = 0;
-                    break;
+            else {
+                if (payloadLength > receiveBuffer.length) {
+                    // Note that the payloadLength is in terms of bytes. And, we are allocating a char[]. If the payload
+                    // contains only ASCII chars, then the number of chars will be equal to the number of bytes in the
+                    // payload. However, if the payload has multi-byte UTF-8 codepoints, then the number of chars decoded
+                    // will be less than the number of bytes in the payload. So, if we allocate a char[] of using
+                    // payloadLength, then we should be fine regardless of what's in the payload.
+                    receiveBuffer = new char[(int) payloadLength];
                 }
 
-                // detect EOF
-                b = in.read();
-                if (b == -1) {
-                    return offset - mark;
-                }
-                payloadOffset++;
-
-                // character encoded in multiple bytes
-                codePoint = remainingDecodeUTF8(codePoint, remainingBytes--, b);
-            }
-
-            // detect EOF
-            b = in.read();
-            if (b == -1) {
-                return -1;
-            }
-            payloadOffset++;
-
-            // detect character encoded in multiple bytes
-            remainingBytes = remainingBytesUTF8(b);
-            switch (remainingBytes) {
-            case 0:
-                // no surrogate pair
-                int asciiCodePoint = initialDecodeUTF8(remainingBytes, b);
-                assert charCount(asciiCodePoint) == 1;
-                toChars(asciiCodePoint, cbuf, offset++);
-                break;
-            default:
-                codePoint = initialDecodeUTF8(remainingBytes, b);
-                break;
+                charsRead = connection.doTextFrame(receiveBuffer, 0, receiveBuffer.length, payloadLength);
             }
         }
+
+        assert charsRead > 0 && charsRead <= length;
+
+        System.arraycopy(receiveBuffer, 0, cbuf, offset, charsRead);
 
         if (payloadOffset == payloadLength) {
             headerOffset = 0;
@@ -220,7 +180,7 @@ public class WsReader extends Reader {
         }
 
         // number of chars (not code points) read
-        return offset - mark;
+        return charsRead;
     }
 
     @Override

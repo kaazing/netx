@@ -16,11 +16,16 @@
 
 package org.kaazing.netx.ws.internal;
 
+import static java.lang.Character.charCount;
+import static java.lang.Character.toChars;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 import static org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState.CLOSED;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
@@ -59,10 +64,12 @@ import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
     private static final String MSG_END_OF_STREAM = "End of stream";
+    private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
     private static final String MSG_PING_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PING payload is more than %d bytes";
     private static final String MSG_PONG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PONG payload is more than %d bytes";
     private static final String MSG_UNRECOGNIZED_OPCODE = "Protocol Violation: Unrecognized opcode %d";
     private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
+    private static final String MSG_BUFFER_SIZE_SMALL = "Buffer's remaining capacity %d too small for payload of size %d";
 
     private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
@@ -98,6 +105,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private WsWriter writer;
     private WsMessageReader messageReader;
     private WsMessageWriter messageWriter;
+
+    private int codePoint;
+    private int remainingBytes;
 
     public enum ReadyState {
         INITIAL, OPEN, CLOSED;
@@ -489,6 +499,43 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         readyState = CLOSED;
     }
 
+    public int doBinaryFrame(byte[] buf, int offset, int length) throws IOException {
+        if (buf == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
+        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
+        }
+        else if (length == 0) {
+            return 0;
+        }
+
+        InputStream in = connection.getInputStream();
+        int bytesRead = 0;
+        int len = length;
+        int mark = offset;
+
+        if (buf.length < (offset + length)) {
+            int size = buf.length - offset;
+            throw new IOException(format(MSG_BUFFER_SIZE_SMALL, size, length));
+        }
+
+        // Read the entire payload from the current frame into the buffer.
+        while (len > 0) {
+            assert offset + len <= buf.length;
+
+            bytesRead = in.read(buf, offset, len);
+            if (bytesRead == -1) {
+                doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
+            }
+
+            offset += bytesRead;
+            len -= bytesRead;
+        }
+
+        return offset - mark;
+    }
+
     public void doControlFrame(int opcode, long payloadLength) throws IOException {
         InputStream in = connection.getInputStream();
 
@@ -583,34 +630,90 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         getOutputStream().writePong(buf);
     }
 
-    public void disconnect() {
-        try {
-            if (outputStream != null) {
-                outputStream.close();
+    public int doTextFrame(char[] cbuf, int offset, int length, long payloadLength) throws IOException {
+        if (cbuf == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
+        else if ((offset < 0) || (length < 0) || (offset + length > cbuf.length)) {
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
+        }
+        else if (length == 0) {
+            return 0;
+        }
+
+        InputStream in = connection.getInputStream();
+        int mark = offset;
+        int payloadOffset = 0;
+
+        outer:
+        for (;;) {
+            int b = -1;
+
+            // code point may be split across frames
+            while (codePoint != 0 || (payloadOffset < payloadLength && remainingBytes > 0)) {
+                // surrogate pair
+                if (codePoint != 0 && remainingBytes == 0) {
+                    int charCount = charCount(codePoint);
+                    if (offset + charCount > length) {
+                        break outer;
+                    }
+                    toChars(codePoint, cbuf, offset);
+                    offset += charCount;
+                    codePoint = 0;
+                    break;
+                }
+
+                // detect EOP
+                if (payloadOffset == payloadLength) {
+                    break;
+                }
+
+                // detect EOF
+                b = in.read();
+                if (b == -1) {
+                    break outer;
+                }
+                payloadOffset++;
+
+                // character encoded in multiple bytes
+                codePoint = remainingDecodeUTF8(codePoint, remainingBytes--, b);
             }
-            if (writer != null) {
-                writer.close();
+
+            // detect EOP
+            if (payloadOffset == payloadLength) {
+                break;
             }
-            if (messageReader != null) {
-                messageReader.close();
+
+            // detect EOF
+            b = in.read();
+            if (b == -1) {
+                break;
             }
-            if (inputStream != null) {
-                inputStream.close();
-            }
-            if (reader != null) {
-                reader.close();
-            }
-            if (messageWriter != null) {
-                messageWriter.close();
-            }
-            if (connection != null) {
-                connection.disconnect();
+            payloadOffset++;
+
+            // detect character encoded in multiple bytes
+            remainingBytes = remainingBytesUTF8(b);
+            switch (remainingBytes) {
+            case 0:
+                // no surrogate pair
+                int asciiCodePoint = initialDecodeUTF8(remainingBytes, b);
+                assert charCount(asciiCodePoint) == 1;
+                toChars(asciiCodePoint, cbuf, offset++);
+                break;
+            default:
+                codePoint = initialDecodeUTF8(remainingBytes, b);
+                break;
             }
         }
-        catch (IOException e) {
-            // ignore
+
+        // Unlike WsReader, WsMessageReader has to ensure that the entire payload has been read.
+        if (payloadOffset < payloadLength) {
+            doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
         }
+
+        return offset - mark;
     }
+
 
     public Random getRandom() {
         return random;
@@ -677,6 +780,35 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         negotiateExtensions(enabledExtensions, connection.getHeaderField(HEADER_SEC_WEBSOCKET_EXTENSIONS));
 
         this.readyState = ReadyState.OPEN;
+    }
+
+    private void disconnect() {
+        try {
+            if (outputStream != null) {
+                outputStream.close();
+            }
+            if (writer != null) {
+                writer.close();
+            }
+            if (messageReader != null) {
+                messageReader.close();
+            }
+            if (inputStream != null) {
+                inputStream.close();
+            }
+            if (reader != null) {
+                reader.close();
+            }
+            if (messageWriter != null) {
+                messageWriter.close();
+            }
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        catch (IOException e) {
+            // ignore
+        }
     }
 
     private static HttpURLConnection openHttpConnection(URLConnectionHelper helper, URI httpLocation) throws IOException {

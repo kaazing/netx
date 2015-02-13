@@ -26,11 +26,14 @@ import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public final class WsInputStream extends InputStream {
     private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
+    private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
     private static final String MSG_NON_BINARY_FRAME = "Non-binary frame - opcode = 0x%02X";
     private static final String MSG_MASKED_FRAME_FROM_SERVER = "Masked server-to-client frame";
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
+
+    private static final int MAX_BINARY_PAYLOAD_LENGTH = 8192;
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
@@ -39,6 +42,7 @@ public final class WsInputStream extends InputStream {
     private int headerOffset;
     private int payloadOffset;
     private long payloadLength;
+    private byte[] receiveBuffer;
 
     public WsInputStream(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -49,6 +53,7 @@ public final class WsInputStream extends InputStream {
         this.in = connection.getTcpInputStream();
         this.header = new byte[10];
         this.payloadOffset = -1;
+        this.receiveBuffer = new byte[MAX_BINARY_PAYLOAD_LENGTH];
     }
 
     @Override
@@ -149,14 +154,19 @@ public final class WsInputStream extends InputStream {
                 payloadOffset = -1;
                 headerOffset = 0;
             }
+            else {
+                if (payloadLength > receiveBuffer.length) {
+                    receiveBuffer = new byte[(int) payloadLength];
+                }
+
+                int bytesRead = connection.doBinaryFrame(receiveBuffer, 0, (int) payloadLength);
+                assert payloadLength == bytesRead;
+            }
         }
 
-        int b = in.read();
-        if (b == -1) {
-            return -1;
-        }
+        int b = receiveBuffer[payloadOffset++];
 
-        if (payloadOffset++ == payloadLength) {
+        if (payloadOffset == payloadLength) {
             headerOffset = 0;
             payloadOffset = -1;
             payloadLength = 0;
@@ -166,13 +176,29 @@ public final class WsInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
-        return super.read(b);
+    public int read(byte[] buf) throws IOException {
+        return this.read(buf, 0, buf.length);
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-        return super.read(b, off, len);
+    public int read(byte[] buf, int offset, int length) throws IOException {
+        if (buf == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
+        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
+        }
+        else if (length == 0) {
+            return 0;
+        }
+
+        int mark = offset;
+        while (length > 0) {
+            buf[offset++] = (byte) read();
+            length--;
+        }
+
+        return offset - mark;
     }
 
     @Override
