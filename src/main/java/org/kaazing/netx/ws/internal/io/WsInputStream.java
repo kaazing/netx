@@ -42,7 +42,7 @@ public final class WsInputStream extends InputStream {
     private int headerOffset;
     private int payloadOffset;
     private long payloadLength;
-    public byte[] receiveBuffer;
+    private byte[] receiveBuffer;
 
     public WsInputStream(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
