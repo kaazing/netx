@@ -16,14 +16,9 @@
 
 package org.kaazing.netx.ws.internal.io;
 
-import static java.lang.Character.charCount;
-import static java.lang.Character.toChars;
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.WsURLConnection.WS_NORMAL_CLOSE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +34,7 @@ public final class WsMessageReader extends MessageReader {
     private static final String MSG_NON_TEXT_FRAME = "Non-binary frame - opcode = 0x%02X";
     private static final String MSG_MASKED_FRAME_FROM_SERVER = "Masked server-to-client frame";
     private static final String MSG_END_OF_STREAM = "End of stream";
-    private static final String MSG_BUFFER_SIZE_SMALL = "Buffer size %d too small for payload size %d";
+    private static final String MSG_BUFFER_SIZE_SMALL = "Buffer's remaining capacity %d too small for payload of size %d";
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
     private static final String MSG_UNRECOGNIZED_OPCODE = "Protocol Violation: Unrecognized opcode %d";
     private static final String MSG_FIRST_FRAME_FRAGMENTED = "Protocol Violation: First frame cannot be a fragmented frame";
@@ -57,8 +52,6 @@ public final class WsMessageReader extends MessageReader {
     private boolean fin;
     private long payloadLength;
     private int payloadOffset;
-    private int remainingBytes;
-    private int codePoint;
 
     private enum State {
         INITIAL, READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
@@ -117,7 +110,13 @@ public final class WsMessageReader extends MessageReader {
                 connection.doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
             }
 
-            bytesRead = readBinary(buf, offset, length);
+            if (length < payloadLength) {
+                // MessageReader requires reading the entire message/frame. So, if there isn't enough space to read the frame,
+                // we should throw an exception.
+                throw new IOException(format(MSG_BUFFER_SIZE_SMALL, length, payloadLength));
+            }
+
+            bytesRead = readBinary(buf, offset, (int) payloadLength);
 
             offset += bytesRead;
             length -= bytesRead;
@@ -356,28 +355,8 @@ public final class WsMessageReader extends MessageReader {
             return 0;
         }
 
-        int bytesRead = 0;
-        int len = length;
-        int mark = offset;
-
-        if (buf.length < (offset + payloadLength)) {
-            int size = buf.length - offset;
-            throw new IOException(format(MSG_BUFFER_SIZE_SMALL, size, payloadLength));
-        }
-
-        // Read the entire payload from the current frame into the buffer.
-        while (payloadOffset < payloadLength) {
-            assert offset + len <= buf.length;
-
-            bytesRead = in.read(buf, offset, (int) Math.min(len, payloadLength));
-            if (bytesRead == -1) {
-                connection.doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
-            }
-
-            len -= bytesRead;
-            offset += bytesRead;
-            payloadOffset += bytesRead;
-        }
+        int bytesRead = connection.doBinaryFrame(buf, offset, (int) Math.min(length, payloadLength));
+        payloadOffset += bytesRead;
 
         assert payloadOffset == payloadLength ;
 
@@ -387,7 +366,7 @@ public final class WsMessageReader extends MessageReader {
         payloadOffset = -1;
         state = State.READ_FLAGS_AND_OPCODE;
 
-        return offset - mark;
+        return bytesRead;
     }
 
     private synchronized int readText(char[] cbuf, int offset, int length) throws IOException {
@@ -396,73 +375,7 @@ public final class WsMessageReader extends MessageReader {
             return 0;
         }
 
-        int mark = offset;
-
-        outer:
-        for (;;) {
-            int b = -1;
-
-            // code point may be split across frames
-            while (codePoint != 0 || (payloadOffset < payloadLength && remainingBytes > 0)) {
-                // surrogate pair
-                if (codePoint != 0 && remainingBytes == 0) {
-                    int charCount = charCount(codePoint);
-                    if (offset + charCount > length) {
-                        break outer;
-                    }
-                    toChars(codePoint, cbuf, offset);
-                    offset += charCount;
-                    codePoint = 0;
-                    break;
-                }
-
-                // detect EOP
-                if (payloadOffset == payloadLength) {
-                    break;
-                }
-
-                // detect EOF
-                b = in.read();
-                if (b == -1) {
-                    break outer;
-                }
-                payloadOffset++;
-
-                // character encoded in multiple bytes
-                codePoint = remainingDecodeUTF8(codePoint, remainingBytes--, b);
-            }
-
-            // detect EOP
-            if (payloadOffset == payloadLength) {
-                break;
-            }
-
-            // detect EOF
-            b = in.read();
-            if (b == -1) {
-                break;
-            }
-            payloadOffset++;
-
-            // detect character encoded in multiple bytes
-            remainingBytes = remainingBytesUTF8(b);
-            switch (remainingBytes) {
-            case 0:
-                // no surrogate pair
-                int asciiCodePoint = initialDecodeUTF8(remainingBytes, b);
-                assert charCount(asciiCodePoint) == 1;
-                toChars(asciiCodePoint, cbuf, offset++);
-                break;
-            default:
-                codePoint = initialDecodeUTF8(remainingBytes, b);
-                break;
-            }
-        }
-
-        // Unlike WsReader, WsMessageReader has to ensure that the entire payload has been read.
-        if (payloadOffset < payloadLength) {
-            connection.doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
-        }
+        int charsRead = connection.doTextFrame(cbuf, offset, length, payloadLength);
 
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
@@ -470,7 +383,7 @@ public final class WsMessageReader extends MessageReader {
         payloadOffset = -1;
         state = State.READ_FLAGS_AND_OPCODE;
 
-        return offset - mark;
+        return charsRead;
     }
 
     private void filterControlFrames() throws IOException {
