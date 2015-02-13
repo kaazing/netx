@@ -45,6 +45,8 @@ public class WsReader extends Reader {
     private int payloadOffset;
     private long payloadLength;
     private char[] receiveBuffer;
+    private int charPayloadOffset;
+    private int charPayloadLength;
 
     public WsReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -64,8 +66,6 @@ public class WsReader extends Reader {
             int len = offset + length;
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, cbuf.length));
         }
-
-        int charsRead = 0;
 
         // This loop will be entered only if the entire WebSocket frame has been drained. If there was fragmentation at the TCP
         // level, this method will be invoked again with different offset and length. At that time, we will just use the
@@ -165,18 +165,20 @@ public class WsReader extends Reader {
                     receiveBuffer = new char[(int) payloadLength];
                 }
 
-                charsRead = connection.doTextFrame(receiveBuffer, 0, receiveBuffer.length, payloadLength);
+                charPayloadLength = connection.doTextFrame(receiveBuffer, 0, receiveBuffer.length, payloadLength);
             }
         }
 
-        assert charsRead > 0 && charsRead <= length;
+        int charsRead = Math.min(length, charPayloadLength - charPayloadOffset);
+        System.arraycopy(receiveBuffer, charPayloadOffset, cbuf, offset, charsRead);
+        charPayloadOffset += charsRead;
 
-        System.arraycopy(receiveBuffer, 0, cbuf, offset, charsRead);
-
-        if (payloadOffset == payloadLength) {
+        if (charPayloadOffset == charPayloadLength) {
             headerOffset = 0;
             payloadOffset = -1;
             payloadLength = 0;
+            charPayloadOffset = 0;
+            charPayloadLength = 0;
         }
 
         // number of chars (not code points) read
