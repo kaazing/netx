@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws;
+package org.kaazing.netx.ws.internal.ext;
 
-/**
- * {@link MessageType} represents the types of the messages that are received by the {@link MessageReader}.
- * {@link MessageType#EOS} represents end-of-stream.
- */
-public enum MessageType {
-
-    /**
-     * End of stream.
-     */
-    EOS,
-
-    /**
-     * Text message type.
-     */
-    TEXT,
-
-    /**
-     * Binary message type.
-     */
-    BINARY;
+public enum WebSocketState {
+    START,
+    UPGRADE_REQUEST_SENT,
+    UPGRADE_RESPONSE_RECEIVED,
+    CONNECTED,
+    CLOSE_FRAME_RECEIVED,
+    CLOSE_FRAME_SENT,
+    PING_FRAME_RECEIVED,
+    END
 }

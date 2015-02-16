@@ -17,6 +17,7 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.net.CookieHandler;
@@ -24,8 +25,9 @@ import java.net.CookieManager;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -36,6 +38,9 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
+import org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension;
+import org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension;
 
 /**
  * RFC-6455, section 4.1 "Client-Side Requirements"
@@ -125,18 +130,22 @@ public class OpeningHandshakeIT {
     }
 
     @Test
-    @Ignore
     @Specification("request.header.sec.websocket.extensions/handshake.response")
     public void shouldEstablishConnectionWithRequestHeaderSecWebSocketExtensions() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
         URI location = URI.create("ws://localhost:8080/path?query");
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
+        Map<String, WebSocketExtensionParameterValues> enabledExtensions =
+                                                    new LinkedHashMap<String, WebSocketExtensionParameterValues>();
 
-//      conn.setEnabledExtensions(unmodifiableList(asList("primary", "secondary")));
-
+        enabledExtensions.put(PrimaryExtension.PRIMARY_EXTENSION.name(), null);
+        enabledExtensions.put(SecondaryExtension.SECONDARY_EXTENSION.name(), null);
+        conn.setEnabledExtensions(enabledExtensions);
         conn.connect();
         k3po.join();
+        assertEquals(PrimaryExtension.PRIMARY_EXTENSION.name(), conn.getNegotiatedExtensions().iterator().next());
+        return;
     }
 
     @Test

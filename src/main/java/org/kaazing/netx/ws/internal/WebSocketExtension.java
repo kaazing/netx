@@ -16,6 +16,8 @@
 
 package org.kaazing.netx.ws.internal;
 
+import static java.lang.String.format;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,18 +28,17 @@ import java.util.Map;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter.Metadata;
 
 /**
- * {@link WebSocketExtension} should be extended to define or register
- * {@link Parameter}s constants that will be used by the
- * application developers.
+ * Extension developers must extend {@link WebSocketExtension} class to define {@link Parameter}s constants specific to their
+ * extension.
  */
 public abstract class WebSocketExtension {
-    private static final Map<String, WebSocketExtension>     _extensions;
+    private static final Map<String, WebSocketExtension> extensions;
 
     static {
-        _extensions = new HashMap<String, WebSocketExtension>();
+        extensions = new HashMap<String, WebSocketExtension>();
     };
 
-    private final Collection<Parameter<?>>     _parameters;
+    private final Collection<Parameter<?>> parameters;
 
     /**
      * Creates an {@link WebSocketExtensionParamter} of the specified type.
@@ -48,25 +49,19 @@ public abstract class WebSocketExtension {
      * @param parameterMetadata   characteristics of the parameter
      * @return Parameter of the specified type
      */
-    protected <T> Parameter<T> createParameter(String             parameterName,
-                                               Class<T>           parameterType,
-                                               EnumSet<Metadata>  parameterMetadata) {
+    protected <T> Parameter<T> createParameter(String parameterName,
+                                               Class<T> parameterType,
+                                               EnumSet<Metadata> parameterMetadata) {
         if ((parameterName == null) || (parameterName.trim().length() == 0)) {
-            String s = "Parameter name cannot be null or empty";
-            throw new IllegalArgumentException(s);
+            throw new IllegalArgumentException("Parameter name cannot be null or empty");
         }
 
         if (parameterType == null) {
-            String s = String.format("Null type specified for parameter '%s'",
-                                     parameterName);
-            throw new IllegalArgumentException(s);
+            throw new IllegalArgumentException(format("Null type specified for parameter '%s'", parameterName));
         }
 
-        Parameter<T> parameter =  new Parameter<T>(this,
-                                                   parameterName,
-                                                   parameterType,
-                                                   parameterMetadata);
-        _parameters.add(parameter);
+        Parameter<T> parameter =  new Parameter<T>(this, parameterName, parameterType, parameterMetadata);
+        parameters.add(parameter);
 
         return parameter;
     }
@@ -77,24 +72,23 @@ public abstract class WebSocketExtension {
      * @param name    name of the WebSocketExtension
      */
     protected WebSocketExtension() {
-        _parameters = new ArrayList<Parameter<?>>();
-        _extensions.put(name(), this);
+        parameters = new ArrayList<Parameter<?>>();
+        extensions.put(name(), this);
     }
 
     /**
-     * Returns the {@link WebSocketExtension} with the specified name. A null
-     * is returned if there are no extensions with the specified name.
+     * Returns the {@link WebSocketExtension} with the specified name. A null is returned if there are no extensions with the
+     * specified name.
      *
      * @param name     name of the WebSocketExtension
      * @return WebSocketExtension
      */
     public static WebSocketExtension getWebSocketExtension(String name) {
-        return _extensions.get(name);
+        return extensions.get(name);
     }
 
     /**
-     * Returns the {@link Parameter} defined in this
-     * {@link WebSoketExtension} with the specified name.
+     * Returns the {@link Parameter} defined in this {@link WebSoketExtension} with the specified name.
      *
      * @param name    parameter's name
      * @return Parameter
@@ -112,25 +106,23 @@ public abstract class WebSocketExtension {
     }
 
      /**
-     * Returns all the {@link Parameter}s that are defined in this
-     * {@link WebSocketExtension}. An empty Collection is returned if there
-     * are no {@link Parameter}s defined.
+     * Returns all the {@link Parameter}s that are defined in this {@link WebSocketExtension}. An empty Collection is returned
+     * if there are no {@link Parameter}s defined.
      *
      * @return Collection of WebSocketExtensionParameters
      */
     public Collection<Parameter<?>> getParameters() {
-        if (_parameters == null) {
+        if (parameters == null) {
             return Collections.<Parameter<?>>emptyList();
         }
 
-        return Collections.unmodifiableCollection(_parameters);
+        return Collections.unmodifiableCollection(parameters);
     }
 
     /**
-     * Returns {@link Parameter}s defined in this {@link WebSocketExtension}
-     * that match all the specified characteristics. An empty Collection is
-     * returned if none of the {@link Parameter}s defined in this
-     * {@link WebSocketExtension} match all the specified characteristics.
+     * Returns {@link Parameter}s defined in this {@link WebSocketExtension} that match all the specified characteristics. An
+     * empty Collection is returned if none of the {@link Parameter}s defined in this {@link WebSocketExtension} match all the
+     * specified characteristics.
      *
      * @return Collection of WebSocketExtensionParameters
      */
@@ -184,35 +176,32 @@ public abstract class WebSocketExtension {
     public static final class Parameter<T> {
         public enum Metadata {
             /**
-             * Name of a parameter marked as anonymous will not be put on the wire
-             * during the handshake. By default, a parameter is considered "named"
-             * and it's name will be put on the wire during the handshake.
+             * Name of a parameter marked as anonymous will not be put on the wire during the handshake. By default, a
+             * parameter is considered "named" and it's name will be put on the wire during the handshake.
              */
             ANONYMOUS,
 
             /**
-             * Parameters marked as required must be set for the entire extension
-             * to be negotiated during the handshake. By default, a parameter is
-             * considered to be optional.
+             * Parameters marked as required must be set for the entire extension to be negotiated during the handshake. By
+             * default, a parameter is considered to be optional.
              */
             REQUIRED,
 
             /**
-             * Parameter marked as temporal will not be negotiated during the
-             * handshake.
+             * Parameter marked as temporal will not be negotiated during the handshake.
              */
             TEMPORAL;
         };
 
-        private final WebSocketExtension    _parent;
-        private final String                _parameterName;
-        private final Class<T>              _parameterType;
-        private final EnumSet<Metadata>     _parameterMetadata;
+        private final WebSocketExtension parent;
+        private final String parameterName;
+        private final Class<T> parameterType;
+        private final EnumSet<Metadata> parameterMetadata;
 
-        public Parameter(WebSocketExtension    parent,
-                         String                name,
-                         Class<T>              type,
-                         EnumSet<Metadata>     metadata) {
+        public Parameter(WebSocketExtension parent,
+                         String name,
+                         Class<T> type,
+                         EnumSet<Metadata> metadata) {
             if ((name == null) || (name.trim().length() == 0)) {
                 String s = String.format("Parameters must have a name");
                 throw new IllegalArgumentException(s);
@@ -225,48 +214,45 @@ public abstract class WebSocketExtension {
             }
 
             if ((metadata == null) || metadata.isEmpty()) {
-                _parameterMetadata = EnumSet.noneOf(Metadata.class);
+                parameterMetadata = EnumSet.noneOf(Metadata.class);
             }
             else {
-                _parameterMetadata = metadata;
+                parameterMetadata = metadata;
             }
 
-            _parent = parent;
-            _parameterName = name;
-            _parameterType = type;
+            this.parent = parent;
+            this.parameterName = name;
+            this.parameterType = type;
         }
 
         /**
-         * Returns the parent {@link WebSocketExtension} that this parameter is
-         * defined in.
+         * Returns the parent {@link WebSocketExtension} that this parameter is defined in.
          *
          * @return String     name of the extension
          */
         public WebSocketExtension extension() {
-            return _parent;
+            return parent;
         }
 
         /**
-         * Indicates whether the parameter is anonymous or named. If the parameter
-         * is anonymous and it is not transient, then it's name is NOT put on the
-         * wire during the handshake. However, it's value is put on the wire.
+         * Indicates whether the parameter is anonymous or named. If the parameter is anonymous and it is not transient, then
+         * it's name is NOT put on the wire during the handshake. However, it's value is put on the wire.
          *
          * @return boolean     true if the parameter is anonymous, false if the
          *                     parameter is named
          */
         public boolean anonymous() {
-            return _parameterMetadata.contains(Metadata.ANONYMOUS);
+            return parameterMetadata.contains(Metadata.ANONYMOUS);
         }
 
         /**
-         * Returns the metadata characteristics of this extension parameter. The
-         * returned EnumSet is a clone so any changes to it will not be picked by
-         * by the extension parameter.
+         * Returns the metadata characteristics of this extension parameter. The returned EnumSet is a clone so any changes to
+         * it will not be picked by by the extension parameter.
          *
          * @return EnumSet<Metadata>     characteristics of the extension parameter
          */
         public EnumSet<Metadata> metadata() {
-            return _parameterMetadata.clone();
+            return parameterMetadata.clone();
         }
 
         /**
@@ -275,27 +261,27 @@ public abstract class WebSocketExtension {
          * @return String     name of the parameter
          */
         public String name() {
-            return _parameterName;
+            return parameterName;
         }
 
         /**
-         * Indicates whether the parameter is required. If the required parameter
-         * is not set, then the extension is not negotiated during the handshake.
+         * Indicates whether the parameter is required. If the required parameter is not set, then the extension is not
+         * negotiated during the handshake.
          *
          * @return boolean     true if the parameter is required, otherwise false
          */
         public boolean required() {
-            return _parameterMetadata.contains(Metadata.REQUIRED);
+            return parameterMetadata.contains(Metadata.REQUIRED);
         }
 
         /**
-         * Indicates whether the parameter is temporal/transient. Temporal
-         * parameters are not put on the wire during the handshake.
+         * Indicates whether the parameter is temporal/transient. Temporal parameters are not put on the wire during the
+         * handshake.
          *
          * @return boolean     true if the parameter is temporal, otherwise false
          */
         public boolean temporal() {
-            return _parameterMetadata.contains(Metadata.TEMPORAL);
+            return parameterMetadata.contains(Metadata.TEMPORAL);
         }
 
         /**
@@ -304,7 +290,7 @@ public abstract class WebSocketExtension {
          * @return Class<T>    type of the parameter
          */
         public Class<T> type() {
-            return _parameterType;
+            return parameterType;
         }
     }
 }

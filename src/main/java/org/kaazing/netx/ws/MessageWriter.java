@@ -18,14 +18,11 @@ package org.kaazing.netx.ws;
 
 import java.io.IOException;
 
+import org.kaazing.netx.ws.internal.WebSocket;
+
 /**
- * {@link MessageWriter} is used to send binary and text messages. A
- * reference to {@link MessageWriter} is obtained by invoking either
- * {@link WsURLConnection#getMessageWriter()} methods.
- * <p>
- * Once the connection is closed, a new {@link MessageReader} should
- * be obtained using the aforementioned methods after the connection has been
- * established. Using the old reader will result in IOException.
+ * {@link MessageWriter} is used to send binary and text messages. A reference to {@link MessageWriter} is obtained by invoking
+ * either {@link WsURLConnection#getMessageWriter()} or {@link WebSocket#getMessageWriter()} methods.
  */
 public abstract class MessageWriter {
     /**

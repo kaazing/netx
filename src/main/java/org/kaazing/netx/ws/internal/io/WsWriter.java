@@ -118,7 +118,6 @@ public class WsWriter extends Writer {
         }
 
         out.write(masked);
-        out.flush();
     }
 
     @Override

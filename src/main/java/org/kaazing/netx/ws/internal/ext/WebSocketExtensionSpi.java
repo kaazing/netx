@@ -16,33 +16,25 @@
 
 package org.kaazing.netx.ws.internal.ext;
 
-
+import org.kaazing.netx.ws.internal.WebSocketExtension;
 
 /**
- * WebSocketExtensionSpi is part of <i>Service Provider Interface</i> <em>(SPI)</em>
- * for admins/implementors.
+ * WebSocketExtensionSpi is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
  * <p>
- * A WebSocket Extension implementation consists of the following:
+ * Developing an extension involves the following:
  * <UL>
- *   <LI> a sub-class of WebSocketExtensionFactorySpi
- *   <LI> a sub-class of WebSocketExtensionSpi
- *   <LI> a sub-class of WebSocketExtension with
- *        {@link Parameter}s defined as constants
+ *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
+ *   <LI> a sub-class of {@link WebSocketExtensionSpi}
+ *   <LI> a sub-class of {@link WebSocketExtension} with {@link Parameter}s defined as constants
+ *   <LI> a sub-class of {@link WebSocketHooks}
  * </UL>
  * <p>
- * Every supported extension will require implementing the aforementioned
- * classes. A subset of the supported extensions will be enabled by the
- * application developer.
- * <p>
- * The enabled extensions are included on the wire during the handshake for
- * the client and the server to negotiate.
- * <p>
- * The successfully negotiated extensions are then added to the WebSocket
- * message processing pipeline.
- *
- * @see RevalidateExtension
+ * When an enabled extension is successfully negotiated, an instance of this class is created using the corresponding
+ * {@link WebSocketExtensionFactorySpi} that is registered through META-INF/services. This class is used to instantiate the
+ * {@link WebSocketHooks} that can be exercised as the state machine transitions from one state to another while handling the
+ * WebSocket traffic. Based on the functionality of the extension, the developer can decide which hooks to code.
  */
 public abstract class WebSocketExtensionSpi {
 
-    public abstract WebSocketExtensionHandler createHandler();
+    public abstract WebSocketHooks createWebSocketHooks();
 }

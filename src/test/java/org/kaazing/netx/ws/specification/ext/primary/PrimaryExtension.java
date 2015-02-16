@@ -13,27 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.kaazing.netx.ws.specification.ext.primary;
 
-package org.kaazing.netx.ws;
+import org.kaazing.netx.ws.internal.WebSocketExtension;
 
-/**
- * {@link MessageType} represents the types of the messages that are received by the {@link MessageReader}.
- * {@link MessageType#EOS} represents end-of-stream.
- */
-public enum MessageType {
+public final class PrimaryExtension extends WebSocketExtension {
+    public static final PrimaryExtension PRIMARY_EXTENSION = new PrimaryExtension();
 
-    /**
-     * End of stream.
-     */
-    EOS,
+    private static final String EXTENSION_NAME = "primary";
 
-    /**
-     * Text message type.
-     */
-    TEXT,
+    private PrimaryExtension() {
+    }
 
-    /**
-     * Binary message type.
-     */
-    BINARY;
+    @Override
+    public String name() {
+        return EXTENSION_NAME;
+    }
 }

@@ -38,10 +38,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -52,8 +54,12 @@ import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter.Metadata;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketHooks;
+import org.kaazing.netx.ws.internal.ext.WebSocketStateMachine;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
 import org.kaazing.netx.ws.internal.io.WsMessageReader;
 import org.kaazing.netx.ws.internal.io.WsMessageWriter;
@@ -158,7 +164,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     // -------------------------- WsURLConnection Methods -------------------
     @Override
     public void close() throws IOException {
-        close(0, null);
+        close(0, null); // ### TODO: Should this be 1000(WS_NORMAL_CLOSE)?
     }
 
     @Override
@@ -211,37 +217,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return connection.getConnectTimeout();
     }
 
-    /**
-     * Gets the names of all the extensions that have been enabled for this
-     * connection. The enabled extensions are negotiated between the client
-     * and the server during the handshake. The names of the negotiated
-     * extensions can be obtained using {@link #getNegotiatedExtensions()} API.
-     * An empty Collection is returned if no extensions have been enabled for
-     * this connection. The enabled extensions will be a subset of the
-     * supported extensions.
-     *
-     * @return Collection<String>     names of the enabled extensions for this
-     *                                connection
-     */
+    @Override
     public Collection<String> getEnabledExtensions() {
         return enabledExtensionsRO.keySet();
     }
 
-    /**
-     * Gets the value of the specified {@link Parameter} defined in an enabled
-     * extension. If the parameter is not defined for this connection but a
-     * default value for the parameter is set using the method
-     * {@link WebSocketFactory#setDefaultParameter(Parameter, Object)},
-     * then the default value is returned.
-     * <p>
-     * Setting the parameter value when the connection is successfully
-     * established will result in an IllegalStateException.
-     * </p>
-     * @param <T>          Generic type of the value of the Parameter
-     * @param parameter    Parameter whose value needs to be set
-     * @return the value of the specified parameter
-     * @throw IllegalStateException   if this method is invoked after connect()
-     */
+    @Override
     public <T> T getEnabledParameter(Parameter<T> parameter) {
         WebSocketExtension extension = parameter.extension();
         WebSocketExtensionParameterValues enabledParameterValues = enabledExtensions.get(extension.name());
@@ -289,39 +270,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return messageWriter;
     }
 
-    /**
-     * Gets names of all the enabled extensions that have been successfully
-     * negotiated between the client and the server during the initial
-     * handshake.
-     * <p>
-     * Returns an empty Collection if no extensions were negotiated between the
-     * client and the server. The negotiated extensions will be a subset of the
-     * enabled extensions.
-     * <p>
-     * If this method is invoked before a connection is successfully established,
-     * an IllegalStateException is thrown.
-     *
-     * @return Collection<String>      successfully negotiated using this
-     *                                 connection
-     * @throws IOException
-     */
+    @Override
     public Collection<String> getNegotiatedExtensions() throws IOException {
         ensureConnected();
         return negotiatedExtensionsRO.keySet();
     }
 
-    /**
-     * Returns the value of the specified {@link Parameter} of a negotiated
-     * extension.
-     * <p>
-     * If this method is invoked before the connection is successfully
-     * established, an IllegalStateException is thrown.
-     *
-     * @param <T>          parameter type
-     * @param parameter    parameter of a negotiated extension
-     * @return T           value of the specified parameter
-     * @throws IOException
-     */
+    @Override
     public <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException {
         ensureConnected();
 
@@ -358,14 +313,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return reader;
     }
 
-    /**
-     * Returns the names of extensions that have been discovered for this
-     * connection. An empty Collection is returned if no extensions were
-     * discovered for this connection.
-     *
-     * @return Collection<String>    extension names discovered for this
-     *                               connection
-     */
+    @Override
     public Collection<String> getSupportedExtensions() {
         return extensionFactory.getExtensionNames();
     }
@@ -389,6 +337,19 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     @Override
     public void setConnectTimeout(int timeout) {
         connection.setConnectTimeout(timeout);
+    }
+
+    @Override
+    public void setEnabledExtensions(Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
+        switch (readyState) {
+        case INITIAL:
+            break;
+        default:
+            throw new IllegalStateException("Already connected");
+        }
+
+        this.enabledExtensions.clear();
+        this.enabledExtensions.putAll(enabledExtensions);
     }
 
     @Override
@@ -731,12 +692,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return connection.getOutputStream();
     }
 
-    public void setEnabledExtensions(
-            Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
-        this.enabledExtensions.clear();
-        this.enabledExtensions.putAll(enabledExtensions);
-    }
-
     private void ensureConnected() throws IOException {
         switch (readyState) {
         case INITIAL:
@@ -811,36 +766,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    private static HttpURLConnection openHttpConnection(URLConnectionHelper helper, URI httpLocation) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(httpLocation);
-        connection.setDoOutput(true);
-        return connection;
-    }
-
-    private byte[] randomBytes(int size) {
-        byte[] bytes = new byte[size];
-        random.nextBytes(bytes);
-        return bytes;
-    }
-
-    private static String base64Encode(byte[] bytes) {
-        return Base64Util.encode(ByteBuffer.wrap(bytes));
-    }
-
-    private static boolean validateAccept(String websocketKey, String websocketHash) {
-        try {
-            MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
-            String input = websocketKey + WEBSOCKET_GUID;
-            byte[] hash = sha1.digest(input.getBytes());
-
-            String computedHash = Base64Util.encode(ByteBuffer.wrap(hash));
-            return computedHash.equals(websocketHash);
-        }
-        catch (NoSuchAlgorithmException e) {
-            return false;
-        }
-    }
-
     private int readControlFramePayload(byte[] buf, int offset, int length) throws IOException {
         InputStream in = connection.getInputStream();
         int mark = offset;
@@ -859,6 +784,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return offset - mark;
     }
 
+    private byte[] randomBytes(int size) {
+        byte[] bytes = new byte[size];
+        random.nextBytes(bytes);
+        return bytes;
+    }
+
     private void negotiateProtocol(Collection<String> enabledProtocols, String negotiatedProtocol) throws IOException {
         if (negotiatedProtocol != null && !enabledProtocols.contains(negotiatedProtocol)) {
             throw new IOException(format("Connection failed. Negotiated protocol \"%s\" was not enabled", negotiatedProtocol));
@@ -868,112 +799,85 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private void negotiateExtensions(
             Map<String, WebSocketExtensionParameterValues> enabledExtensions,
-            String formattedExtensions) {
+            String formattedExtensions) throws IOException {
 
-        // TODO
-        // 1. parse formatted extensions (names only)
-        // 2. verify negotiated extension names are all enabled
-        // 3. parse parameters for each negotiated extension
+        if ((formattedExtensions == null) || (formattedExtensions.trim().length() == 0)) {
+            this.negotiatedExtensions.clear();
+            return;
+        }
 
-//        if ((rawNegotiatedExtensionsHeader == null) ||
-//            (rawNegotiatedExtensionsHeader.trim().length() == 0)) {
-//            return;
-//        }
-//
-//        String[] rawExtensions = rawNegotiatedExtensionsHeader.split(",");
-//
-//        for (String rawExtension : rawExtensions) {
-//            String[] tokens = rawExtension.split(";");
-//            String   extnName = tokens[0].trim();
-//
-//            if (!enabledExtensionNames.contains(extnName)) {
-//                String s = String.format("Extension '%s' is not an enabled " +
-//                        "extension so it should not be in the handshake response", extnName);
-//                throw new IOException(s);
-//            }
-//        }
-//
-//        if ((formattedExtensions == null) ||
-//            (formattedExtensions.trim().length() == 0)) {
-//            this.negotiatedExtensions = null;
-//            return;
-//        }
-//
-//        String[]     extns = formattedExtensions.split(",");
-//        List<String> extnNames = new ArrayList<String>();
-//
-//        for (String extn : extns) {
-//            String[]    properties = extn.split(";");
-//            String      extnName = properties[0].trim();
-//
-//            if (!getEnabledExtensions().contains(extnName)) {
-//                String s = String.format("Extension '%s' is not an enabled " +
-//                        "extension so it should not have been negotiated", extnName);
-////                    setException(new WebSocketException(s));
-//                return;
-//            }
-//
-//            WebSocketExtension extension =
-//                            WebSocketExtension.getWebSocketExtension(extnName);
-//            WsExtensionParameterValuesImpl paramValues =
-//                           this.negotiatedParameters.get(extnName);
-//            Collection<Parameter<?>> anonymousParams =
-//                           extension.getParameters(Metadata.ANONYMOUS);
-//
-//            // Start from the second(0-based) property to parse the name-value
-//            // pairs as the first(or 0th) is the extension name.
-//            for (int i = 1; i < properties.length; i++) {
-//                String       property = properties[i].trim();
-//                String[]     pair = property.split("=");
-//                Parameter<?> parameter = null;
-//                String       paramValue = null;
-//
-//                if (pair.length == 1) {
-//                    // We are dealing with an anonymous parameter. Since the
-//                    // Collection is actually an ArrayList, we are guaranteed to
-//                    // iterate the parameters in the definition/creation order.
-//                    // As there is no parameter name, we will just get the next
-//                    // anonymous Parameter instance and use it for setting the
-//                    // value. The onus is on the extension implementor to either
-//                    // use only named parameters or ensure that the anonymous
-//                    // parameters are defined in the order in which the server
-//                    // will send them back during negotiation.
-//                    parameter = anonymousParams.iterator().next();
-//                    paramValue = pair[0].trim();
-//                }
-//                else {
-//                    parameter = extension.getParameter(pair[0].trim());
-//                    paramValue = pair[1].trim();
-//                }
-//
-//                if (parameter.type() != String.class) {
-//                    String paramName = parameter.name();
-//                    String s = String.format("Negotiated Extension '%s': " +
-//                                             "Type of parameter '%s' should be String",
-//                                             extnName, paramName);
-////                        setException(new WebSocketException(s));
-//                    return;
-//                }
-//
-//                if (paramValues == null) {
-//                    paramValues = new WsExtensionParameterValuesImpl();
-//                    this.negotiatedParameters.put(extnName, paramValues);
-//                }
-//
-//                paramValues.setParameterValue(parameter, paramValue);
-//            }
-//            extnNames.add(extnName);
-//        }
-//
-//        HashSet<String> extnsSet = new HashSet<String>(extnNames);
-//        this.negotiatedExtensions = unmodifiableCollection(extnsSet);
+        String[] extensions = formattedExtensions.split(",");
+        List<WebSocketHooks> extensionsHooks = new ArrayList<WebSocketHooks>();
 
-        // ### TODO: Add the extension handlers for the negotiated extensions
-        //           to the pipeline.
+        for (String extn : extensions) {
+            String[] properties = extn.split(";");
+            String extnName = properties[0].trim();
+
+            if (!enabledExtensions.containsKey(extnName)) {
+                // Only enabled extensions should be negotiated.
+                String s = format("Invalid extension '%s' negotiated", extnName);
+                throw new IOException(s);
+            }
+
+            WebSocketExtension extension = WebSocketExtension.getWebSocketExtension(extnName);
+            Collection<Parameter<?>> anonymousParams = extension.getParameters(Metadata.ANONYMOUS);
+            WebSocketExtensionParameterValues paramValues = this.negotiatedExtensions.get(extnName);
+
+            if (paramValues == null) {
+                paramValues = new WsExtensionParameterValuesImpl();
+                this.negotiatedExtensions.put(extnName, paramValues);
+            }
+
+            // Start from the second(0-based) property to parse the name-value pairs as the first(or 0th) is the extension name.
+            for (int i = 1; i < properties.length; i++) {
+                String property = properties[i].trim();
+                String[] pair = property.split("=");
+                Parameter<?> parameter = null;
+                String paramValue = null;
+
+                if (pair.length == 1) {
+                    // We are dealing with an anonymous parameter. Since the Collection is actually an ArrayList, we are
+                    // guaranteed to iterate the parameters in the definition/creation order. As there is no parameter name, we
+                    // will just get the next anonymous Parameter instance and use it for setting the value. The onus is on the
+                    // extension implementor to either use only named parameters or ensure that the anonymous parameters are
+                    // defined in the order in which the server will send them back during negotiation.
+                    parameter = anonymousParams.iterator().next();
+                    paramValue = pair[0].trim();
+                } else {
+                    parameter = extension.getParameter(pair[0].trim());
+                    paramValue = pair[1].trim();
+                }
+
+                if (parameter.type() != String.class) {
+                    String paramName = parameter.name();
+                    String s = format("Negotiated Extension '%s': Type of parameter '%s' should be String", extnName, paramName);
+                    throw new IOException(s);
+                }
+
+                ((WsExtensionParameterValuesImpl) paramValues).setParameterValue(parameter, paramValue);
+            }
+
+            WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extnName, paramValues);
+            WebSocketHooks hooks = extensionSpi.createWebSocketHooks();
+            if (hooks != null) {
+                extensionsHooks.add(hooks);
+            }
+        }
+
+        // ### TODO: Create WebSocketStateMachine using negotiated extensions' hooks. Invoke WebSocketStateMachine APIs from
+        // doXXX() methods. Maybe, create a WsURLConnectionHandler and move doXXX() methods defined in this class to
+        // WsURLConnectionHandler. Need Flyweights to define WebSocketStateMachine APIs so that they can be invoked from
+        // the doXXX() methods. Eventually, WebSocketStateMachine will exercise/apply the hooks for each of the negotiated
+        // extensions.
+        WebSocketStateMachine stateMachine = new WebSocketStateMachine(extensionsHooks);
+
     }
 
-    private String formatAsRFC3864(Collection<String> protocols) {
+    private static String base64Encode(byte[] bytes) {
+        return Base64Util.encode(ByteBuffer.wrap(bytes));
+    }
 
+    private static String formatAsRFC3864(Collection<String> protocols) {
         assert protocols != null;
 
         StringBuilder sb = new StringBuilder();
@@ -990,8 +894,90 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     private static String formatAsRFC3864(Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
-        // TODO Auto-generated method stub
-        return null;
+        if ((enabledExtensions == null) || enabledExtensions.isEmpty()) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, WebSocketExtensionParameterValues> entry : enabledExtensions.entrySet()) {
+            String extensionName = entry.getKey();
+            WebSocketExtensionParameterValues paramValues = entry.getValue();
+            String extension = formattedExtension(extensionName, paramValues);
+
+            if (sb.length() != 0) {
+                sb.append(", ");
+            }
+            sb.append(extension);
+        }
+
+        return sb.toString();
+    }
+
+    private static String formattedExtension(String extensionName, WebSocketExtensionParameterValues paramValues) {
+        assert extensionName != null;
+
+        WebSocketExtension extension = WebSocketExtension.getWebSocketExtension(extensionName);
+        Collection<Parameter<?>> parameters = extension.getParameters();
+        StringBuffer buffer = new StringBuffer(extension.name());
+
+        // Iterate over ordered list of parameters to create the formatted string.
+        for (Parameter<?> param : parameters) {
+            if (param.required()) {
+                // Required parameter is not enabled/set.
+                String s = format("Extension '%s': Required parameter '%s' must be set", extension.name(), param.name());
+                if ((paramValues == null) || (paramValues.getParameterValue(param) == null)) {
+                    throw new IllegalStateException(s);
+                }
+            }
+
+            if (paramValues == null) {
+                // We should continue so that we can throw an exception if any of the required parameters has not been set.
+                continue;
+            }
+
+            Object value = paramValues.getParameterValue(param);
+
+            if (value == null) {
+                // Non-required parameter has not been set. So, let's continue to the next one.
+                continue;
+            }
+
+            if (param.temporal()) {
+                // Temporal/transient parameters, even if they are required, are not put on the wire.
+                continue;
+            }
+
+            if (param.anonymous()) {
+                // If parameter is anonymous, then only it's value is put on the wire.
+                buffer.append(";").append(value);
+                continue;
+            }
+
+            // Otherwise, append the name=value pair.
+            buffer.append(";").append(param.name()).append("=").append(value);
+        }
+
+        return buffer.toString();
+    }
+
+    private static HttpURLConnection openHttpConnection(URLConnectionHelper helper, URI httpLocation) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) helper.openConnection(httpLocation);
+        connection.setDoOutput(true);
+        return connection;
+    }
+
+    private static boolean validateAccept(String websocketKey, String websocketHash) {
+        try {
+            MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+            String input = websocketKey + WEBSOCKET_GUID;
+            byte[] hash = sha1.digest(input.getBytes());
+
+            String computedHash = Base64Util.encode(ByteBuffer.wrap(hash));
+            return computedHash.equals(websocketHash);
+        }
+        catch (NoSuchAlgorithmException e) {
+            return false;
+        }
     }
 
     private static final class EmptyExtensionParameterValues extends WebSocketExtensionParameterValues {

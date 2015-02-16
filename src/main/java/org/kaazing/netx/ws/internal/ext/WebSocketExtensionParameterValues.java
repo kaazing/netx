@@ -18,26 +18,16 @@ package org.kaazing.netx.ws.internal.ext;
 
 import java.util.Collection;
 
-import org.kaazing.netx.ws.internal.WebSocket;
 import org.kaazing.netx.ws.internal.WebSocketExtension;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.WsURLConnection;
 
 /**
- * WsExtensionParameterValues is part of <i>Service Provider Interface</i>
- * <em>(SPI)</em> for admins/implementors.
- * <p>
- * WsExtensionParameterValues is used to cache extension parameters as
- * name-value pairs in a very generic type-safe way. The implementations of
- * {@link WebSocket#connect()} and {@link WsURLConnection#connect()} invoke
- * {@link WebSocketExtensionFactorySpi#createExtension(WebSocketExtensionParameterValuesSpi)}
- * method and pass in all the extension parameters that have been earlier set
- * by the developer for the enabled extensions.
+ * WebSocketExtensionParameterValues is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
+ * This class is used to hold extension parameter information in a generic yet strongly typed manner.
  */
 public abstract class WebSocketExtensionParameterValues {
     /**
-     * Returns the collection of {@link Parameter} objects of a
-     * {@link WebSocketExtension} that have been set. Returns an empty
+     * Returns the collection of {@link Parameter} objects of a {@link WebSocketExtension} that have been set. Returns an empty
      * Collection if no parameters belonging to the extension have been set.
      *
      * @return Collection<Parameter<?>>
@@ -45,8 +35,7 @@ public abstract class WebSocketExtensionParameterValues {
     public abstract Collection<Parameter<?>> getParameters();
 
     /**
-     * Returns the value of type T of the specified parameter. A null is
-     * returned if value is not set.
+     * Returns the value of type T of the specified parameter. A null is returned if value is not set.
      *
      * @param <T>           Generic type T of the parameter's value
      * @param parameter     extension parameter

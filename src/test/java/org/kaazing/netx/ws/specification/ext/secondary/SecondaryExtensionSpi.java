@@ -13,27 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.kaazing.netx.ws.specification.ext.secondary;
 
-package org.kaazing.netx.ws;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketHooks;
 
-/**
- * {@link MessageType} represents the types of the messages that are received by the {@link MessageReader}.
- * {@link MessageType#EOS} represents end-of-stream.
- */
-public enum MessageType {
+public class SecondaryExtensionSpi extends WebSocketExtensionSpi {
 
-    /**
-     * End of stream.
-     */
-    EOS,
+    public SecondaryExtensionSpi() {
+    }
 
-    /**
-     * Text message type.
-     */
-    TEXT,
-
-    /**
-     * Binary message type.
-     */
-    BINARY;
+    @Override
+    public WebSocketHooks createWebSocketHooks() {
+        return null;
+    }
 }

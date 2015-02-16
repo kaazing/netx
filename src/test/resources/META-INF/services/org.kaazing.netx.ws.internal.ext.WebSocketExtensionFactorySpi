@@ -1,0 +1,2 @@
+org.kaazing.netx.ws.specification.ext.primary.PrimaryExtensionFactory
+org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtensionFactory
