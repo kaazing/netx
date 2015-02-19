@@ -23,19 +23,102 @@ import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketSupplier;
 
 public abstract class WebSocketExtensionHooks {
-    public WebSocketSupplier<WsURLConnection> whenInitialized;
-    public WebSocketSupplier<WsURLConnection> whenError;
+    public WebSocketSupplier<WsURLConnection> whenInitialized =
+            new WebSocketSupplier<WsURLConnection>() {
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPingFrameReceived;
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPongFrameReceived;
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPongFrameIsBeingSent;
+        @Override
+        public void apply(WsURLConnection connection) {
+            return;
+        }
+    };
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenCloseFrameReceived;
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenCloseFrameIsBeingSent;
+    public WebSocketSupplier<WsURLConnection> whenError =
+            new WebSocketSupplier<WsURLConnection>() {
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenBinaryFrameReceived;
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenBinaryFrameIsBeingSent;
+        @Override
+        public void apply(WsURLConnection connection) {
+            return;
+        }
+    };
 
-    public WebSocketFrameSupplier<WsURLConnection, CharBuffer> whenTextFrameReceived;
-    public WebSocketFrameSupplier<WsURLConnection, CharBuffer> whenTextFrameIsBeingSent;
+    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPingFrameReceived =
+            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+
+        @Override
+        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+            return payload;
+        }
+    };
+
+    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPongFrameReceived =
+            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+
+        @Override
+        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+            return payload;
+        }
+    };
+
+    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPongFrameIsBeingSent =
+            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+
+        @Override
+        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+            return payload;
+        }
+    };
+
+    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenCloseFrameReceived =
+            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+
+        @Override
+        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+            return payload;
+        }
+    };
+
+    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenCloseFrameIsBeingSent =
+            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+
+        @Override
+        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+            return payload;
+        }
+    };
+
+    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenBinaryFrameReceived =
+            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+
+        @Override
+        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+            return payload;
+        }
+    };
+
+    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenBinaryFrameIsBeingSent =
+            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+
+        @Override
+        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+            return payload;
+        }
+    };
+
+    public WebSocketFrameSupplier<WsURLConnection, CharBuffer> whenTextFrameReceived =
+            new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
+
+        @Override
+        public CharBuffer apply(WsURLConnection connection, CharBuffer payload) {
+            return payload;
+        }
+    };
+
+    public WebSocketFrameSupplier<WsURLConnection, CharBuffer> whenTextFrameIsBeingSent =
+            new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
+
+        @Override
+        public CharBuffer apply(WsURLConnection connection, CharBuffer payload) {
+            return payload;
+        }
+    };
 }
