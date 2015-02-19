@@ -36,7 +36,6 @@ public class WsReader extends Reader {
 
     private static final int MAX_TEXT_PAYLOAD_LENGTH = 8192;
 
-
     private final WsURLConnectionImpl connection;
     private final InputStream in;
     private final byte[] header;

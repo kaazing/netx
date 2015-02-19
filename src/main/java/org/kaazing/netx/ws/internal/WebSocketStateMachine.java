@@ -318,7 +318,7 @@ public class WebSocketStateMachine {
 
         switch (state) {
         case CONNECTED:
-            transition(connection, WebSocketTransition.SEND_PONG_FRAME);
+            transition(connection, WebSocketTransition.SEND_TEXT_FRAME);
 
             if (extensionsHooks != null) {
                 for (WebSocketExtensionHooks hooks : extensionsHooks) {

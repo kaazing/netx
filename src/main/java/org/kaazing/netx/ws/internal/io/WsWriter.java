@@ -23,18 +23,24 @@ import static org.kaazing.netx.ws.internal.util.Utf8Util.byteCountUTF8;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.CharBuffer;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public class WsWriter extends Writer {
+    private static final int MAX_TEXT_PAYLOAD_LENGTH = 8192;
+
     private final WsURLConnectionImpl connection;
     private final OutputStream out;
     private final byte[] mask;
+
+    private char[] charBuffer;
 
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
         this.out = connection.getTcpOutputStream();
         this.mask = new byte[4];
+        this.charBuffer = new char[MAX_TEXT_PAYLOAD_LENGTH];
     }
 
     @Override
@@ -43,7 +49,16 @@ public class WsWriter extends Writer {
             throw new IOException("Connection closed");
         }
 
-        int byteCount = byteCountUTF8(cbuf, offset, length);
+        CharBuffer payload = CharBuffer.wrap(cbuf, offset, length);
+        CharBuffer transformedPayload = connection.getStateMachine().sendTextFrame(connection, payload);
+        length = transformedPayload.remaining();
+
+        if (charBuffer.length < length) {
+            charBuffer = new char[length];
+        }
+        transformedPayload.get(charBuffer, 0, length);
+
+        int byteCount = byteCountUTF8(charBuffer, 0, length);
 
         out.write(0x81);
 
@@ -108,7 +123,7 @@ public class WsWriter extends Writer {
         out.write(mask);
 
         // ### TODO: Convert the char[] to UTF-8 byte[] payload instead of creating a String.
-        byte[] bytes = String.valueOf(cbuf, offset, length).getBytes("UTF-8");
+        byte[] bytes = String.valueOf(charBuffer, 0, length).getBytes("UTF-8");
 
         // Mask the payload.
         byte[] masked = new byte[bytes.length];

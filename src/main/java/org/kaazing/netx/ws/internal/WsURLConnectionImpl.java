@@ -56,8 +56,8 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter.Metadata;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
 import org.kaazing.netx.ws.internal.io.WsMessageReader;
 import org.kaazing.netx.ws.internal.io.WsMessageWriter;
@@ -458,6 +458,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return random;
     }
 
+    public WebSocketStateMachine getStateMachine() throws IOException {
+        return stateMachine;
+    }
+
     public InputStream getTcpInputStream() throws IOException {
         return connection.getInputStream();
     }
@@ -680,51 +684,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     public void sendClose(int code, byte[] reason) throws IOException {
-        int capacity = 0;
-        if (code > 0) {
-            capacity += 2;
-            if (reason != null) {
-                capacity += reason.length;
-            }
-        }
-
-        ByteBuffer payload = ByteBuffer.allocate(capacity);
-        if (code > 0) {
-            payload.putShort((short) code);
-            if (reason != null) {
-                payload.put(reason);
-            }
-            payload.flip();
-        }
-
-        int closeCode = 0;
-        byte[] closeReason = null;
-        ByteBuffer transformedPayload = stateMachine.sendCloseFrame(this, payload);
-        if ((transformedPayload != null) && (transformedPayload.remaining() > 0)) {
-            closeCode = transformedPayload.getShort();
-            int rem = transformedPayload.remaining();
-            if (rem > 0) {
-                closeReason = new byte[rem];
-                transformedPayload.get(closeReason);
-            }
-        }
-
-        getOutputStream().writeClose(closeCode, closeReason);
+        getOutputStream().writeClose(code, reason);
         disconnect();
         state = CLOSED;
     }
 
     public void sendPong(byte[] buf) throws IOException {
-        byte[]  pongBuf = buf;
-        if (buf != null) {
-            ByteBuffer payload = ByteBuffer.wrap(buf);
-            ByteBuffer transformedPayload = stateMachine.sendPongFrame(this, payload);
-            int remaining = transformedPayload.remaining();
-            pongBuf = new byte[remaining];
-            transformedPayload.get(pongBuf);
-        }
-
-        getOutputStream().writePong(pongBuf);
+        getOutputStream().writePong(buf);
     }
 
     public void setWebSocketState(WebSocketState state) {
