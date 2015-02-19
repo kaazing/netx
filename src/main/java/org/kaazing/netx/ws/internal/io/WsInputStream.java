@@ -159,7 +159,7 @@ public final class WsInputStream extends InputStream {
                     receiveBuffer = new byte[(int) payloadLength];
                 }
 
-                int bytesRead = connection.doBinaryFrame(receiveBuffer, 0, (int) payloadLength);
+                int bytesRead = connection.receiveBinaryFrame(receiveBuffer, 0, (int) payloadLength);
                 assert payloadLength == bytesRead;
             }
         }
@@ -218,7 +218,7 @@ public final class WsInputStream extends InputStream {
             return;
         }
 
-        connection.doControlFrame(opcode, payloadLength);
+        connection.receiveControlFrame(opcode, payloadLength);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

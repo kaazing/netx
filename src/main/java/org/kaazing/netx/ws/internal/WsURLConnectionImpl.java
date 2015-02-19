@@ -22,7 +22,7 @@ import static java.lang.String.format;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
-import static org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState.CLOSED;
+import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
@@ -35,6 +35,7 @@ import java.io.Writer;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -55,11 +56,8 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter.Metadata;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.WebSocketHooks;
-import org.kaazing.netx.ws.internal.ext.WebSocketStateMachine;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
 import org.kaazing.netx.ws.internal.io.WsMessageReader;
 import org.kaazing.netx.ws.internal.io.WsMessageWriter;
@@ -103,7 +101,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensions;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensionsRO;
 
-    private ReadyState readyState;
     private String negotiatedProtocol;
     private WsInputStream inputStream;
     private WsOutputStream outputStream;
@@ -112,12 +109,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private WsMessageReader messageReader;
     private WsMessageWriter messageWriter;
 
+    private WebSocketState state;
     private int codePoint;
     private int remainingBytes;
-
-    public enum ReadyState {
-        INITIAL, OPEN, CLOSED;
-    }
+    private WebSocketStateMachine stateMachine;
 
     public WsURLConnectionImpl(
             URLConnectionHelper helper,
@@ -129,7 +124,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         super(location);
 
         this.random = random;
-        this.readyState = ReadyState.INITIAL;
+        this.state = WebSocketState.START;
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
         this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
@@ -150,7 +145,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         super(null);
 
         this.random = random;
-        this.readyState = ReadyState.INITIAL;
+        this.state = WebSocketState.START;
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
         this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
@@ -188,7 +183,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             }
         }
 
-        doClose(code, reasonBytes);
+        sendClose(code, reasonBytes);
 
         if ((reasonBytes != null) && (reasonBytes.length > 123)) {
             throw new IOException("Protocol Violation: Reason is longer than 123 bytes");
@@ -198,8 +193,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     @Override
     public void connect() throws IOException {
 
-        switch (readyState) {
-        case INITIAL:
+        switch (state) {
+        case START:
             doConnect();
             break;
         default:
@@ -341,8 +336,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public void setEnabledExtensions(Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
-        switch (readyState) {
-        case INITIAL:
+        switch (state) {
+        case START:
             break;
         default:
             throw new IllegalStateException("Already connected");
@@ -354,8 +349,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public void setEnabledProtocols(Collection<String> enabledProtocols) {
-        switch (readyState) {
-        case INITIAL:
+        switch (state) {
+        case START:
             break;
         default:
             throw new IllegalStateException("Already connected");
@@ -454,13 +449,28 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         enabledExtensions.put(name, parameters);
     }
 
-    public void doClose(int code, byte[] reason) throws IOException {
-        getOutputStream().writeClose(code, reason);
-        disconnect();
-        readyState = CLOSED;
+    public void doFail(int code, String exceptionMessage) throws IOException {
+        sendClose(code, null);
+        throw new IOException(exceptionMessage);
     }
 
-    public int doBinaryFrame(byte[] buf, int offset, int length) throws IOException {
+    public Random getRandom() {
+        return random;
+    }
+
+    public InputStream getTcpInputStream() throws IOException {
+        return connection.getInputStream();
+    }
+
+    public OutputStream getTcpOutputStream() throws IOException {
+        return connection.getOutputStream();
+    }
+
+    public WebSocketState getWebSocketState() {
+        return state;
+    }
+
+    public int receiveBinaryFrame(byte[] buf, int offset, int length) throws IOException {
         if (buf == null) {
             throw new NullPointerException("Null buffer passed in");
         }
@@ -494,10 +504,17 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             len -= bytesRead;
         }
 
-        return offset - mark;
+        ByteBuffer payload = ByteBuffer.wrap(buf, mark, bytesRead);
+        ByteBuffer transformedPayload = stateMachine.receivedBinaryFrame(this, payload);
+        int remaining = transformedPayload.remaining();
+        if (remaining > buf.length) {
+            buf = new byte[remaining];
+        }
+        transformedPayload.get(buf, mark, remaining);
+        return remaining;
     }
 
-    public void doControlFrame(int opcode, long payloadLength) throws IOException {
+    public void receiveControlFrame(int opcode, long payloadLength) throws IOException {
         InputStream in = connection.getInputStream();
 
         switch (opcode) {
@@ -507,18 +524,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             byte[] reason = null;
 
             if (payloadLength >= 2) {
-                // Read the first two bytes as the CLOSE code.
-                int b1 = in.read();
-                if (b1 == -1) {
-                    doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
-                }
+                ByteBuffer closePayload = readControlFramePayload(opcode, (int) payloadLength);
 
-                int b2 = in.read();
-                if (b2 == -1) {
-                    doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
-                }
-
-                code = ((b1 & 0xFF) << 8) | (b2 & 0xFF);
+                code = closePayload.getShort();
                 closeCodeRO = code;
 
                 switch (code) {
@@ -531,12 +539,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                     break;
                 }
 
-                // If reason is also received, then just drain those bytes.
                 if (payloadLength > 2) {
                     reason = new byte[(int) (payloadLength - 2)];
-                    int reasonBytesRead = readControlFramePayload(reason, 0, reason.length);
-
-                    assert reasonBytesRead == (payloadLength - 2);
+                    closePayload.get(reason);
 
                     if ((reason.length > (MAX_COMMAND_FRAME_PAYLOAD - 2)) || !validBytesUTF8(reason)) {
                         code = WS_PROTOCOL_ERROR;
@@ -548,7 +553,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 }
             }
 
-            doClose(code, reason);
+            sendClose(code, reason);
 
             if (code == WS_PROTOCOL_ERROR) {
                 throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, (reason == null) ? 0 : reason.length));
@@ -560,20 +565,21 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 doFail(WS_PROTOCOL_ERROR, format(MSG_PING_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
 
+            ByteBuffer pingPayload = readControlFramePayload(opcode, (int) payloadLength);
             byte[] pingBuf = new byte[(int) payloadLength];
-            int pingBytesRead = readControlFramePayload(pingBuf, 0, pingBuf.length);
+            pingPayload.get(pingBuf);
 
-            assert pingBytesRead == payloadLength;
-            doPong(pingBuf);
+            sendPong(pingBuf);
             break;
 
         case 0x0A:
             if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
                 doFail(WS_PROTOCOL_ERROR, format(MSG_PONG_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
+
+            ByteBuffer pongPayload = readControlFramePayload(opcode, (int) payloadLength);
             byte[] pongBuf = new byte[(int) payloadLength];
-            int pongBytesRead = readControlFramePayload(pongBuf, 0, pongBuf.length);
-            assert pongBytesRead == payloadLength;
+            pongPayload.get(pongBuf);
             break;
 
         default:
@@ -582,16 +588,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    public void doFail(int code, String exceptionMessage) throws IOException {
-        doClose(code, null);
-        throw new IOException(exceptionMessage);
-    }
-
-    public void doPong(byte[] buf) throws IOException {
-        getOutputStream().writePong(buf);
-    }
-
-    public int doTextFrame(char[] cbuf, int offset, int length, long payloadLength) throws IOException {
+    public int receiveTextFrame(char[] cbuf, int offset, int length, long payloadLength) throws IOException {
         if (cbuf == null) {
             throw new NullPointerException("Null buffer passed in");
         }
@@ -672,39 +669,82 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
         }
 
-        return offset - mark;
+        CharBuffer payload = CharBuffer.wrap(cbuf, mark, offset - mark);
+        CharBuffer transformedPayload = stateMachine.receivedTextFrame(this, payload);
+        int remaining = transformedPayload.remaining();
+        if (remaining > cbuf.length) {
+            cbuf = new char[remaining];
+        }
+        transformedPayload.get(cbuf, mark, remaining);
+        return remaining;
     }
 
+    public void sendClose(int code, byte[] reason) throws IOException {
+        int capacity = 0;
+        if (code > 0) {
+            capacity += 2;
+            if (reason != null) {
+                capacity += reason.length;
+            }
+        }
 
-    public Random getRandom() {
-        return random;
+        ByteBuffer payload = ByteBuffer.allocate(capacity);
+        if (code > 0) {
+            payload.putShort((short) code);
+            if (reason != null) {
+                payload.put(reason);
+            }
+            payload.flip();
+        }
+
+        int closeCode = 0;
+        byte[] closeReason = null;
+        ByteBuffer transformedPayload = stateMachine.sendCloseFrame(this, payload);
+        if ((transformedPayload != null) && (transformedPayload.remaining() > 0)) {
+            closeCode = transformedPayload.getShort();
+            int rem = transformedPayload.remaining();
+            if (rem > 0) {
+                closeReason = new byte[rem];
+                transformedPayload.get(closeReason);
+            }
+        }
+
+        getOutputStream().writeClose(closeCode, closeReason);
+        disconnect();
+        state = CLOSED;
     }
 
-    public ReadyState getReadyState() {
-        return readyState;
+    public void sendPong(byte[] buf) throws IOException {
+        byte[]  pongBuf = buf;
+        if (buf != null) {
+            ByteBuffer payload = ByteBuffer.wrap(buf);
+            ByteBuffer transformedPayload = stateMachine.sendPongFrame(this, payload);
+            int remaining = transformedPayload.remaining();
+            pongBuf = new byte[remaining];
+            transformedPayload.get(pongBuf);
+        }
+
+        getOutputStream().writePong(pongBuf);
     }
 
-    public InputStream getTcpInputStream() throws IOException {
-        return connection.getInputStream();
+    public void setWebSocketState(WebSocketState state) {
+        this.state = state;
     }
 
-    public OutputStream getTcpOutputStream() throws IOException {
-        return connection.getOutputStream();
-    }
+    ///////////////////////////////////////////////////////////////////////////
 
     private void ensureConnected() throws IOException {
-        switch (readyState) {
-        case INITIAL:
+        switch (state) {
+        case START:
             doConnect();
             break;
-        case OPEN:
+        case CONNECTED:
         case CLOSED:
             break;
         }
     }
 
     private void doConnect() throws IOException {
-
         String websocketKey = base64Encode(randomBytes(16));
 
         connection.setRequestMethod("GET");
@@ -734,7 +774,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         negotiateProtocol(enabledProtocols, connection.getHeaderField(HEADER_SEC_WEBSOCKET_PROTOCOL));
         negotiateExtensions(enabledExtensions, connection.getHeaderField(HEADER_SEC_WEBSOCKET_EXTENSIONS));
 
-        this.readyState = ReadyState.OPEN;
+        this.state = WebSocketState.CONNECTED;
     }
 
     private void disconnect() {
@@ -766,9 +806,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    private int readControlFramePayload(byte[] buf, int offset, int length) throws IOException {
+    private ByteBuffer readControlFramePayload(int opcode, int length) throws IOException {
         InputStream in = connection.getInputStream();
-        int mark = offset;
+        byte[] buf = new byte[length];
+        int offset = 0;
 
         while (offset < buf.length) {
             int bytesRead = in.read(buf, offset, length);
@@ -781,7 +822,22 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             length -= bytesRead;
         }
 
-        return offset - mark;
+        ByteBuffer payload = ByteBuffer.wrap(buf);
+        ByteBuffer transformedPayload = null;
+
+        switch (opcode) {
+        case 0x08:
+            transformedPayload = stateMachine.receivedCloseFrame(this, payload);
+            break;
+        case 0x09:
+            transformedPayload = stateMachine.receivedPingFrame(this, payload);
+            break;
+        case 0x0A:
+            transformedPayload = stateMachine.receivedPongFrame(this, payload);
+            break;
+        }
+
+        return transformedPayload;
     }
 
     private byte[] randomBytes(int size) {
@@ -802,12 +858,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             String formattedExtensions) throws IOException {
 
         if ((formattedExtensions == null) || (formattedExtensions.trim().length() == 0)) {
+            stateMachine = new WebSocketStateMachine();
             this.negotiatedExtensions.clear();
             return;
         }
 
         String[] extensions = formattedExtensions.split(",");
-        List<WebSocketHooks> extensionsHooks = new ArrayList<WebSocketHooks>();
+        List<WebSocketExtensionHooks> extensionsHooks = new ArrayList<WebSocketExtensionHooks>();
 
         for (String extn : extensions) {
             String[] properties = extn.split(";");
@@ -858,19 +915,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             }
 
             WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extnName, paramValues);
-            WebSocketHooks hooks = extensionSpi.createWebSocketHooks();
+            WebSocketExtensionHooks hooks = extensionSpi.createWebSocketHooks();
             if (hooks != null) {
                 extensionsHooks.add(hooks);
             }
         }
 
-        // ### TODO: Create WebSocketStateMachine using negotiated extensions' hooks. Invoke WebSocketStateMachine APIs from
-        // doXXX() methods. Maybe, create a WsURLConnectionHandler and move doXXX() methods defined in this class to
-        // WsURLConnectionHandler. Need Flyweights to define WebSocketStateMachine APIs so that they can be invoked from
-        // the doXXX() methods. Eventually, WebSocketStateMachine will exercise/apply the hooks for each of the negotiated
-        // extensions.
-        WebSocketStateMachine stateMachine = new WebSocketStateMachine(extensionsHooks);
-
+        stateMachine = new WebSocketStateMachine(extensionsHooks);
     }
 
     private static String base64Encode(byte[] bytes) {

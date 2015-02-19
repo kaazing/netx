@@ -26,15 +26,15 @@ import org.kaazing.netx.ws.internal.WebSocketExtension;
  *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
  *   <LI> a sub-class of {@link WebSocketExtensionSpi}
  *   <LI> a sub-class of {@link WebSocketExtension} with {@link Parameter}s defined as constants
- *   <LI> a sub-class of {@link WebSocketHooks}
+ *   <LI> a sub-class of {@link WebSocketExtensionHooks}
  * </UL>
  * <p>
  * When an enabled extension is successfully negotiated, an instance of this class is created using the corresponding
  * {@link WebSocketExtensionFactorySpi} that is registered through META-INF/services. This class is used to instantiate the
- * {@link WebSocketHooks} that can be exercised as the state machine transitions from one state to another while handling the
- * WebSocket traffic. Based on the functionality of the extension, the developer can decide which hooks to code.
+ * {@link WebSocketExtensionHooks} that can be exercised as the state machine transitions from one state to another while
+ * handling the WebSocket traffic. Based on the functionality of the extension, the developer can decide which hooks to code.
  */
 public abstract class WebSocketExtensionSpi {
 
-    public abstract WebSocketHooks createWebSocketHooks();
+    public abstract WebSocketExtensionHooks createWebSocketHooks();
 }

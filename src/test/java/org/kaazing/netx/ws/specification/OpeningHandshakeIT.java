@@ -38,7 +38,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
+import org.kaazing.netx.ws.internal.WebSocketExtensionParameterValues;
 import org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension;
 import org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension;
 

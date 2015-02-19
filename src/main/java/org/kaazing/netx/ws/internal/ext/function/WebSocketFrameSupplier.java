@@ -13,18 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.specification.ext.secondary;
+package org.kaazing.netx.ws.internal.ext.function;
 
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
-
-public class SecondaryExtensionSpi extends WebSocketExtensionSpi {
-
-    public SecondaryExtensionSpi() {
-    }
-
-    @Override
-    public WebSocketExtensionHooks createWebSocketHooks() {
-        return null;
-    }
+public interface WebSocketFrameSupplier<C, B> {
+    B apply(C connection, B payload);
 }

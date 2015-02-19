@@ -27,8 +27,8 @@ import java.util.Random;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.WebSocketExtensionFactory;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 
 final class WssURLStreamHandlerImpl extends URLStreamHandler {
 

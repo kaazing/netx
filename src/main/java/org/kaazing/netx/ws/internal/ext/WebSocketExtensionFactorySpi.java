@@ -17,6 +17,7 @@
 package org.kaazing.netx.ws.internal.ext;
 
 import org.kaazing.netx.ws.internal.WebSocketExtension;
+import org.kaazing.netx.ws.internal.WebSocketExtensionParameterValues;
 
 /**
  * {@link WebSocketExtensionFactorySpi} is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
@@ -26,7 +27,7 @@ import org.kaazing.netx.ws.internal.WebSocketExtension;
  *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
  *   <LI> a sub-class of {@link WebSocketExtensionSpi}
  *   <LI> a sub-class of {@link WebSocketExtension} with {@link Parameter}s defined as constants
- *   <LI> a sub-class of {@link WebSocketHooks}
+ *   <LI> a sub-class of {@link WebSocketExtensionHooks}
  * </UL>
  * <p>
  */

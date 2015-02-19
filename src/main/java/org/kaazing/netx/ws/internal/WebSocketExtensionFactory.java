@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.internal.ext;
+package org.kaazing.netx.ws.internal;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.ServiceLoader.load;
@@ -23,6 +23,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
+
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 
 
 public final class WebSocketExtensionFactory {

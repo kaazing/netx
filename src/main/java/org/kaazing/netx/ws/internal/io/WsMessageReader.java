@@ -41,6 +41,8 @@ public final class WsMessageReader extends MessageReader {
     private static final String MSG_UNEXPECTED_OPCODE = "Protocol Violation: Opcode 0x%02X expected only in the initial frame";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
 
+    private static final int MAX_BINARY_PAYLOAD_LENGTH = 8192;
+    private static final int MAX_TEXT_PAYLOAD_LENGTH = 8192;
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
@@ -52,6 +54,8 @@ public final class WsMessageReader extends MessageReader {
     private boolean fin;
     private long payloadLength;
     private int payloadOffset;
+    private byte[] binaryReceiveBuffer;
+    private char[] textReceiveBuffer;
 
     private enum State {
         INITIAL, READ_FLAGS_AND_OPCODE, READ_PAYLOAD_LENGTH, READ_PAYLOAD;
@@ -76,9 +80,16 @@ public final class WsMessageReader extends MessageReader {
 
     @Override
     public synchronized int read(byte[] buf, int offset, int length) throws IOException {
-        if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
+        if (buf == null) {
+            throw new NullPointerException("Null buf passed in");
+        }
+        else if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
             int len = offset + length;
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
+        }
+
+        if (binaryReceiveBuffer == null) {
+            binaryReceiveBuffer = new byte[MAX_BINARY_PAYLOAD_LENGTH];
         }
 
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
@@ -116,7 +127,12 @@ public final class WsMessageReader extends MessageReader {
                 throw new IOException(format(MSG_BUFFER_SIZE_SMALL, length, payloadLength));
             }
 
-            bytesRead = readBinary(buf, offset, (int) payloadLength);
+            if (payloadLength > binaryReceiveBuffer.length) {
+                binaryReceiveBuffer = new byte[(int) payloadLength];
+            }
+
+            bytesRead = readBinary(binaryReceiveBuffer, 0, (int) payloadLength);
+            System.arraycopy(binaryReceiveBuffer, 0, buf, offset, bytesRead);
 
             offset += bytesRead;
             length -= bytesRead;
@@ -142,9 +158,16 @@ public final class WsMessageReader extends MessageReader {
 
     @Override
     public synchronized int read(char[] buf, int offset, int length) throws IOException {
-        if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
+        if (buf == null) {
+            throw new NullPointerException("Null buf passed in");
+        }
+        else if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
             int len = offset + length;
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
+        }
+
+        if (textReceiveBuffer == null) {
+            textReceiveBuffer = new char[MAX_TEXT_PAYLOAD_LENGTH];
         }
 
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
@@ -176,7 +199,12 @@ public final class WsMessageReader extends MessageReader {
                 connection.doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
             }
 
-            charsRead = readText(buf, offset, length);
+            if (payloadLength > textReceiveBuffer.length) {
+                textReceiveBuffer = new char[(int) payloadLength];
+            }
+
+            charsRead = readText(textReceiveBuffer, 0, (int) payloadLength);
+            System.arraycopy(textReceiveBuffer, 0, buf, offset, charsRead);
 
             offset += charsRead;
             length -= charsRead;
@@ -355,7 +383,7 @@ public final class WsMessageReader extends MessageReader {
             return 0;
         }
 
-        int bytesRead = connection.doBinaryFrame(buf, offset, (int) Math.min(length, payloadLength));
+        int bytesRead = connection.receiveBinaryFrame(buf, offset, (int) Math.min(length, payloadLength));
         payloadOffset += bytesRead;
 
         assert payloadOffset == payloadLength ;
@@ -375,7 +403,7 @@ public final class WsMessageReader extends MessageReader {
             return 0;
         }
 
-        int charsRead = connection.doTextFrame(cbuf, offset, length, payloadLength);
+        int charsRead = connection.receiveTextFrame(cbuf, offset, length, payloadLength);
 
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
@@ -395,7 +423,7 @@ public final class WsMessageReader extends MessageReader {
 
         readPayloadLength();
 
-        connection.doControlFrame(opcode, payloadLength);
+        connection.receiveControlFrame(opcode, payloadLength);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

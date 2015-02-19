@@ -29,9 +29,8 @@ import java.util.Map;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
+import org.kaazing.netx.ws.internal.WebSocketExtensionParameterValues;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.internal.WebSocketFactory;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 
 /**
  * A URLConnection with support for WebSocket RFC-6455 specification.
@@ -180,9 +179,7 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract Collection<String> getEnabledExtensions();
 
     /**
-     * Gets the value of the specified {@link Parameter} defined in an enabled extension. If the parameter's value is inherited
-     * from the WebSocketFactory via {@link WebSocketFactory#setDefaultParameter(Parameter, Object)}, then the default value
-     * is returned.
+     * Gets the value of the specified {@link Parameter} defined in an enabled extension.
      *
      * @param <T>          Generic type of the value of the Parameter
      * @param parameter    Parameter whose value needs to be set
@@ -226,14 +223,6 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract MessageWriter getMessageWriter() throws IOException;
 
     /**
-     * Gets the protocol that the client and the server have successfully negotiated.
-     *
-     * @return protocol  negotiated by the client and the server
-     * @throws IOException  if an I/O error occurs while negotiating the WebSocket sub-protocol
-     */
-    public abstract String getNegotiatedProtocol() throws IOException;
-
-    /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
      * the initial handshake.
      * <p>
@@ -254,6 +243,14 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
      * @throws IOException if an I/O error occurs when negotiating the extension or connection is closed
      */
     public abstract <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException;
+
+    /**
+     * Gets the protocol that the client and the server have successfully negotiated.
+     *
+     * @return protocol  negotiated by the client and the server
+     * @throws IOException  if an I/O error occurs while negotiating the WebSocket sub-protocol
+     */
+    public abstract String getNegotiatedProtocol() throws IOException;
 
     /**
      * Returns the {@link OutputStream} to send <b>binary</b> messages. The message is put on the wire only when the application
@@ -310,10 +307,11 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract void setChallengeHandler(ChallengeHandler challengeHandler);
 
     /**
-     * Registers the names of all the extensions that must be negotiated between the client and the server during the handshake.
-     * This method must be  invoked before invoking the {@link #connect()} method. The enabled extensions should be a subset of
-     * the supported extensions. Only the extensions that are explicitly enabled are put on the wire even though there could be
-     * more supported extensions on this connection.
+     * Registers the extensions to be negotiated between the client and the server during the handshake. This method must be
+     * called before invoking the {@link #connect()} method. The enabled extensions should be a subset of the supported
+     * extensions. Only the extensions that are explicitly enabled are put on the wire even though there could be more
+     * supported extensions on this connection. All the required parameters defined in the extension must have values with
+     * string representation.
      * <p>
      * @param enabledExtensions    Map keyed by extension name with WebSocketExtensionParameterValue as the corresponding
      *                             value

@@ -18,8 +18,8 @@ package org.kaazing.netx.ws.specification.ext.secondary;
 
 import static org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension.SECONDARY_EXTENSION;
 
+import org.kaazing.netx.ws.internal.WebSocketExtensionParameterValues;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 
 public class SecondaryExtensionFactory extends WebSocketExtensionFactorySpi {

@@ -18,12 +18,12 @@ package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.Integer.highestOneBit;
 import static java.lang.String.format;
+import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState;
 
 public final class WsOutputStream extends FilterOutputStream {
     private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
@@ -66,7 +66,7 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     public void writeClose(int code, byte[] reason) throws IOException {
-        if (connection.getReadyState() == ReadyState.CLOSED) {
+        if (connection.getWebSocketState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.internal.ext;
+package org.kaazing.netx.ws.internal;
 
 public enum WebSocketState {
     START,
@@ -24,5 +24,5 @@ public enum WebSocketState {
     CLOSE_FRAME_RECEIVED,
     CLOSE_FRAME_SENT,
     PING_FRAME_RECEIVED,
-    END
+    CLOSED
 }

@@ -13,18 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.specification.ext.secondary;
+package org.kaazing.netx.ws.internal;
 
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
-
-public class SecondaryExtensionSpi extends WebSocketExtensionSpi {
-
-    public SecondaryExtensionSpi() {
-    }
-
-    @Override
-    public WebSocketExtensionHooks createWebSocketHooks() {
-        return null;
-    }
+public enum WebSocketTransition {
+    RECEIVED_UPGRADE_RESPONSE,
+    SEND_UPGRADE_REQUEST,
+    RECEIVED_UPGRADE_RESPONSE_NOT_VALID,
+    RECEIVED_UPGRADE_RESPONSE_VALID,
+    RECEIVED_CLOSE_FRAME,
+    SEND_CLOSE_FRAME,
+    RECEIVED_PING_FRAME,
+    RECEIVED_PONG_FRAME,
+    SEND_PONG_FRAME,
+    RECEIVED_BINARY_FRAME,
+    SEND_BINARY_FRAME,
+    RECEIVED_TEXT_FRAME,
+    SEND_TEXT_FRAME,
+    ERROR
 }

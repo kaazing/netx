@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 
 public final class WsExtensionParameterValuesImpl extends WebSocketExtensionParameterValues {
 

@@ -35,7 +35,6 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionParameterValues;
 
 public class WebSocketImpl extends WebSocket {
 
@@ -181,16 +180,11 @@ public class WebSocketImpl extends WebSocket {
         connection.setConnectTimeout(connectTimeout);
     }
 
-//    @Override
-//    public void setEnabledExtensions(Collection<String> extensions) {
-//        connection.setEnabledExtensions(extensions);
-//    }
-//
-//    @Override
-//    public <T> void setEnabledParameter(Parameter<T> parameter, T value) {
-//        connection.setEnabledParameter(parameter, value);
-//    }
-//
+    @Override
+    public void setEnabledExtensions(Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
+        connection.setEnabledExtensions(enabledExtensions);
+    }
+
     @Override
     public void setEnabledProtocols(Collection<String> protocols) {
         connection.setEnabledProtocols(protocols);

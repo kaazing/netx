@@ -17,6 +17,7 @@
 package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.Integer.highestOneBit;
+import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.byteCountUTF8;
 
 import java.io.IOException;
@@ -24,7 +25,6 @@ import java.io.OutputStream;
 import java.io.Writer;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState;
 
 public class WsWriter extends Writer {
     private final WsURLConnectionImpl connection;
@@ -39,7 +39,7 @@ public class WsWriter extends Writer {
 
     @Override
     public void write(char[] cbuf, int offset, int length) throws IOException {
-        if (connection.getReadyState() == ReadyState.CLOSED) {
+        if (connection.getWebSocketState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 

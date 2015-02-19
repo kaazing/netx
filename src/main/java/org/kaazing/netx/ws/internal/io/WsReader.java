@@ -165,7 +165,7 @@ public class WsReader extends Reader {
                     receiveBuffer = new char[(int) payloadLength];
                 }
 
-                charPayloadLength = connection.doTextFrame(receiveBuffer, 0, receiveBuffer.length, payloadLength);
+                charPayloadLength = connection.receiveTextFrame(receiveBuffer, 0, receiveBuffer.length, payloadLength);
             }
         }
 
@@ -197,7 +197,7 @@ public class WsReader extends Reader {
             return;
         }
 
-        connection.doControlFrame(opcode, payloadLength);
+        connection.receiveControlFrame(opcode, payloadLength);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

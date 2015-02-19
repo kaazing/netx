@@ -23,11 +23,11 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.Map;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 
@@ -44,9 +44,7 @@ import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
  */
 public abstract class WebSocket implements Closeable {
     /**
-     * Disconnects with the server. This is a blocking call that returns only
-     * when the shutdown is complete. If the connection is already closed, then
-     * this method has no effect.
+     * Disconnects with the server. This is a blocking call that returns only when the shutdown is complete.
      *
      * @throws IOException    if the disconnect did not succeed
      */
@@ -54,9 +52,7 @@ public abstract class WebSocket implements Closeable {
     public abstract void close() throws IOException;
 
     /**
-     * Disconnects with the server with code. This is a blocking
-     * call that returns only when the shutdown is complete. If the connection
-     * is already closed, then this method has no effect.
+     * Disconnects with the server with code. This is a blocking call that returns only when the shutdown is complete.
      *
      * @param code                         the error code for closing
      * @throws IOException                 if the disconnect did not succeed
@@ -67,292 +63,181 @@ public abstract class WebSocket implements Closeable {
            throws IOException;
 
     /**
-     * Disconnects with the server with code and reason. This is a blocking
-     * call that returns only when the shutdown is complete. If the connection
-     * is already closed, then this method has no effect.
+     * Disconnects with the server with code and reason. This is a blocking call that returns only when the shutdown is complete.
      *
      * @param code                         the error code for closing
      * @param reason                       the reason for closing
      * @throws IOException                 if the disconnect did not succeed
-     * @throws IllegalArgumentException    if the code isn't 1000 or out of
-     *                                     range 3000 - 4999 OR if the reason
-     *                                     is more than 123 bytes
+     * @throws IllegalArgumentException    if the code isn't 1000 or out of range 3000 - 4999 OR if the reason is more than
+     *                                     123 bytes
      */
     public abstract void close(int code, String reason)
            throws IOException;
 
     /**
-     * Connects with the server using an endpoint. This is a blocking call. The
-     * thread invoking this method will be blocked till a successful connection
-     * is established.
-     * <p>
-     * If the connection cannot be established, then an IOException is thrown
-     * and the thread is unblocked.
-     * <p>
-     * An IllegalStateException is thrown if required parameters of an enabled
-     * extension has not been set/enabled.
+     * Connects with the server using an end-point. This is a blocking call. The thread invoking this method will be blocked
+     * till a successful connection is established. If the request is not upgraded as per RFC-6455, then IOException is thrown.
      *
-     * @throws IOException            if the connection cannot be established
-     * @throws IllegalStateException  if the required parameters of an enabled
-     *                                extension are not set/enabled
+     * @throws IOException  if the connection cannot be established or the upgrade is not successful
      */
     public abstract void connect() throws IOException;
 
     /**
-     * Gets the {@link ChallengeHandler} that is used during authentication
-     * both at the connect-time as well as at subsequent revalidation-time that
-     * occurs at regular intervals.
+     * Gets the {@link ChallengeHandler} that is used during authentication both at the connect-time as well as at subsequent
+     * revalidation-time that occurs at regular intervals.
      *
      * @return ChallengeHandler
      */
     public abstract ChallengeHandler getChallengeHandler();
 
     /**
-     * Gets the connect timeout in milliseconds. The timeout will expire if
-     * there is no exchange of packets(for example, 100% packet loss) while
-     * establishing the connection. A timeout value of zero indicates
-     * no timeout. Default connect timeout is zero.
+     * Gets the connect timeout in milliseconds. The timeout will expire if there is no exchange of packets(for example,
+     * 100% packet loss) while establishing the connection. A timeout value of zero indicates no timeout. Default connect
+     * timeout is zero.
      *
      * @return connect timeout value in milliseconds
      */
     public abstract int getConnectTimeout();
 
     /**
-     * Gets the names of all the extensions that have been enabled for this
-     * connection. The enabled extensions are negotiated between the client
-     * and the server during the handshake only if all the required parameters
-     * belonging to the extension have been set as enabled parameters. The
-     * names of the negotiated extensions can be obtained using
-     * {@link #getNegotiatedExtensions()} API. An empty Collection is returned
-     * if no extensions have been enabled for this connection. The enabled
-     * extensions will be a subset of the supported extensions.
+     * Gets the names of all the extensions that have been enabled for this connection. The enabled extensions are negotiated
+     * between the client and the server during the handshake. The names of the negotiated extensions can be obtained using
+     * {@link #getNegotiatedExtensions()} API. An empty Collection is returned if no extensions have been enabled for
+     * this connection. The enabled extensions will be a subset of the supported extensions.
      *
-     * @return Collection<String>     names of the enabled extensions for this
-     *                                connection
+     * @return Collection<String>     names of the enabled extensions for this connection
      */
     public abstract Collection<String> getEnabledExtensions();
 
     /**
-     * Gets the value of the specified {@link Parameter} defined in an enabled
-     * extension. If the parameter is not defined for this connection but a
-     * default value for the parameter is set using the method
-     * {@link WebSocketFactory#setDefaultParameter(Parameter, Object)},
-     * then the default value is returned.
-     * <p>
-     * Setting the parameter value when the connection is successfully
-     * established will result in an IllegalStateException.
-     * </p>
+     * Gets the value of the specified {@link Parameter} defined in an enabled extension.
+     *
      * @param <T>          Generic type of the value of the Parameter
      * @param parameter    Parameter whose value needs to be set
      * @return the value of the specified parameter
-     * @throw IllegalStateException   if this method is invoked after connect()
      */
     public abstract <T> T getEnabledParameter(Parameter<T> parameter);
 
     /**
-     * Gets the names of all the protocols that are enabled for this
-     * connection. Returns an empty Collection if protocols are not enabled.
+     * Gets the names of all the protocols that are enabled for this connection. Returns an empty Collection if protocols are
+     * not enabled.
      *
-     * @return Collection<String>     supported protocols by this connection
+     * @return the protocols enabled for this connection
      */
     public abstract Collection<String> getEnabledProtocols();
 
     /**
-     * Returns {@link HttpRedirectPolicy} indicating the policy for
-     * following  HTTP redirects (status code 3xx). The default options is
-     * {@link HttpRedirectPolicy.ALWAYS}.
+     * Returns the {@link InputStream} to receive <b>binary</b> messages. The methods on {@link InputStream} will block till the
+     * message arrives. The {@link InputStream} must be used to only receive <b>binary</b> messages.
      *
-     * @return HttpRedirectOption     option for following redirects(status
-     *                                code 3XX)
-     */
-    public abstract HttpRedirectPolicy getRedirectPolicy();
-
-    /**
-     * Returns the {@link InputStream} to receive <b>binary</b> messages. The
-     * methods on {@link InputStream} will block till the message arrives. The
-     * {@link InputStream} must be used to only receive <b>binary</b>
-     * messages.
-     * <p>
-     * An IOException is thrown if this method is invoked when the connection
-     * has not been established. Receiving a text message using the
-     * {@link InputStream} will result in an IOException.
-     * <p>
-     * Once the connection is closed, a new {@link InputStream} should be
-     * obtained using this method after the connection has been established.
-     * Using the old InputStream will result in an IOException.
-     * <p>
      * @return InputStream    to receive binary messages
-     * @throws IOException    if the method is invoked before the connection is
-     *                        successfully opened; if a text message is being
-     *                        read using the InputStream
+     * @throws IOException if an I/O error occurs while creating the input stream or connection is closed or a text message is
+     *                     received
      */
     public abstract InputStream getInputStream() throws IOException;
 
     /**
-     * Returns a {@link MessageReader} that can be used to receive
-     * <b>binary</b> and <b>text</b> messages based on the
-     * {@link MessageType}.
-     * <p>
-     * If this method is invoked before a connection is established successfully,
-     * then an IOException is thrown.
-     * <p>
-     * Once the connection is closed, a new {@link MessageReader}
-     * should be obtained using this method after the connection has been
-     * established. Using the old WebSocketMessageReader will result in an
-     * IOException.
+     * Returns a {@link MessageReader} that can be used to receive <b>binary</b> and/or <b>text</b> messages.
      * <p>
      * @return WebSocketMessageReader   to receive binary and text messages
-     * @throws IOException       if invoked before the connection is opened
+     * @throws IOException if an I/O error occurs when connecting or connection is closed
      */
     public abstract MessageReader getMessageReader() throws IOException;
 
     /**
-     * Returns a {@link MessageWriter} that can be used to send
-     * <b>binary</b> and <b>text</b> messages.
-     * <p>
-     * If this method is invoked before a connection is established
-     * successfully, then an IOException is thrown.
-     * <p>
-     * Once the connection is closed, a new {@link MessageWriter}
-     * should be obtained using this method after the connection has been
-     * established. Using the old WebSocketMessageWriter will result in an
-     * IOException.
-     * <p>
-     * @return WebSocketMessageWriter   to send binary and text messages
-     * @throws IOException       if invoked before the connection is opened
+     * Returns a {@link MessageWriter} that can be used to send <b>binary</b> and/or <b>text</b> messages.
+     *
+     * @return WebSocketMessageWriter   to send binary and/or text messages
+     * @throws IOException if an I/O error occurs when connecting or connection is closed
      */
     public abstract MessageWriter getMessageWriter() throws IOException;
 
     /**
-     * Gets names of all the enabled extensions that have been successfully
-     * negotiated between the client and the server during the initial
-     * handshake.
+     * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
+     * the initial handshake.
      * <p>
-     * Returns an empty Collection if no extensions were negotiated between the
-     * client and the server. The negotiated extensions will be a subset of the
-     * enabled extensions.
+     * Returns an empty Collection if no extensions were negotiated between the client and the server. The negotiated extensions
+     * will be a subset of the enabled extensions.
      * <p>
-     * If this method is invoked before a connection is successfully established,
-     * an IllegalStateException is thrown.
-     *
-     * @return Collection<String>      successfully negotiated using this
-     *                                 connection
-     * @throws IOException
+     * @return Collection<String>   successfully negotiated using this connection
+     * @throws IOException if an I/O error occurs when negotiating the extension or connection is closed
      */
     public abstract Collection<String> getNegotiatedExtensions() throws IOException;
 
     /**
-     * Returns the value of the specified {@link Parameter} of a negotiated
-     * extension.
-     * <p>
-     * If this method is invoked before the connection is successfully
-     * established, an IllegalStateException is thrown.
-     * <p>
-     * Once the connection is closed, the negotiated parameters are cleared.
-     * Trying to retrieve the value will result in an IllegalStateException.
-     * <p>
+     * Returns the value of the specified {@link Parameter} of a negotiated extension.
+     *
      * @param <T>          parameter type
      * @param parameter    parameter of a negotiated extension
      * @return T           value of the specified parameter
-     * @throws IOException
+     * @throws IOException if an I/O error occurs when negotiating the extension or connection is closed
      */
     public abstract <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException;
 
     /**
-     * Gets the protocol that the client and the server have successfully
-     * negotiated.
-     * <p>
-     * If this method is invoked before the connection is successfully
-     * established, an IllegalStateException is thrown.
-     * <p>
-     * Once the connection is closed, trying to retrieve the negotiated
-     * protocol will result in an IllegalStateException.
-     * <p>
-     * @return protocol                negotiated by the client and the server
-     * @throws IOException
+     * Gets the protocol that the client and the server have successfully negotiated.
+     *
+     * @return protocol  negotiated by the client and the server
+     * @throws IOException  if an I/O error occurs while negotiating the WebSocket sub-protocol
      */
     public abstract String getNegotiatedProtocol() throws IOException;
 
     /**
-     * Returns the {@link OutputStream} to send <b>binary</b> messages. The
-     * message is put on the wire only when {@link OutputStream#flush()} is
-     * invoked.
+     * Returns the {@link OutputStream} to send <b>binary</b> messages. The message is put on the wire only when the application
+     * invokes {@link OutputStream#flush()} method.
      * <p>
-     * If this method is invoked before {@link #connect()} is complete, an
-     * IOException is thrown.
-     * <p>
-     * Once the connection is closed, a new {@link OutputStream} should
-     * be obtained using this method after the connection has been
-     * established. Using the old OutputStream will result in IOException.
-     * <p>
-     * @return OutputStream    to send binary messages
-     * @throws IOException     if the method is invoked before the connection is
-     *                         successfully opened
+     * @return OutputStream   to send binary messages
+     * @throws IOException    if an I/O error occurs when creating the writer or the connection is closed
      */
     public abstract OutputStream getOutputStream() throws IOException;
 
     /**
-     * Returns a {@link Reader} to receive <b>text</b> messages from this
-     * connection. This method should be used to only to receive <b>text</b>
-     * messages. Methods on {@link Reader} will block till a message arrives.
+     * Returns a {@link Reader} to receive <b>text</b> messages from this connection. This method should be used to only to
+     * receive <b>text</b> messages. Methods on {@link Reader} will block till a message arrives.
      * <p>
-     * If the Reader is used to receive <b>binary</b> messages, then an
-     * IOException is thrown.
-     * <p>
-     * If this method is invoked before a connection is established
-     * successfully, then an IOException is thrown.
-     * <p>
-     * Once the connection is closed, a new {@link Reader} should be obtained
-     * using this method after the connection has been established. Using the
-     * old Reader will result in an IOException.
+     * If the Reader is used to receive <b>binary</b> messages, then an IOException is thrown.
      * <p>
      * @return Reader         used to receive text messages from this connection
-     * @throws IOException    if the method is invoked before the connection is
-     *                        successfully opened
+     * @throws IOException    if an I/O error occurs when creating the reader or the connection is closed or a binary message
+     *                        is received
      */
     public abstract Reader getReader() throws IOException;
 
     /**
-     * Returns the names of supported extensions that have been discovered. An
-     * empty Collection is returned if no extensions were discovered.
+     * Returns {@link HttpRedirectPolicy} indicating the policy for following  HTTP redirects (3xx).
      *
-     * @return Collection<String>    extension names discovered for this
-     *                               connection
+     * @return  the redirect policy
+     */
+    public abstract HttpRedirectPolicy getRedirectPolicy();
+
+    /**
+     * Returns the names of extensions that have been discovered for this connection. An empty Collection is returned if no
+     * extensions were discovered for this connection.
+     *
+     * @return Collection<String>    extension names discovered for this connection
      */
     public abstract Collection<String> getSupportedExtensions();
 
     /**
-     * Returns a {@link Writer} to send <b>text</b> messages from this
-     * connection. The message is put on the wire only when
+     * Returns a {@link Writer} to send <b>text</b> messages from this connection. The message is put on the wire only when
      * {@link Writer#flush()} is invoked.
      * <p>
-     * An IOException is thrown if this method is invoked when the connection
-     * has not been established.
-     * <p>
-     * Once the connection is closed, a new {@link Writer} should be obtained
-     * using this method after the connection has been established. Using the
-     * old Writer will result in an IOException.
-     * <p>
-     * @return Writer          used to send text messages from this connection
-     * @throws IOException     if the method is invoked before the connection is
-     *                         successfully opened
+     * @return Writer         used to send text messages from this connection
+     * @throws IOException    if an I/O error occurs when creating the writer or the connection is closed
      */
     public abstract Writer getWriter() throws IOException;
 
     /**
-     * Sets the {@link ChallengeHandler} that is used during authentication
-     * both at the connect-time as well as at subsequent revalidation-time that
-     * occurs at regular intervals.
+     * Sets the {@link ChallengeHandler} that is used during authentication both at the connect-time as well as at subsequent
+     * revalidation-time that occurs at regular intervals.
      *
      * @param challengeHandler   ChallengeHandler used for authentication
      */
     public abstract void setChallengeHandler(ChallengeHandler challengeHandler);
 
     /**
-     * Sets the connect timeout in milliseconds. The timeout will expire if
-     * there is no exchange of packets(for example, 100% packet loss) while
-     * establishing the connection. A timeout value of zero indicates
-     * no timeout.
+     * Sets the connect timeout in milliseconds. The timeout will expire if there is no exchange of packets(for example,
+     * 100% packet loss) while establishing the connection. A timeout value of zero indicates no timeout.
      *
      * @param connectTimeout    timeout value in milliseconds
      * @throws IllegalStateException  if the connect timeout is being set
@@ -362,67 +247,34 @@ public abstract class WebSocket implements Closeable {
     public abstract void setConnectTimeout(int connectTimeout);
 
     /**
-     * Registers the names of all the extensions that must be negotiated between
-     * the client and the server during the handshake. This method must be
-     * invoked before invoking the {@link #connect()} method. The
-     * enabled extensions should be a subset of the supported extensions. Only
-     * the extensions that are explicitly enabled are put on the wire even
-     * though there could be more supported extensions on this connection.
+     * Registers the extensions to be negotiated between the client and the server during the handshake. This method must be
+     * called before invoking the {@link #connect()} method. The enabled extensions should be a subset of the supported
+     * extensions. Only the extensions that are explicitly enabled are put on the wire even though there could be more
+     * supported extensions on this connection. All the required parameters defined in the extension must have values with
+     * string representation.
      * <p>
-     * If this method is invoked after connection is successfully established,
-     * an IllegalStateException is thrown. If an enabled extension is not
-     * discovered as a supported extension, then IllegalStateException is thrown.
-     * <p>
-     * @param extensions    list of extensions to be negotiated with the server
-     *                      during the handshake
-     * @throw IllegalStateException   if this method is invoked after successful
-     *                                connection or any of the specified
+     * @param enabledExtensions    Map keyed by extension name with WebSocketExtensionParameterValue as the corresponding
+     *                             value
+     * @throw IllegalStateException   if this method is invoked after successful connection or any of the specified
      *                                extensions is not a supported extension
      */
-//    public abstract void setEnabledExtensions(Collection<String> extensions);
+    public abstract void setEnabledExtensions(Map<String, WebSocketExtensionParameterValues> enabledExtensions);
 
     /**
-     * Sets the value of the specified {@link Parameter} defined in an enabled
-     * extension. The application developer should set the extension
-     * parameters of the enabled extensions before invoking the
-     * {@link #connect()} method.
+     * Registers the protocols to be negotiated with the server during the handshake. This method must be invoked before
+     * {@link #connect()} is called.
      * <p>
-     * Setting the parameter value when the connection is successfully
-     * established will result in an IllegalStateException.
-     * </p>
-     * If the parameter has a default value that was specified using
-     * {@link WebSocketFactory#setDefaultParameter(Parameter, Object)},
-     * then setting the same parameter using this method will override the
-     * default value.
+     * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
      * <p>
-     * @param <T>          extension parameter type
-     * @param parameter    Parameter whose value needs to be set
-     * @param value        of the specified parameter
-     * @throw IllegalStateException   if this method is invoked after connect()
-     */
-//    public abstract <T> void setEnabledParameter(Parameter<T> parameter,
-//                                                 T            value);
-
-    /**
-     * Registers the protocols to be negotiated with the server during the
-     * handshake. This method must be invoked before {@link #connect()} is
-     * called.
-     * <p>
-     * If this method is invoked after a connection has been successfully
-     * established, an IllegalStateException is thrown.
-     * <p>
-     * @param extensions    list of extensions to be negotiated with the server
-     *                      during the handshake
-     * @throw IllegalStateException   if this method is invoked after connect()
+     * @param protocols  the list of protocols to be negotiated with the server during the WebSocket handshake
+     * @throws IllegalStateException   if this method is invoked after connect()
      */
     public abstract void setEnabledProtocols(Collection<String> protocols);
 
     /**
-     * Sets {@link HttpRedirectPolicy} indicating the policy for
-     * following  HTTP redirects (3xx).
+     * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx).
      *
-     * @param policy     HttpRedirectOption to used for following the
-     *                   redirects
+     * @param policy the redirect policy applied to HTTP redirect responses
      */
     public abstract void setRedirectPolicy(HttpRedirectPolicy policy);
 
