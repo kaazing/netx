@@ -704,7 +704,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         case START:
             doConnect();
             break;
-        case CONNECTED:
+        case OPEN:
         case CLOSED:
             break;
         }
@@ -740,7 +740,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         negotiateProtocol(enabledProtocols, connection.getHeaderField(HEADER_SEC_WEBSOCKET_PROTOCOL));
         negotiateExtensions(enabledExtensions, connection.getHeaderField(HEADER_SEC_WEBSOCKET_EXTENSIONS));
 
-        this.state = WebSocketState.CONNECTED;
+        this.state = WebSocketState.OPEN;
     }
 
     private void disconnect() {

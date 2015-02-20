@@ -21,24 +21,18 @@ import static java.lang.String.format;
 import static java.util.EnumSet.allOf;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSE_FRAME_RECEIVED;
-import static org.kaazing.netx.ws.internal.WebSocketState.CONNECTED;
-import static org.kaazing.netx.ws.internal.WebSocketState.PING_FRAME_RECEIVED;
+import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
 import static org.kaazing.netx.ws.internal.WebSocketState.START;
-import static org.kaazing.netx.ws.internal.WebSocketState.UPGRADE_REQUEST_SENT;
-import static org.kaazing.netx.ws.internal.WebSocketState.UPGRADE_RESPONSE_RECEIVED;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_BINARY_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_CLOSE_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PING_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PONG_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_TEXT_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_UPGRADE_RESPONSE;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_UPGRADE_RESPONSE_NOT_VALID;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_UPGRADE_RESPONSE_VALID;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_BINARY_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_CLOSE_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_PONG_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_TEXT_FRAME;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_UPGRADE_REQUEST;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -57,27 +51,24 @@ public class WebSocketStateMachine {
         WebSocketState[][] stateMachine = new WebSocketState[stateCount][transitionCount];
         for (WebSocketState state : allOf(WebSocketState.class)) {
             for (WebSocketTransition transition : allOf(WebSocketTransition.class)) {
-                stateMachine[state.ordinal()][transition.ordinal()] = WebSocketState.CLOSED;
+                stateMachine[state.ordinal()][transition.ordinal()] = CLOSED;
             }
         }
 
-        stateMachine[START.ordinal()][SEND_UPGRADE_REQUEST.ordinal()] = UPGRADE_REQUEST_SENT;
-        stateMachine[UPGRADE_REQUEST_SENT.ordinal()][RECEIVED_UPGRADE_RESPONSE.ordinal()] = UPGRADE_RESPONSE_RECEIVED;
-        stateMachine[UPGRADE_RESPONSE_RECEIVED.ordinal()][RECEIVED_UPGRADE_RESPONSE_VALID.ordinal()] = CONNECTED;
-        stateMachine[UPGRADE_RESPONSE_RECEIVED.ordinal()][RECEIVED_UPGRADE_RESPONSE_NOT_VALID.ordinal()] = CLOSED;
+        stateMachine[START.ordinal()][RECEIVED_UPGRADE_RESPONSE.ordinal()] = OPEN;
 
-        stateMachine[CONNECTED.ordinal()][RECEIVED_PING_FRAME.ordinal()] = PING_FRAME_RECEIVED;
-        stateMachine[PING_FRAME_RECEIVED.ordinal()][SEND_PONG_FRAME.ordinal()] = CONNECTED;
-        stateMachine[CONNECTED.ordinal()][RECEIVED_PONG_FRAME.ordinal()] = CONNECTED;
+        stateMachine[OPEN.ordinal()][RECEIVED_PING_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][SEND_PONG_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVED_PONG_FRAME.ordinal()] = OPEN;
 
-        stateMachine[CONNECTED.ordinal()][RECEIVED_CLOSE_FRAME.ordinal()] = CLOSE_FRAME_RECEIVED;
+        stateMachine[OPEN.ordinal()][RECEIVED_CLOSE_FRAME.ordinal()] = CLOSE_FRAME_RECEIVED;
         stateMachine[CLOSE_FRAME_RECEIVED.ordinal()][SEND_CLOSE_FRAME.ordinal()] = CLOSED;
-        stateMachine[CONNECTED.ordinal()][SEND_CLOSE_FRAME.ordinal()] = CLOSED;
+        stateMachine[OPEN.ordinal()][SEND_CLOSE_FRAME.ordinal()] = CLOSED;
 
-        stateMachine[CONNECTED.ordinal()][RECEIVED_BINARY_FRAME.ordinal()] = CONNECTED;
-        stateMachine[CONNECTED.ordinal()][SEND_BINARY_FRAME.ordinal()] = CONNECTED;
-        stateMachine[CONNECTED.ordinal()][RECEIVED_TEXT_FRAME.ordinal()] = CONNECTED;
-        stateMachine[CONNECTED.ordinal()][SEND_TEXT_FRAME.ordinal()] = CONNECTED;
+        stateMachine[OPEN.ordinal()][RECEIVED_BINARY_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][SEND_BINARY_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVED_TEXT_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][SEND_TEXT_FRAME.ordinal()] = OPEN;
 
         STATE_MACHINE = stateMachine;
     }
@@ -92,64 +83,17 @@ public class WebSocketStateMachine {
         this.extensionsHooks = extensionHooks;
     }
 
-//    public void start(WsURLConnectionImpl connection) {
-//        connection.setWebSocketState(WebSocketState.START);
-//    }
-//
-//    public void sentUpgradeRequest(WsURLConnectionImpl connection) {
-//        WebSocketState state = connection.getWebSocketState();
-//
-//        switch (state) {
-//        case START:
-//            transition(connection, WebSocketTransition.SEND_UPGRADE_REQUEST);
-//            break;
-//        default:
-//            throw new IllegalStateException(format("Invalid state %s to be sending an upgrade request", state));
-//        }
-//    }
-//
-//    public void receivedUpgradeResponse(WsURLConnectionImpl connection) {
-//        WebSocketState state = connection.getWebSocketState();
-//
-//        switch (state) {
-//        case UPGRADE_REQUEST_SENT:
-//            transition(connection, WebSocketTransition.RECEIVED_UPGRADE_RESPONSE);
-//            break;
-//        default:
-//            throw new IllegalStateException(format("Invalid state %s to be receiving an upgrade response", state));
-//        }
-//    }
-//
-//    public void validUpgradeResponse(WsURLConnectionImpl connection) {
-//        WebSocketState state = connection.getWebSocketState();
-//
-//        switch (state) {
-//        case UPGRADE_RESPONSE_RECEIVED:
-//            transition(connection, WebSocketTransition.RECEIVED_UPGRADE_RESPONSE_VALID);
-//            break;
-//        default:
-//            throw new IllegalStateException(format("Invalid state %s to be validating upgrade response", state));
-//        }
-//    }
-//
-//    public void invalidUpgradeResponse(WsURLConnectionImpl connection) {
-//        WebSocketState state = connection.getWebSocketState();
-//
-//        switch (state) {
-//        case UPGRADE_RESPONSE_RECEIVED:
-//            transition(connection, WebSocketTransition.RECEIVED_UPGRADE_RESPONSE_NOT_VALID);
-//            break;
-//        default:
-//            throw new IllegalStateException(format("Invalid state %s to be validating upgrade response", state));
-//        }
-//    }
+    public void start(WsURLConnectionImpl connection) {
+        connection.setWebSocketState(WebSocketState.START);
+    }
+
 
     public ByteBuffer receivedBinaryFrame(WsURLConnectionImpl connection, ByteBuffer payload) {
         WebSocketState state = connection.getWebSocketState();
         ByteBuffer transformedPayload = payload;
 
         switch (state) {
-        case CONNECTED:
+        case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_BINARY_FRAME);
 
             if (extensionsHooks != null) {
@@ -170,7 +114,7 @@ public class WebSocketStateMachine {
         ByteBuffer transformedPayload = payload;
 
         switch (state) {
-        case CONNECTED:
+        case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_CLOSE_FRAME);
 
             if (extensionsHooks != null) {
@@ -191,7 +135,7 @@ public class WebSocketStateMachine {
         ByteBuffer transformedPayload = payload;
 
         switch (state) {
-        case CONNECTED:
+        case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_PING_FRAME);
 
             if (extensionsHooks != null) {
@@ -212,7 +156,7 @@ public class WebSocketStateMachine {
         ByteBuffer transformedPayload = payload;
 
         switch (state) {
-        case CONNECTED:
+        case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_PONG_FRAME);
 
             if (extensionsHooks != null) {
@@ -233,7 +177,7 @@ public class WebSocketStateMachine {
         CharBuffer transformedPayload = payload;
 
         switch (state) {
-        case CONNECTED:
+        case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_TEXT_FRAME);
 
             if (extensionsHooks != null) {
@@ -254,7 +198,7 @@ public class WebSocketStateMachine {
         ByteBuffer transformedPayload = payload;
 
         switch (state) {
-        case CONNECTED:
+        case OPEN:
             transition(connection, WebSocketTransition.SEND_BINARY_FRAME);
 
             if (extensionsHooks != null) {
@@ -275,7 +219,7 @@ public class WebSocketStateMachine {
         ByteBuffer transformedPayload = payload;
 
         switch (state) {
-        case CONNECTED:
+        case OPEN:
         case CLOSE_FRAME_RECEIVED:
             // Do not transition to CLOSED state at this point as we still haven't yet sent the CLOSE frame.
             if (extensionsHooks != null) {
@@ -296,7 +240,7 @@ public class WebSocketStateMachine {
         ByteBuffer transformedPayload = payload;
 
         switch (state) {
-        case PING_FRAME_RECEIVED:
+        case OPEN:
             transition(connection, WebSocketTransition.SEND_PONG_FRAME);
 
             if (extensionsHooks != null) {
@@ -317,7 +261,7 @@ public class WebSocketStateMachine {
         CharBuffer transformedPayload = payload;
 
         switch (state) {
-        case CONNECTED:
+        case OPEN:
             transition(connection, WebSocketTransition.SEND_TEXT_FRAME);
 
             if (extensionsHooks != null) {

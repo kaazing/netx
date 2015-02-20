@@ -18,11 +18,7 @@ package org.kaazing.netx.ws.internal;
 
 public enum WebSocketState {
     START,
-    UPGRADE_REQUEST_SENT,
-    UPGRADE_RESPONSE_RECEIVED,
-    CONNECTED,
+    OPEN,
     CLOSE_FRAME_RECEIVED,
-    CLOSE_FRAME_SENT,
-    PING_FRAME_RECEIVED,
     CLOSED
 }
