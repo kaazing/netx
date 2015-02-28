@@ -522,15 +522,13 @@ public class BaseFramingIT {
         int length = cbuf.length;
         int charsRead = 0;
 
-        charsRead = reader.read(cbuf, offset, length);
-
-//        while ((charsRead != -1) && (length > 0)) {
-//            charsRead = reader.read(cbuf, offset, length);
-//            if (charsRead != -1) {
-//                offset += charsRead;
-//                length -= charsRead;
-//            }
-//        }
+        while ((charsRead != -1) && (length > 0)) {
+            charsRead = reader.read(cbuf, offset, length);
+            if (charsRead != -1) {
+                offset += charsRead;
+                length -= charsRead;
+            }
+        }
         String readString = String.valueOf(cbuf);
 
         k3po.join();
