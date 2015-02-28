@@ -159,8 +159,14 @@ public final class WsInputStream extends InputStream {
                     receiveBuffer = new byte[(int) payloadLength];
                 }
 
-                int bytesRead = connection.receiveBinaryFrame(receiveBuffer, 0, (int) payloadLength);
-                assert payloadLength == bytesRead;
+                int bytesRead = connection.receiveBinaryFrame(receiveBuffer, 0, (int) payloadLength, header[0]);
+                if (bytesRead == 0) {
+                    // An extension can consume the payload and not let it surface to the app. In which case, we just try to
+                    // read the next frame.
+                    headerOffset = 0;
+                    payloadOffset = -1;
+                    payloadLength = 0;
+                }
             }
         }
 
@@ -218,7 +224,7 @@ public final class WsInputStream extends InputStream {
             return;
         }
 
-        connection.receiveControlFrame(opcode, payloadLength);
+        connection.receiveControlFrame(header[0], payloadLength);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

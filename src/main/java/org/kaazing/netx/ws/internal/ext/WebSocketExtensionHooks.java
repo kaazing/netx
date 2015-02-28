@@ -45,7 +45,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
             return payload;
         }
     };
@@ -54,7 +54,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
             return payload;
         }
     };
@@ -63,7 +63,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
             return payload;
         }
     };
@@ -72,7 +72,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
             return payload;
         }
     };
@@ -81,7 +81,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
             return payload;
         }
     };
@@ -90,7 +90,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
             return payload;
         }
     };
@@ -99,7 +99,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, ByteBuffer payload) {
+        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
             return payload;
         }
     };
@@ -108,7 +108,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
 
         @Override
-        public CharBuffer apply(WsURLConnection connection, CharBuffer payload) {
+        public CharBuffer apply(WsURLConnection connection, byte flagsAndOpcode, CharBuffer payload) {
             return payload;
         }
     };
@@ -117,7 +117,7 @@ public abstract class WebSocketExtensionHooks {
             new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
 
         @Override
-        public CharBuffer apply(WsURLConnection connection, CharBuffer payload) {
+        public CharBuffer apply(WsURLConnection connection, byte flagsAndOpcode, CharBuffer payload) {
             return payload;
         }
     };

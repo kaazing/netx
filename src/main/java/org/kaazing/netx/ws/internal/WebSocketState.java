@@ -19,6 +19,5 @@ package org.kaazing.netx.ws.internal;
 public enum WebSocketState {
     START,
     OPEN,
-    CLOSE_FRAME_RECEIVED,
     CLOSED
 }

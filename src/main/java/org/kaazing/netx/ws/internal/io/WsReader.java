@@ -164,7 +164,20 @@ public class WsReader extends Reader {
                     receiveBuffer = new char[(int) payloadLength];
                 }
 
-                charPayloadLength = connection.receiveTextFrame(receiveBuffer, 0, receiveBuffer.length, payloadLength);
+                charPayloadLength = connection.receiveTextFrame(receiveBuffer,
+                                                                0,
+                                                                receiveBuffer.length,
+                                                                payloadLength,
+                                                                header[0]);
+                if (charPayloadLength == 0) {
+                    // An extension can consume the payload and not let it surface to the app. In which case, we just try to
+                    // read the next frame.
+                    headerOffset = 0;
+                    payloadOffset = -1;
+                    payloadLength = 0;
+                    charPayloadOffset = 0;
+                    charPayloadLength = 0;
+                }
             }
         }
 
@@ -196,7 +209,7 @@ public class WsReader extends Reader {
             return;
         }
 
-        connection.receiveControlFrame(opcode, payloadLength);
+        connection.receiveControlFrame(header[0], payloadLength);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

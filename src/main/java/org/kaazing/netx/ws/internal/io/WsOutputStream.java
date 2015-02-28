@@ -66,7 +66,7 @@ public final class WsOutputStream extends FilterOutputStream {
     @Override
     public void write(byte[] buf, int offset, int length) throws IOException {
         ByteBuffer payload = ByteBuffer.wrap(buf, offset, length);
-        ByteBuffer transformedPayload = connection.getStateMachine().sendBinaryFrame(connection, payload);
+        ByteBuffer transformedPayload = connection.getOutputStateMachine().sendBinaryFrame(connection, (byte) 0x82, payload);
         int remaining = transformedPayload.remaining();
 
         if (maskedBuffer.length < remaining) {
@@ -88,7 +88,7 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     public void writeClose(int code, byte[] reason) throws IOException {
-        if (connection.getWebSocketState() == CLOSED) {
+        if (connection.getWebSocketOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 
@@ -112,7 +112,7 @@ public final class WsOutputStream extends FilterOutputStream {
             payload.flip();
         }
 
-        ByteBuffer transformedPayload = connection.getStateMachine().sendCloseFrame(connection, payload);
+        ByteBuffer transformedPayload = connection.getOutputStateMachine().sendCloseFrame(connection, (byte) 0x88, payload);
         if ((transformedPayload != null) && (transformedPayload.remaining() > 0)) {
             closeCode = transformedPayload.getShort();
         }
@@ -192,7 +192,7 @@ public final class WsOutputStream extends FilterOutputStream {
 
         if (buf != null) {
             ByteBuffer payload = ByteBuffer.wrap(buf);
-            transformedPayload = connection.getStateMachine().sendPongFrame(connection, payload);
+            transformedPayload = connection.getOutputStateMachine().sendPongFrame(connection, (byte) 0x8A, payload);
             len = transformedPayload.remaining();
         }
 

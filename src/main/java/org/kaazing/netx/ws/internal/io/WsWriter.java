@@ -45,12 +45,12 @@ public class WsWriter extends Writer {
 
     @Override
     public void write(char[] cbuf, int offset, int length) throws IOException {
-        if (connection.getWebSocketState() == CLOSED) {
+        if (connection.getWebSocketOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 
         CharBuffer payload = CharBuffer.wrap(cbuf, offset, length);
-        CharBuffer transformedPayload = connection.getStateMachine().sendTextFrame(connection, payload);
+        CharBuffer transformedPayload = connection.getOutputStateMachine().sendTextFrame(connection, (byte) 0x81, payload);
         length = transformedPayload.remaining();
 
         if (charBuffer.length < length) {

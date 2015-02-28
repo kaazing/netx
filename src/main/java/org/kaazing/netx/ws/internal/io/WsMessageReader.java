@@ -220,6 +220,13 @@ public final class WsMessageReader extends MessageReader {
         } while (!finalFrame);
 
         state = State.INITIAL;
+
+        if ((offset - mark == 0) && (length > 0)) {
+            // An extension can consume the entire message and not let it surface to the app. In which case, we just try to
+            // read the next message.
+            return read(buf, offset, length);
+        }
+
         return offset - mark;
     }
 
@@ -383,7 +390,7 @@ public final class WsMessageReader extends MessageReader {
             return 0;
         }
 
-        int bytesRead = connection.receiveBinaryFrame(buf, offset, (int) Math.min(length, payloadLength));
+        int bytesRead = connection.receiveBinaryFrame(buf, offset, (int) Math.min(length, payloadLength), header[0]);
         payloadOffset += bytesRead;
 
         assert payloadOffset == payloadLength ;
@@ -403,7 +410,7 @@ public final class WsMessageReader extends MessageReader {
             return 0;
         }
 
-        int charsRead = connection.receiveTextFrame(cbuf, offset, length, payloadLength);
+        int charsRead = connection.receiveTextFrame(cbuf, offset, length, payloadLength, header[0]);
 
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
@@ -423,7 +430,7 @@ public final class WsMessageReader extends MessageReader {
 
         readPayloadLength();
 
-        connection.receiveControlFrame(opcode, payloadLength);
+        connection.receiveControlFrame(header[0], payloadLength);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

@@ -28,7 +28,7 @@ public class PrimaryExtensionHooks extends WebSocketExtensionHooks {
         super.whenTextFrameReceived = new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
 
             @Override
-            public CharBuffer apply(WsURLConnection connection, CharBuffer payload) {
+            public CharBuffer apply(WsURLConnection connection, byte flagsAndOpcode, CharBuffer payload) {
                 String str = "Hello, " + payload.toString();
                 char[] cbuf = str.toCharArray();
                 return CharBuffer.wrap(cbuf);
@@ -38,7 +38,7 @@ public class PrimaryExtensionHooks extends WebSocketExtensionHooks {
         super.whenTextFrameIsBeingSent = new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
 
             @Override
-            public CharBuffer apply(WsURLConnection connection, CharBuffer payload) {
+            public CharBuffer apply(WsURLConnection connection, byte flagsAndOpcode, CharBuffer payload) {
                 String str = payload.toString();
                 if (str.startsWith("Hello, ")) {
                     str = str.substring("Hello,  ".length() - 1);

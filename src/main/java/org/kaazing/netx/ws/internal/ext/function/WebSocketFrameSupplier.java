@@ -16,5 +16,5 @@
 package org.kaazing.netx.ws.internal.ext.function;
 
 public interface WebSocketFrameSupplier<C, B> {
-    B apply(C connection, B payload);
+    B apply(C connection, byte flagsAndOpcode, B payload);
 }
