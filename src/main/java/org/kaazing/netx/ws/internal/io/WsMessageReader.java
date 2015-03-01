@@ -148,6 +148,13 @@ public final class WsMessageReader extends MessageReader {
         } while (!finalFrame);
 
         state = State.INITIAL;
+
+        if ((offset - mark == 0) && (length > 0)) {
+            // An extension can consume the entire message and not let it surface to the app. In which case, we just try to
+            // read the next message.
+            return read(buf, offset, length);
+        }
+
         return offset - mark;
     }
 
