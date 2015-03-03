@@ -15,6 +15,8 @@
  */
 package org.kaazing.netx.ws.internal.ext.function;
 
-public interface WebSocketSupplier<C> {
-    void apply(C connection);
+import org.kaazing.netx.ws.internal.ext.WebSocketContext;
+
+public interface WebSocketSupplier {
+    void apply(WebSocketContext context);
 }

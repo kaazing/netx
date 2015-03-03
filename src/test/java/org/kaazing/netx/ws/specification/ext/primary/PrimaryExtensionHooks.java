@@ -15,35 +15,36 @@
  */
 package org.kaazing.netx.ws.specification.ext.primary;
 
+import java.io.IOException;
 import java.nio.CharBuffer;
 
-import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
 
 public class PrimaryExtensionHooks extends WebSocketExtensionHooks {
-    public PrimaryExtensionHooks() {
-        super();
-
-        super.whenTextFrameReceived = new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
+    {
+        whenTextFrameReceived = new WebSocketFrameSupplier<CharBuffer>() {
 
             @Override
-            public CharBuffer apply(WsURLConnection connection, byte flagsAndOpcode, CharBuffer payload) {
+            public CharBuffer apply(WebSocketContext context, byte flagsAndOpcode, CharBuffer payload) throws IOException {
                 String str = "Hello, " + payload.toString();
                 char[] cbuf = str.toCharArray();
-                return CharBuffer.wrap(cbuf);
+                CharBuffer transformedPayload = CharBuffer.wrap(cbuf);
+                return context.doNextTextFrameReceivedHook(flagsAndOpcode, transformedPayload);
             }
         };
 
-        super.whenTextFrameIsBeingSent = new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
+        whenTextFrameIsBeingSent = new WebSocketFrameSupplier<CharBuffer>() {
 
             @Override
-            public CharBuffer apply(WsURLConnection connection, byte flagsAndOpcode, CharBuffer payload) {
+            public CharBuffer apply(WebSocketContext context, byte flagsAndOpcode, CharBuffer payload) throws IOException {
                 String str = payload.toString();
                 if (str.startsWith("Hello, ")) {
                     str = str.substring("Hello,  ".length() - 1);
                 }
-                return CharBuffer.wrap(str.toCharArray());
+                CharBuffer transformedPayload = CharBuffer.wrap(str.toCharArray());
+                return context.doNextTextFrameIsBeingSentHook(flagsAndOpcode, transformedPayload);
             }
         };
     }

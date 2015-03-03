@@ -28,12 +28,9 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PONG_FRA
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_TEXT_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_UPGRADE_RESPONSE;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.util.Collections;
-import java.util.List;
-
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 
 public class WebSocketInputStateMachine {
     private static final WebSocketState[][] STATE_MACHINE;
@@ -60,128 +57,80 @@ public class WebSocketInputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
-    private final List<WebSocketExtensionHooks> extensionsHooks;
-
     public WebSocketInputStateMachine() {
-        this.extensionsHooks = Collections.emptyList();
-    }
-
-    public WebSocketInputStateMachine(List<WebSocketExtensionHooks> extensionHooks) {
-        this.extensionsHooks = extensionHooks;
     }
 
     public void start(WsURLConnectionImpl connection) {
-        connection.setWebSocketInputState(WebSocketState.START);
+        connection.setInputState(WebSocketState.START);
     }
 
-
-    public ByteBuffer receivedBinaryFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, ByteBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        ByteBuffer transformedPayload = payload;
+    public ByteBuffer receivedBinaryFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_BINARY_FRAME);
-
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenBinaryFrameReceived.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            transition(context.getConnection(), WebSocketTransition.RECEIVED_BINARY_FRAME);
+            return context.doNextBinaryFrameReceivedHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a BINARY frame", state));
         }
-
-        return transformedPayload;
     }
 
-    public ByteBuffer receivedCloseFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, ByteBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        ByteBuffer transformedPayload = payload;
+    public ByteBuffer receivedCloseFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_CLOSE_FRAME);
-
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenCloseFrameReceived.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            transition(context.getConnection(), WebSocketTransition.RECEIVED_CLOSE_FRAME);
+            return context.doNextCloseFrameReceivedHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a CLOSE frame", state));
         }
-
-        return transformedPayload;
     }
 
-    public ByteBuffer receivedPingFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, ByteBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        ByteBuffer transformedPayload = payload;
+    public ByteBuffer receivedPingFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_PING_FRAME);
-
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenPingFrameReceived.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            transition(context.getConnection(), WebSocketTransition.RECEIVED_PING_FRAME);
+            return context.doNextPingFrameReceivedHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a PING frame", state));
         }
-
-        return transformedPayload;
     }
 
-    public ByteBuffer receivedPongFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, ByteBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        ByteBuffer transformedPayload = payload;
+    public ByteBuffer receivedPongFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_PONG_FRAME);
-
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenPongFrameReceived.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            transition(context.getConnection(), WebSocketTransition.RECEIVED_PONG_FRAME);
+            return context.doNextPongFrameReceivedHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a PONG frame", state));
         }
-
-        return transformedPayload;
     }
 
-    public CharBuffer receivedTextFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, CharBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        CharBuffer transformedPayload = payload;
+    public CharBuffer receivedTextFrame(DefaultWebSocketContext context, byte flagsAndOpcode, CharBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_TEXT_FRAME);
-
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenTextFrameReceived.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            transition(context.getConnection(), WebSocketTransition.RECEIVED_PONG_FRAME);
+            return context.doNextTextFrameReceivedHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a TEXT frame", state));
         }
-
-        return transformedPayload;
     }
 
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {
-        WebSocketState state = STATE_MACHINE[connection.getWebSocketInputState().ordinal()][transition.ordinal()];
-        connection.setWebSocketInputState(state);
+        WebSocketState state = STATE_MACHINE[connection.getInputState().ordinal()][transition.ordinal()];
+        connection.setInputState(state);
     }
 }

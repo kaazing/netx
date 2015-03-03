@@ -25,13 +25,9 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_CLOSE_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_PONG_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_TEXT_FRAME;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 
 public class WebSocketOutputStateMachine {
     private static final WebSocketState[][] STATE_MACHINE;
@@ -55,108 +51,67 @@ public class WebSocketOutputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
-    private final List<WebSocketExtensionHooks> extensionsHooks;
-
     public WebSocketOutputStateMachine() {
-        this.extensionsHooks = Collections.emptyList();
-    }
-
-    public WebSocketOutputStateMachine(List<WebSocketExtensionHooks> extensionHooks) {
-        List<WebSocketExtensionHooks> reversedList = new ArrayList<WebSocketExtensionHooks>();
-        reversedList.addAll(extensionHooks);
-        Collections.reverse(reversedList);
-        this.extensionsHooks = reversedList;
     }
 
     public void start(WsURLConnectionImpl connection) {
-        connection.setWebSocketOutputState(WebSocketState.START);
+        connection.setOutputState(WebSocketState.START);
     }
 
-    public ByteBuffer sendBinaryFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, ByteBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        ByteBuffer transformedPayload = payload;
+    public ByteBuffer sendBinaryFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.SEND_BINARY_FRAME);
-
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenBinaryFrameIsBeingSent.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            transition(context.getConnection(), WebSocketTransition.SEND_BINARY_FRAME);
+            return context.doNextBinaryFrameIsBeingSentHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a BINARY frame", state));
         }
-
-        return transformedPayload;
     }
 
-    public ByteBuffer sendCloseFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, ByteBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        ByteBuffer transformedPayload = payload;
+    public ByteBuffer sendCloseFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
             // Do not transition to CLOSED state at this point as we still haven't yet sent the CLOSE frame.
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenCloseFrameIsBeingSent.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            return context.doNextCloseFrameIsBeingSentHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a CLOSE frame", state));
         }
-
-        return transformedPayload;
     }
 
-    public ByteBuffer sendPongFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, ByteBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        ByteBuffer transformedPayload = payload;
+    public ByteBuffer sendPongFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.SEND_PONG_FRAME);
-
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenPongFrameIsBeingSent.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            transition(context.getConnection(), WebSocketTransition.SEND_PONG_FRAME);
+            return context.doNextPongFrameIsBeingSentHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a PONG frame", state));
         }
-
-        return transformedPayload;
     }
 
-    public CharBuffer sendTextFrame(WsURLConnectionImpl connection, byte flagsAndOpcode, CharBuffer payload) {
-        WebSocketState state = connection.getWebSocketInputState();
-        CharBuffer transformedPayload = payload;
+    public CharBuffer sendTextFrame(DefaultWebSocketContext context, byte flagsAndOpcode, CharBuffer payload)
+            throws IOException {
+        WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.SEND_TEXT_FRAME);
-
-            if (extensionsHooks != null) {
-                for (WebSocketExtensionHooks hooks : extensionsHooks) {
-                    transformedPayload = hooks.whenTextFrameIsBeingSent.apply(connection, flagsAndOpcode, transformedPayload);
-                }
-            }
-            break;
+            transition(context.getConnection(), WebSocketTransition.SEND_TEXT_FRAME);
+            return context.doNextTextFrameIsBeingSentHook(flagsAndOpcode, payload);
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a TEXT frame", state));
         }
-
-        return transformedPayload;
     }
 
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {
-        WebSocketState state = STATE_MACHINE[connection.getWebSocketInputState().ordinal()][transition.ordinal()];
-        connection.setWebSocketOutputState(state);
+        WebSocketState state = STATE_MACHINE[connection.getInputState().ordinal()][transition.ordinal()];
+        connection.setOutputState(state);
     }
 }

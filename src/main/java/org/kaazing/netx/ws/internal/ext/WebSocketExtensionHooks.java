@@ -15,109 +15,109 @@
  */
 package org.kaazing.netx.ws.internal.ext;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 
-import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketSupplier;
 
 public abstract class WebSocketExtensionHooks {
-    public WebSocketSupplier<WsURLConnection> whenInitialized =
-            new WebSocketSupplier<WsURLConnection>() {
+    public WebSocketSupplier whenInitialized =
+            new WebSocketSupplier() {
 
         @Override
-        public void apply(WsURLConnection connection) {
+        public void apply(WebSocketContext context) {
             return;
         }
     };
 
-    public WebSocketSupplier<WsURLConnection> whenError =
-            new WebSocketSupplier<WsURLConnection>() {
+    public WebSocketSupplier whenError =
+            new WebSocketSupplier() {
 
         @Override
-        public void apply(WsURLConnection connection) {
+        public void apply(WebSocketContext context) {
             return;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPingFrameReceived =
-            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+    public WebSocketFrameSupplier<ByteBuffer> whenPingFrameReceived =
+            new WebSocketFrameSupplier<ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
+        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
             return payload;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPongFrameReceived =
-            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+    public WebSocketFrameSupplier<ByteBuffer> whenPongFrameReceived =
+            new WebSocketFrameSupplier<ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
+        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
             return payload;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenPongFrameIsBeingSent =
-            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+    public WebSocketFrameSupplier<ByteBuffer> whenPongFrameIsBeingSent =
+            new WebSocketFrameSupplier<ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
+        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
             return payload;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenCloseFrameReceived =
-            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+    public WebSocketFrameSupplier<ByteBuffer> whenCloseFrameReceived =
+            new WebSocketFrameSupplier<ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
+        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
             return payload;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenCloseFrameIsBeingSent =
-            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+    public WebSocketFrameSupplier<ByteBuffer> whenCloseFrameIsBeingSent =
+            new WebSocketFrameSupplier<ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
+        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
             return payload;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenBinaryFrameReceived =
-            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+    public WebSocketFrameSupplier<ByteBuffer> whenBinaryFrameReceived =
+            new WebSocketFrameSupplier<ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
+        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
             return payload;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, ByteBuffer> whenBinaryFrameIsBeingSent =
-            new WebSocketFrameSupplier<WsURLConnection, ByteBuffer>() {
+    public WebSocketFrameSupplier<ByteBuffer> whenBinaryFrameIsBeingSent =
+            new WebSocketFrameSupplier<ByteBuffer>() {
 
         @Override
-        public ByteBuffer apply(WsURLConnection connection, byte flagsAndOpcode, ByteBuffer payload) {
+        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
             return payload;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, CharBuffer> whenTextFrameReceived =
-            new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
+    public WebSocketFrameSupplier<CharBuffer> whenTextFrameReceived =
+            new WebSocketFrameSupplier<CharBuffer>() {
 
         @Override
-        public CharBuffer apply(WsURLConnection connection, byte flagsAndOpcode, CharBuffer payload) {
+        public CharBuffer apply(WebSocketContext context, byte flagsAndOpcode, CharBuffer payload) throws IOException {
             return payload;
         }
     };
 
-    public WebSocketFrameSupplier<WsURLConnection, CharBuffer> whenTextFrameIsBeingSent =
-            new WebSocketFrameSupplier<WsURLConnection, CharBuffer>() {
+    public WebSocketFrameSupplier<CharBuffer> whenTextFrameIsBeingSent =
+            new WebSocketFrameSupplier<CharBuffer>() {
 
         @Override
-        public CharBuffer apply(WsURLConnection connection, byte flagsAndOpcode, CharBuffer payload) {
+        public CharBuffer apply(WebSocketContext context, byte flagsAndOpcode, CharBuffer payload) throws IOException {
             return payload;
         }
     };

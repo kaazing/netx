@@ -20,6 +20,7 @@ import static java.lang.Character.charCount;
 import static java.lang.Character.toChars;
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableCollection;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
@@ -102,6 +103,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensions;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensionsRO;
 
+    private final List<WebSocketExtensionHooks> negotiatedExtensionsHooks;
+
     private String negotiatedProtocol;
     private WsInputStream inputStream;
     private WsOutputStream outputStream;
@@ -136,6 +139,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.enabledExtensionsRO = unmodifiableMap(enabledExtensions);
         this.negotiatedExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
         this.negotiatedExtensionsRO = unmodifiableMap(negotiatedExtensions);
+        this.negotiatedExtensionsHooks = new ArrayList<WebSocketExtensionHooks>();
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -157,6 +161,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.enabledExtensionsRO = unmodifiableMap(enabledExtensions);
         this.negotiatedExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
         this.negotiatedExtensionsRO = unmodifiableMap(negotiatedExtensions);
+        this.negotiatedExtensionsHooks = new ArrayList<WebSocketExtensionHooks>();
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -458,6 +463,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         throw new IOException(exceptionMessage);
     }
 
+    public DefaultWebSocketContext getContext() {
+        return new DefaultWebSocketContext(this, unmodifiableList(this.negotiatedExtensionsHooks));
+    }
+
     public Random getRandom() {
         return random;
     }
@@ -478,11 +487,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return connection.getOutputStream();
     }
 
-    public WebSocketState getWebSocketInputState() {
+    public WebSocketState getInputState() {
         return inputState;
     }
 
-    public WebSocketState getWebSocketOutputState() {
+    public WebSocketState getOutputState() {
         return outputState;
     }
 
@@ -521,7 +530,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         ByteBuffer payload = ByteBuffer.wrap(buf, mark, bytesRead);
-        ByteBuffer transformedPayload = inputStateMachine.receivedBinaryFrame(this, flagsAndOpcode, payload);
+        ByteBuffer transformedPayload = inputStateMachine.receivedBinaryFrame(getContext(), flagsAndOpcode, payload);
+
+        if (transformedPayload == null) {
+            return 0;
+        }
+
         int remaining = transformedPayload.remaining();
         if (remaining > buf.length) {
             buf = new byte[remaining];
@@ -539,9 +553,14 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             int closeCodeRO = 0;
             byte[] reason = null;
 
-            if (payloadLength >= 2) {
-                ByteBuffer closePayload = readControlFramePayload(flagsAndOpcode, (int) payloadLength);
+            ByteBuffer closePayload = readControlFramePayload(flagsAndOpcode, (int) payloadLength);
+            int closePayloadLength = 0;
 
+            if (closePayload != null) {
+                closePayloadLength = closePayload.remaining();
+            }
+
+            if (closePayloadLength >= 2) {
                 code = closePayload.getShort();
                 closeCodeRO = code;
 
@@ -555,8 +574,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                     break;
                 }
 
-                if (payloadLength > 2) {
-                    reason = new byte[(int) (payloadLength - 2)];
+                if (closePayloadLength > 2) {
+                    reason = new byte[closePayloadLength - 2];
                     closePayload.get(reason);
 
                     if ((reason.length > (MAX_COMMAND_FRAME_PAYLOAD - 2)) || !validBytesUTF8(reason)) {
@@ -582,10 +601,17 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             }
 
             ByteBuffer pingPayload = readControlFramePayload(flagsAndOpcode, (int) payloadLength);
-            byte[] pingBuf = new byte[(int) payloadLength];
-            pingPayload.get(pingBuf);
 
-            sendPong(pingBuf);
+            if (pingPayload != null) {
+                // Make sure that the transformed payload is also lesser than MAX_COMMAND_FRAME_PAYLOAD.
+                if (pingPayload.remaining() > MAX_COMMAND_FRAME_PAYLOAD) {
+                    doFail(WS_PROTOCOL_ERROR, format(MSG_PING_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
+                }
+
+                byte[] pingBuf = new byte[pingPayload.remaining()];
+                pingPayload.get(pingBuf);
+                sendPong(pingBuf);
+            }
             break;
 
         case 0x0A:
@@ -593,9 +619,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 doFail(WS_PROTOCOL_ERROR, format(MSG_PONG_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
 
-            ByteBuffer pongPayload = readControlFramePayload(flagsAndOpcode, (int) payloadLength);
-            byte[] pongBuf = new byte[(int) payloadLength];
-            pongPayload.get(pongBuf);
+            // Not doing anything with the PONG payload.
+            readControlFramePayload(flagsAndOpcode, (int) payloadLength);
             break;
 
         default:
@@ -687,7 +712,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         CharBuffer payload = CharBuffer.wrap(cbuf, mark, offset - mark);
-        CharBuffer transformedPayload = inputStateMachine.receivedTextFrame(this, flagsAndOpcode, payload);
+        CharBuffer transformedPayload = inputStateMachine.receivedTextFrame(getContext(), flagsAndOpcode, payload);
+
+        if (transformedPayload == null) {
+            return 0;
+        }
+
         int remaining = transformedPayload.remaining();
         if (remaining > cbuf.length) {
             cbuf = new char[remaining];
@@ -707,11 +737,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         getOutputStream().writePong(buf);
     }
 
-    public void setWebSocketInputState(WebSocketState state) {
+    public void setInputState(WebSocketState state) {
         this.inputState = state;
     }
 
-    public void setWebSocketOutputState(WebSocketState state) {
+    public void setOutputState(WebSocketState state) {
         this.outputState = state;
     }
 
@@ -813,13 +843,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         switch (opcode) {
         case 0x08:
-            transformedPayload = inputStateMachine.receivedCloseFrame(this, flagsAndOpcode, payload);
+            transformedPayload = inputStateMachine.receivedCloseFrame(getContext(), flagsAndOpcode, payload);
             break;
         case 0x09:
-            transformedPayload = inputStateMachine.receivedPingFrame(this, flagsAndOpcode, payload);
+            transformedPayload = inputStateMachine.receivedPingFrame(getContext(), flagsAndOpcode, payload);
             break;
         case 0x0A:
-            transformedPayload = inputStateMachine.receivedPongFrame(this, flagsAndOpcode, payload);
+            transformedPayload = inputStateMachine.receivedPongFrame(getContext(), flagsAndOpcode, payload);
             break;
         }
 
@@ -847,11 +877,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             inputStateMachine = new WebSocketInputStateMachine();
             outputStateMachine = new WebSocketOutputStateMachine();
             this.negotiatedExtensions.clear();
+            this.negotiatedExtensionsHooks.clear();
             return;
         }
 
         String[] extensions = formattedExtensions.split(",");
-        List<WebSocketExtensionHooks> extensionsHooks = new ArrayList<WebSocketExtensionHooks>();
 
         for (String extn : extensions) {
             String[] properties = extn.split(";");
@@ -904,12 +934,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extnName, paramValues);
             WebSocketExtensionHooks hooks = extensionSpi.createWebSocketHooks();
             if (hooks != null) {
-                extensionsHooks.add(hooks);
+                this.negotiatedExtensionsHooks.add(hooks);
             }
         }
 
-        inputStateMachine = new WebSocketInputStateMachine(extensionsHooks);
-        outputStateMachine = new WebSocketOutputStateMachine(extensionsHooks);
+        inputStateMachine = new WebSocketInputStateMachine();
+        outputStateMachine = new WebSocketOutputStateMachine();
     }
 
     private static String base64Encode(byte[] bytes) {

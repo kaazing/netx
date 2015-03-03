@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.CharBuffer;
 
+import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public class WsWriter extends Writer {
@@ -45,12 +46,13 @@ public class WsWriter extends Writer {
 
     @Override
     public void write(char[] cbuf, int offset, int length) throws IOException {
-        if (connection.getWebSocketOutputState() == CLOSED) {
+        if (connection.getOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         CharBuffer payload = CharBuffer.wrap(cbuf, offset, length);
-        CharBuffer transformedPayload = connection.getOutputStateMachine().sendTextFrame(connection, (byte) 0x81, payload);
+        CharBuffer transformedPayload = outputStateMachine.sendTextFrame(connection.getContext(), (byte) 0x81, payload);
         length = transformedPayload.remaining();
 
         if (charBuffer.length < length) {

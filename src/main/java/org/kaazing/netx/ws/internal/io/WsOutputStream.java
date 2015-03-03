@@ -34,6 +34,7 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public final class WsOutputStream extends FilterOutputStream {
@@ -65,8 +66,9 @@ public final class WsOutputStream extends FilterOutputStream {
 
     @Override
     public void write(byte[] buf, int offset, int length) throws IOException {
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         ByteBuffer payload = ByteBuffer.wrap(buf, offset, length);
-        ByteBuffer transformedPayload = connection.getOutputStateMachine().sendBinaryFrame(connection, (byte) 0x82, payload);
+        ByteBuffer transformedPayload = outputStateMachine.sendBinaryFrame(connection.getContext(), (byte) 0x82, payload);
         int remaining = transformedPayload.remaining();
 
         if (maskedBuffer.length < remaining) {
@@ -88,7 +90,7 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     public void writeClose(int code, byte[] reason) throws IOException {
-        if (connection.getWebSocketOutputState() == CLOSED) {
+        if (connection.getOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 
@@ -112,7 +114,8 @@ public final class WsOutputStream extends FilterOutputStream {
             payload.flip();
         }
 
-        ByteBuffer transformedPayload = connection.getOutputStateMachine().sendCloseFrame(connection, (byte) 0x88, payload);
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
+        ByteBuffer transformedPayload = outputStateMachine.sendCloseFrame(connection.getContext(), (byte) 0x88, payload);
         if ((transformedPayload != null) && (transformedPayload.remaining() > 0)) {
             closeCode = transformedPayload.getShort();
         }
@@ -191,8 +194,9 @@ public final class WsOutputStream extends FilterOutputStream {
         ByteBuffer transformedPayload = null;
 
         if (buf != null) {
+            WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
             ByteBuffer payload = ByteBuffer.wrap(buf);
-            transformedPayload = connection.getOutputStateMachine().sendPongFrame(connection, (byte) 0x8A, payload);
+            transformedPayload = outputStateMachine.sendPongFrame(connection.getContext(), (byte) 0x8A, payload);
             len = transformedPayload.remaining();
         }
 

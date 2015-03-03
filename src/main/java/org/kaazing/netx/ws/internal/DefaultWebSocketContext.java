@@ -13,12 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.function;
+package org.kaazing.netx.ws.internal;
 
-import java.io.IOException;
+import java.util.List;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 
-public interface WebSocketFrameSupplier<B> {
-    B apply(WebSocketContext context, byte flagsAndOpcode, B payload) throws IOException ;
+public final class DefaultWebSocketContext extends WebSocketContext {
+    public DefaultWebSocketContext(WsURLConnectionImpl connection, List<WebSocketExtensionHooks> extensionHooks) {
+        super(connection, extensionHooks);
+    }
+
+    public WsURLConnectionImpl getConnection() {
+        return connection;
+    }
 }
