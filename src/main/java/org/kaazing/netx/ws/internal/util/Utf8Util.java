@@ -22,6 +22,8 @@ import static java.lang.String.format;
 
 import java.io.IOException;
 
+import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
+
 public final class Utf8Util {
 
     private Utf8Util() {
@@ -130,4 +132,98 @@ public final class Utf8Util {
         return true;
     }
 
+    public static int validateUTF8(DirectBuffer buffer, int offset, int length, ErrorHandler errorHandler)
+    {
+        for (int index = 0; index < length; index++)
+        {
+            byte leadingByte = buffer.getByte(offset + index);
+            final int expectedLen;
+            int codePoint;
+            if ((leadingByte & 0x80) == 0)
+            {
+                continue;
+            }
+            if ((leadingByte & 0xff) > 0xf4)
+            {
+                errorHandler.handleError(format("Invalid leading byte: %x", leadingByte));
+                return INVALID_UTF8;
+            }
+            if ((leadingByte & 0xE0) == 0xC0)
+            {
+                expectedLen = 2;
+                codePoint = (leadingByte & 0x1F);
+                if (codePoint < 2)
+                {
+                    errorHandler.handleError(format("Overlong encoding: %x%x", leadingByte,
+                            buffer.getByte(offset + index + 1)));
+                    return INVALID_UTF8;
+                }
+            }
+            else if ((leadingByte & 0xF0) == 0xE0)
+            {
+                expectedLen = 3;
+                codePoint = (leadingByte & 0b00001111);
+            }
+            else if ((leadingByte & 0b11111000) == 0b11110000)
+            {
+                expectedLen = 4;
+                codePoint = (leadingByte & 0b00000111);
+            }
+            else
+            {
+                errorHandler.handleError(format("Value exceeds Unicode limit: %x", leadingByte));
+                return INVALID_UTF8;
+            }
+            int characterStartIndex = index;
+            int remainingLen = expectedLen;
+            while (--remainingLen > 0)
+            {
+                if (++index >= length)
+                {
+                    // incomplete character at end
+                    return length - characterStartIndex;
+                }
+                byte nextByte = buffer.getByte(offset + index);
+                if ((nextByte & 0b11000000) != 0b10000000)
+                {
+                    errorHandler.handleError(format("Invalid continuation byte: %x", nextByte));
+                    return INVALID_UTF8;
+                }
+                codePoint = ((codePoint << 6) | (nextByte & 0b00111111));
+                if (codePoint > 0x10FFFF) // maximum Unicode code point
+                {
+                    return INVALID_UTF8;
+                }
+            }
+            if (expectedLen > byteCountUTF8(codePoint))
+            {
+                errorHandler.handleError(format("Overlong encoding starting at byte %x postion %d", leadingByte,
+                        characterStartIndex));
+                return INVALID_UTF8;
+            }
+        }
+        return 0;
+    }
+
+    public static boolean validBytesUTF8(DirectBuffer buf, int offset, int limit) {
+        for (int index = offset; index < limit;) {
+            byte leadingByte = buf.getByte(index++);
+            if ((leadingByte & 0xc0) == 0x80) {
+                return false;
+            }
+            int remaining = remainingBytesUTF8(leadingByte);
+            switch (remaining) {
+            case 0:
+                break;
+            default:
+                while (remaining-- > 0) {
+                    if ((buf.getByte(index++) & 0xc0) != 0x80) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
 }
