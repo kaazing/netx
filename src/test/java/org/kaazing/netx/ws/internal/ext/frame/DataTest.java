@@ -132,7 +132,7 @@ public class DataTest extends FrameTest
         {
             FrameFactory.newInstance(wsMaxMessageSize).wrap(buffer, offset);
         }
-        catch(ProtocolException e)
+        catch (ProtocolException e)
         {
             return;
         }
@@ -255,7 +255,7 @@ public class DataTest extends FrameTest
         {
             FrameFactory.newInstance(wsMaxMessageSize).wrap(buffer, offset);
         }
-        catch(ProtocolException e)
+        catch (ProtocolException e)
         {
             return;
         }

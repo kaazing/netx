@@ -73,8 +73,8 @@ public abstract class Frame extends Flyweight {
     }
 
     public int getDataOffset() {
-        int index = offset();
-        int lengthByte1 = uint8Get(buffer(), offset() + LENGTH_OFFSET) & LENGTH_BYTE_1_MASK;
+        int index = offset() + LENGTH_OFFSET;
+        int lengthByte1 = uint8Get(buffer(), index) & LENGTH_BYTE_1_MASK;
         index += 1;
 
         switch (lengthByte1) {

@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
 
 public final class Utf8Util {
+    public static final int INVALID_UTF8 = -1;
 
     private Utf8Util() {
     }
@@ -132,8 +133,7 @@ public final class Utf8Util {
         return true;
     }
 
-    public static int validateUTF8(DirectBuffer buffer, int offset, int length, ErrorHandler errorHandler)
-    {
+    public static int validateUTF8(DirectBuffer buffer, int offset, int length, ErrorHandler errorHandler) {
         for (int index = 0; index < length; index++)
         {
             byte leadingByte = buffer.getByte(offset + index);
@@ -162,12 +162,12 @@ public final class Utf8Util {
             else if ((leadingByte & 0xF0) == 0xE0)
             {
                 expectedLen = 3;
-                codePoint = (leadingByte & 0b00001111);
+                codePoint = (leadingByte & 0x0F);
             }
-            else if ((leadingByte & 0b11111000) == 0b11110000)
+            else if ((leadingByte & 0xF8) == 0xF0)
             {
                 expectedLen = 4;
-                codePoint = (leadingByte & 0b00000111);
+                codePoint = (leadingByte & 0x07);
             }
             else
             {
@@ -184,21 +184,27 @@ public final class Utf8Util {
                     return length - characterStartIndex;
                 }
                 byte nextByte = buffer.getByte(offset + index);
-                if ((nextByte & 0b11000000) != 0b10000000)
+                if ((nextByte & 0xC0) != 0x80)
                 {
                     errorHandler.handleError(format("Invalid continuation byte: %x", nextByte));
                     return INVALID_UTF8;
                 }
-                codePoint = ((codePoint << 6) | (nextByte & 0b00111111));
+                codePoint = ((codePoint << 6) | (nextByte & 0x3F));
                 if (codePoint > 0x10FFFF) // maximum Unicode code point
                 {
                     return INVALID_UTF8;
                 }
             }
-            if (expectedLen > byteCountUTF8(codePoint))
-            {
-                errorHandler.handleError(format("Overlong encoding starting at byte %x postion %d", leadingByte,
-                        characterStartIndex));
+
+            try {
+                if (expectedLen > byteCountUTF8(codePoint))
+                {
+                    errorHandler.handleError(format("Overlong encoding starting at byte %x postion %d", leadingByte,
+                            characterStartIndex));
+                    return INVALID_UTF8;
+                }
+            } catch (IOException e) {
+                errorHandler.handleError(e.getMessage());
                 return INVALID_UTF8;
             }
         }
