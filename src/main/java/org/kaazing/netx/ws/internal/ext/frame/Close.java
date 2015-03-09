@@ -17,7 +17,8 @@ package org.kaazing.netx.ws.internal.ext.frame;
 
 import static java.lang.String.format;
 
-import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
+import java.nio.ByteBuffer;
+
 import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class Close extends Control {
@@ -27,14 +28,13 @@ public class Close extends Control {
 
     }
 
-    public Close wrap(DirectBuffer buffer, int offset) throws ProtocolException {
+    public Close wrap(ByteBuffer buffer, int offset) throws ProtocolException {
         wrap(buffer, offset, false);
         return this;
     }
 
     public int getStatusCode() {
-        if (getLength() < 2)
-        {
+        if (getLength() < 2) {
             return 1005; // RFC 6455 section 7.4.1
         }
         int status = uint16Get(getPayload().buffer(), getPayload().offset());
@@ -45,8 +45,7 @@ public class Close extends Control {
     @Override
     public int getLength() {
         int length = super.getLength();
-        if (length == 1)
-        {
+        if (length == 1) {
             protocolError("Invalid Close frame, payload length cannot be 1");
         }
         return length;
@@ -57,7 +56,7 @@ public class Close extends Control {
     }
 
     @Override
-    protected Close wrap(final DirectBuffer buffer, final int offset, boolean mutable) {
+    protected Close wrap(final ByteBuffer buffer, final int offset, boolean mutable) {
         super.wrap(buffer, offset, mutable);
         reason.wrap(null, offset, 0, mutable);
         return this;
@@ -80,8 +79,7 @@ public class Close extends Control {
     }
 
     private static void validateStatusCode(int status) {
-        if (status < 999 || status == 1005 || (status > 1014 && status < 3000) || status > 4999)
-        {
+        if (status < 999 || status == 1005 || (status > 1014 && status < 3000) || status > 4999) {
             protocolError(format("Invalid Close frame status code %d", status));
         }
     }

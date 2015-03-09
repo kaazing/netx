@@ -15,16 +15,15 @@
  */
 package org.kaazing.netx.ws.internal.ext.frame;
 
-import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
+import java.nio.ByteBuffer;
 
-public class Continuation extends Data
-{
+public class Continuation extends Data {
     Continuation(int maxWsMessageSize) {
         super(maxWsMessageSize);
     }
 
     @Override
-    public Continuation wrap(DirectBuffer buffer, int offset) {
+    public Continuation wrap(ByteBuffer buffer, int offset) {
         super.wrap(buffer, offset, false);
         return this;
     }

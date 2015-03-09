@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Kaazing Corporation, All rights reserved.
+ * Copyright 2014, Kaazing Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,11 @@ package org.kaazing.netx.ws.internal.ext.frame;
 
 import static java.lang.String.format;
 
-public enum OpCode
-{
+public enum OpCode {
     BINARY, CLOSE, CONTINUATION, PING, PONG, TEXT;
 
-    public static OpCode fromInt(int value)
-    {
-        switch (value)
-        {
+    public static OpCode fromInt(int value) {
+        switch (value) {
         case 0x00:
             return CONTINUATION;
         case 0x01:
@@ -42,10 +39,8 @@ public enum OpCode
         }
     };
 
-    public static int toInt(OpCode value)
-    {
-        switch (value)
-        {
+    public static int toInt(OpCode value) {
+        switch (value) {
         case CONTINUATION:
             return 0x00;
         case TEXT:

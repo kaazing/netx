@@ -17,10 +17,8 @@ package org.kaazing.netx.ws.internal.ext.frame;
 
 import static java.lang.String.format;
 
+import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-
-import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
-import org.kaazing.netx.ws.internal.ext.agrona.UnsafeBuffer;
 
 
 public abstract class Frame extends Flyweight {
@@ -32,7 +30,7 @@ public abstract class Frame extends Flyweight {
     private static final int LENGTH_OFFSET = 1;
     private static final int MASK_OFFSET = 1;
 
-    private UnsafeBuffer unmaskedPayload;
+    private ByteBuffer unmaskedPayload;
     private final Payload payload;
     private final byte[] mask;
     private final SecureRandom random;
@@ -51,7 +49,7 @@ public abstract class Frame extends Flyweight {
     }
 
     @Override
-    protected Flyweight wrap(final DirectBuffer buffer, final int offset, final boolean mutable) {
+    protected Flyweight wrap(final ByteBuffer buffer, final int offset, final boolean mutable) {
         super.wrap(buffer, offset, mutable);
         validateLength();
         payload.wrap(null, offset, 0, mutable);
@@ -59,17 +57,21 @@ public abstract class Frame extends Flyweight {
     }
 
     public void encode(OpCode opcode, boolean fin, boolean masked, byte[] payload) {
-        int capacity = FrameUtils.calculateCapacity(masked, payload);
-        byte[] maskBuf = FrameUtils.EMPTY_MASK;
+        int need = FrameUtil.calculateNeed(masked, payload);
+        int capacity = limit() - offset();
+        byte[] maskBuf = FrameUtil.EMPTY_MASK;
 
-        buffer().checkLimit(capacity);
+        if (need > capacity) {
+            final String msg = String.format("need=%d is beyond capacity=%d", need, capacity);
+            throw new IndexOutOfBoundsException(msg);
+        }
 
         if (masked) {
             random.nextBytes(mask);
             maskBuf = mask;
         }
 
-        FrameUtils.encode(super.mutableBuffer(), offset(), opcode, fin, masked, maskBuf, payload);
+        FrameUtil.encode(super.buffer(), offset(), opcode, fin, masked, maskBuf, payload);
     }
 
     public int getDataOffset() {
@@ -97,8 +99,7 @@ public abstract class Frame extends Flyweight {
     public int getLength() {
         int length = uint8Get(buffer(), offset() + LENGTH_OFFSET) & LENGTH_BYTE_1_MASK;
 
-        switch (length)
-        {
+        switch (length) {
         case 126:
             return uint16Get(buffer(), offset() + LENGTH_OFFSET + 1);
         case 127:
@@ -150,7 +151,7 @@ public abstract class Frame extends Flyweight {
                 }
 
                 if (unmaskedPayload == null) {
-                    unmaskedPayload = new UnsafeBuffer(new byte[getMaxPayloadLength()]);
+                    unmaskedPayload = ByteBuffer.wrap(new byte[getMaxPayloadLength()]);
                 }
 
                 for (int i = 0; i < len; i++) {
@@ -175,7 +176,7 @@ public abstract class Frame extends Flyweight {
     public static class Payload extends Flyweight {
         private int limit;
 
-        protected Payload wrap(DirectBuffer buffer, int offset, int limit, boolean mutable) {
+        protected Payload wrap(ByteBuffer buffer, int offset, int limit, boolean mutable) {
             super.wrap(buffer, offset, mutable);
             this.limit = limit;
             return this;
@@ -187,15 +188,12 @@ public abstract class Frame extends Flyweight {
         }
     }
 
-    static void protocolError(String message) throws ProtocolException
-    {
+    static void protocolError(String message) throws ProtocolException {
         throw new ProtocolException(message);
     }
 
-    private void validateLength()
-    {
-        if (getLength() > getMaxPayloadLength())
-        {
+    private void validateLength() {
+        if (getLength() > getMaxPayloadLength()) {
             protocolError(format("%s frame payload exceeds %d bytes", getOpCode(), getMaxPayloadLength()));
         }
     }

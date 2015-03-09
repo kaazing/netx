@@ -13,18 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.frame;
+package org.kaazing.netx.ws.internal.util;
 
-import java.nio.ByteBuffer;
-
-public class Pong extends Control {
-
-    Pong() {
-
-    }
-
-    public Pong wrap(ByteBuffer buffer, int offset) throws ProtocolException {
-        super.wrap(buffer, offset, false);
-        return this;
-    }
+public interface ErrorHandler {
+    void handleError(String message);
 }

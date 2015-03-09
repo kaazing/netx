@@ -15,15 +15,15 @@
  */
 package org.kaazing.netx.ws.internal.ext.frame;
 
-import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
+import java.nio.ByteBuffer;
+
 import org.kaazing.netx.ws.internal.util.ErrorHandler;
 import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class Data extends Frame {
     private final int maxWsMessageSize;
 
-    Data(int maxWsMessageSize)
-    {
+    Data(int maxWsMessageSize) {
         this.maxWsMessageSize = maxWsMessageSize;
     }
 
@@ -48,7 +48,7 @@ public class Data extends Frame {
         return maxWsMessageSize;
     }
 
-    public Data wrap(DirectBuffer buffer, int offset) {
+    public Data wrap(ByteBuffer buffer, int offset) {
         super.wrap(buffer, offset, false);
         return this;
     }

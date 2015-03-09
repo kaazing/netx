@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Kaazing Corporation, All rights reserved.
+ * Copyright 2014, Kaazing Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,10 @@
  */
 package org.kaazing.netx.ws.internal.ext.frame;
 
+import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
-import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
-import org.kaazing.netx.ws.internal.ext.agrona.UnsafeBuffer;
-
-public class FrameFactory extends Flyweight {
+public final class FrameFactory extends Flyweight {
 
     private final Close close = new Close();
     private final Continuation continuation;
@@ -42,10 +40,9 @@ public class FrameFactory extends Flyweight {
         return new FrameFactory(maxWsMessageSize);
     }
 
-    public Frame wrap(DirectBuffer buffer, int offset) throws ProtocolException {
+    public Frame wrap(ByteBuffer buffer, int offset) throws ProtocolException {
         Frame frame = null;
-        switch(FrameUtils.getOpCode(buffer, offset))
-        {
+        switch(FrameUtil.getOpCode(buffer, offset)) {
         case BINARY:
             frame = data.wrap(buffer, offset);
             break;
@@ -77,16 +74,16 @@ public class FrameFactory extends Flyweight {
 
     private Frame encode(OpCode opcode, boolean fin, boolean masked, byte[] payload) {
         int offset = 0;
-        int capacity = FrameUtils.calculateCapacity(masked, payload);
-        UnsafeBuffer buffer = new UnsafeBuffer(new byte[capacity]);
-        byte[] maskBuf = FrameUtils.EMPTY_MASK;
+        int capacity = FrameUtil.calculateNeed(masked, payload);
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[capacity]);
+        byte[] maskBuf = FrameUtil.EMPTY_MASK;
 
         if (masked) {
             random.nextBytes(mask);
             maskBuf = mask;
         }
 
-        FrameUtils.encode(buffer, offset, opcode, fin, masked, maskBuf, payload);
+        FrameUtil.encode(buffer, offset, opcode, fin, masked, maskBuf, payload);
         return wrap(buffer, offset);
     }
 }

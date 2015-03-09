@@ -17,14 +17,14 @@ package org.kaazing.netx.ws.internal.ext.frame;
 
 import static java.lang.String.format;
 
-import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
+import java.nio.ByteBuffer;
 
 public abstract class Control extends Frame {
     Control() {
     }
 
     @Override
-    protected Control wrap(DirectBuffer buffer, int offset, boolean mutable) {
+    protected Control wrap(ByteBuffer buffer, int offset, boolean mutable) {
         super.wrap(buffer, offset, mutable);
 
         if (!isFin()) {

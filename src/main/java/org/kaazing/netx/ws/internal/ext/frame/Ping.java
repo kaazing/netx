@@ -15,14 +15,14 @@
  */
 package org.kaazing.netx.ws.internal.ext.frame;
 
-import org.kaazing.netx.ws.internal.ext.agrona.DirectBuffer;
+import java.nio.ByteBuffer;
 
 public class Ping extends Control {
     Ping() {
 
     }
 
-    public Ping wrap(DirectBuffer buffer, int offset) throws ProtocolException {
+    public Ping wrap(ByteBuffer buffer, int offset) throws ProtocolException {
         super.wrap(buffer, offset, false);
         return this;
     }
