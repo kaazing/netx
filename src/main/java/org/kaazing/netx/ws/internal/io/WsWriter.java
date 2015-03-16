@@ -17,31 +17,40 @@
 package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.Integer.highestOneBit;
+import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.byteCountUTF8;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
-import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.WebSocketContext;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
+import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
+import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.frame.OpCode;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class WsWriter extends Writer {
-    private static final int MAX_TEXT_PAYLOAD_LENGTH = 8192;
+    private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private final WsURLConnectionImpl connection;
     private final OutputStream out;
     private final byte[] mask;
 
-    private char[] charBuffer;
+    private Data dataFrame;
 
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
         this.out = connection.getTcpOutputStream();
         this.mask = new byte[4];
-        this.charBuffer = new char[MAX_TEXT_PAYLOAD_LENGTH];
     }
 
     @Override
@@ -50,21 +59,41 @@ public class WsWriter extends Writer {
             throw new IOException("Connection closed");
         }
 
-        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        CharBuffer payload = CharBuffer.wrap(cbuf, offset, length);
-        CharBuffer transformedPayload = outputStateMachine.sendTextFrame(connection.getContext(), (byte) 0x81, payload);
-        length = transformedPayload.remaining();
-
-        if (charBuffer.length < length) {
-            charBuffer = new char[length];
+        if (cbuf == null) {
+            throw new NullPointerException("Null buffer passed in");
         }
-        transformedPayload.get(charBuffer, 0, length);
+        else if ((offset < 0) || (length < 0) || (offset + length > cbuf.length)) {
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
+        }
 
-        int byteCount = byteCountUTF8(charBuffer, 0, length);
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenTextFrameSend = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        Data sourceFrame = (Data) frame;
+                        if (sourceFrame == dataFrame) {
+                            return;
+                        }
+
+                        FrameUtil.copy(sourceFrame, dataFrame);
+                    }
+                };
+            }
+        };
+
+        byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8);
+        dataFrame = (Data) getFrame(OpCode.TEXT, true, true, bytesPayload, 0, bytesPayload.length);
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
+        outputStateMachine.sendTextFrame(connection.getContext(sentinelHooks, true), dataFrame);
+
+        Payload payload = dataFrame.getPayload();
+        int payloadLen = dataFrame.getLength();
+        int payloadOffset = payload.offset();
 
         out.write(0x81);
 
-        switch (highestOneBit(byteCount)) {
+        switch (highestOneBit(payloadLen)) {
         case 0x0000:
         case 0x0001:
         case 0x0002:
@@ -72,7 +101,7 @@ public class WsWriter extends Writer {
         case 0x0008:
         case 0x0010:
         case 0x0020:
-            out.write(0x80 | byteCount);
+            out.write(0x80 | payloadLen);
             break;
         case 0x0040:
             switch (length) {
@@ -87,7 +116,7 @@ public class WsWriter extends Writer {
                 out.write(127);
                 break;
             default:
-                out.write(0x80 | byteCount);
+                out.write(0x80 | payloadLen);
                 break;
             }
             break;
@@ -108,7 +137,7 @@ public class WsWriter extends Writer {
             // 65536+
             out.write(0x80 | 127);
 
-            long lengthL = byteCount;
+            long lengthL = payloadLen;
             out.write((int) ((lengthL >> 56) & 0xff));
             out.write((int) ((lengthL >> 48) & 0xff));
             out.write((int) ((lengthL >> 40) & 0xff));
@@ -124,17 +153,10 @@ public class WsWriter extends Writer {
         connection.getRandom().nextBytes(mask);
         out.write(mask);
 
-        // ### TODO: Convert the char[] to UTF-8 byte[] payload instead of creating a String.
-        byte[] bytes = String.valueOf(charBuffer, 0, length).getBytes("UTF-8");
-
-        // Mask the payload.
-        byte[] masked = new byte[bytes.length];
-        for (int i = 0; i < bytes.length; i++) {
-            int ioff = offset + i;
-            masked[i] = (byte) (bytes[ioff] ^ mask[i % mask.length]);
+        // Mask the payload and write it out.
+        for (int i = 0; i < payloadLen; i++) {
+            out.write((byte) (payload.buffer().get(payloadOffset++) ^ mask[i % mask.length]));
         }
-
-        out.write(masked);
     }
 
     @Override
@@ -145,5 +167,11 @@ public class WsWriter extends Writer {
     @Override
     public void close() throws IOException {
         out.close();
+    }
+
+    private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
+            throws IOException {
+        FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
+        return factory.createFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
     }
 }

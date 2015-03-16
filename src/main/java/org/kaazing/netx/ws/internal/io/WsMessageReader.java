@@ -26,6 +26,12 @@ import java.io.InputStream;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.frame.Control;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
+import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
+import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.frame.OpCode;
 
 public final class WsMessageReader extends MessageReader {
     private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
@@ -40,9 +46,9 @@ public final class WsMessageReader extends MessageReader {
     private static final String MSG_FIRST_FRAME_FRAGMENTED = "Protocol Violation: First frame cannot be a fragmented frame";
     private static final String MSG_UNEXPECTED_OPCODE = "Protocol Violation: Opcode 0x%02X expected only in the initial frame";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
+    private static final String MSG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: %s payload is more than 125 bytes";
 
-    private static final int MAX_BINARY_PAYLOAD_LENGTH = 8192;
-    private static final int MAX_TEXT_PAYLOAD_LENGTH = 8192;
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
@@ -54,7 +60,7 @@ public final class WsMessageReader extends MessageReader {
     private boolean fin;
     private long payloadLength;
     private int payloadOffset;
-    private byte[] binaryReceiveBuffer;
+    private Data dataFrame;
     private char[] textReceiveBuffer;
 
     private enum State {
@@ -88,10 +94,6 @@ public final class WsMessageReader extends MessageReader {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
         }
 
-        if (binaryReceiveBuffer == null) {
-            binaryReceiveBuffer = new byte[MAX_BINARY_PAYLOAD_LENGTH];
-        }
-
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
         switch (state) {
         case INITIAL:
@@ -102,37 +104,37 @@ public final class WsMessageReader extends MessageReader {
             break;
         }
 
-        switch (type) {
-        case EOS:
-            return -1;
-        case TEXT:
-            throw new IOException(MSG_NON_BINARY_FRAME);
-        default:
-            break;
-        }
-
         boolean finalFrame = fin;
         int mark = offset;
         int bytesRead = 0;
 
         do {
+            switch (type) {
+            case EOS:
+                return -1;
+            case TEXT:
+                throw new IOException(MSG_NON_BINARY_FRAME);
+            default:
+                break;
+            }
+
             int retval = readPayloadLength();
             if (retval == -1) {
                 connection.doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
             }
 
-            if (length < payloadLength) {
+            dataFrame = (Data) getFrame(header[0] & 0x0F, payloadLength);
+            readBinary(dataFrame);
+            bytesRead = dataFrame.getLength();
+
+            if (length < dataFrame.getLength()) {
                 // MessageReader requires reading the entire message/frame. So, if there isn't enough space to read the frame,
                 // we should throw an exception.
                 throw new IOException(format(MSG_BUFFER_SIZE_SMALL, length, payloadLength));
             }
 
-            if (payloadLength > binaryReceiveBuffer.length) {
-                binaryReceiveBuffer = new byte[(int) payloadLength];
-            }
-
-            bytesRead = readBinary(binaryReceiveBuffer, 0, (int) payloadLength);
-            System.arraycopy(binaryReceiveBuffer, 0, buf, offset, bytesRead);
+            Payload payload = dataFrame.getPayload();
+            System.arraycopy(payload.buffer().array(), payload.offset(), buf, offset, dataFrame.getLength());
 
             offset += bytesRead;
             length -= bytesRead;
@@ -173,10 +175,6 @@ public final class WsMessageReader extends MessageReader {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
         }
 
-        if (textReceiveBuffer == null) {
-            textReceiveBuffer = new char[MAX_TEXT_PAYLOAD_LENGTH];
-        }
-
         // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
         switch (state) {
         case INITIAL:
@@ -187,34 +185,40 @@ public final class WsMessageReader extends MessageReader {
             break;
         }
 
-        switch (type) {
-        case EOS:
-            return -1;
-        case BINARY:
-            throw new IOException(MSG_NON_TEXT_FRAME);
-        default:
-            break;
-        }
-
         boolean finalFrame = fin;
         int mark = offset;
-        int charsRead = 0;
 
         do {
+            switch (type) {
+            case EOS:
+                return -1;
+            case BINARY:
+                throw new IOException(MSG_NON_TEXT_FRAME);
+            default:
+                break;
+            }
+
             int retval = readPayloadLength();
             if (retval == -1) {
                 connection.doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
             }
 
-            if (payloadLength > textReceiveBuffer.length) {
-                textReceiveBuffer = new char[(int) payloadLength];
+            dataFrame = (Data) getFrame(header[0] & 0x0F, payloadLength);
+            readText(dataFrame);
+
+            Payload payload = dataFrame.getPayload();
+            textReceiveBuffer = new String(payload.buffer().array(), payload.offset(), dataFrame.getLength()).toCharArray();
+
+            if (length < textReceiveBuffer.length) {
+                // MessageReader requires reading the entire message/frame. So, if there isn't enough space to read the frame,
+                // we should throw an exception.
+                throw new IOException(format(MSG_BUFFER_SIZE_SMALL, length, payloadLength));
             }
 
-            charsRead = readText(textReceiveBuffer, 0, (int) payloadLength);
-            System.arraycopy(textReceiveBuffer, 0, buf, offset, charsRead);
+            System.arraycopy(textReceiveBuffer, 0, buf, offset, textReceiveBuffer.length);
 
-            offset += charsRead;
-            length -= charsRead;
+            offset += textReceiveBuffer.length;
+            length -= textReceiveBuffer.length;
 
             // Once the payload is read, use fin to figure out whether this was the final frame.
             finalFrame = fin;
@@ -391,41 +395,34 @@ public final class WsMessageReader extends MessageReader {
         return 0;
     }
 
-    private synchronized int readBinary(byte[] buf, int offset, int length) throws IOException {
-        if (payloadLength == 0) {
+    private synchronized void readBinary(Data frame) throws IOException {
+        if (frame.getLength() == 0) {
             state = State.READ_FLAGS_AND_OPCODE;
-            return 0;
+            return;
         }
 
-        int bytesRead = connection.receiveBinaryFrame(buf, offset, (int) Math.min(length, payloadLength), header[0]);
-        payloadOffset += bytesRead;
-
-        assert payloadOffset == payloadLength ;
+        connection.receiveBinaryFrame(frame);
 
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
         payloadLength = 0;
         payloadOffset = -1;
         state = State.READ_FLAGS_AND_OPCODE;
-
-        return bytesRead;
     }
 
-    private synchronized int readText(char[] cbuf, int offset, int length) throws IOException {
-        if (payloadLength == 0) {
+    private synchronized void readText(Data frame) throws IOException {
+        if (frame.getLength() == 0) {
             state = State.READ_FLAGS_AND_OPCODE;
-            return 0;
+            return;
         }
 
-        int charsRead = connection.receiveTextFrame(cbuf, offset, length, payloadLength, header[0]);
+        connection.receiveTextFrame(frame);
 
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
         payloadLength = 0;
         payloadOffset = -1;
         state = State.READ_FLAGS_AND_OPCODE;
-
-        return charsRead;
     }
 
     private void filterControlFrames() throws IOException {
@@ -437,13 +434,24 @@ public final class WsMessageReader extends MessageReader {
 
         readPayloadLength();
 
-        connection.receiveControlFrame(header[0], payloadLength);
+        if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
+        }
+
+        Control frame = (Control) getFrame(opcode, payloadLength);
+        connection.receiveControlFrame(frame);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;
         payloadOffset = -1;
         headerOffset = 0;
         state = State.READ_FLAGS_AND_OPCODE;
+    }
+
+    private Frame getFrame(int opcode, long payloadLen) throws IOException {
+        FrameFactory factory = connection.getInputStateMachine().getFrameFactory();
+        OpCode opCode = OpCode.fromInt(opcode);
+        return factory.createFrame(opCode, fin, false, payloadLen);
     }
 
     private static int payloadLength(byte[] header) {

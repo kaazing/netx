@@ -16,15 +16,17 @@
 package org.kaazing.netx.ws.internal.ext;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 
+import org.kaazing.netx.ws.internal.ext.frame.Close;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
+import org.kaazing.netx.ws.internal.ext.frame.Ping;
+import org.kaazing.netx.ws.internal.ext.frame.Pong;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketSupplier;
 
 public abstract class WebSocketExtensionHooks {
-    public WebSocketSupplier whenInitialized =
-            new WebSocketSupplier() {
+    public WebSocketSupplier whenInitialized = new WebSocketSupplier() {
 
         @Override
         public void apply(WebSocketContext context) {
@@ -32,8 +34,7 @@ public abstract class WebSocketExtensionHooks {
         }
     };
 
-    public WebSocketSupplier whenError =
-            new WebSocketSupplier() {
+    public WebSocketSupplier whenError = new WebSocketSupplier() {
 
         @Override
         public void apply(WebSocketContext context) {
@@ -41,84 +42,75 @@ public abstract class WebSocketExtensionHooks {
         }
     };
 
-    public WebSocketFrameSupplier<ByteBuffer> whenPingFrameReceived =
-            new WebSocketFrameSupplier<ByteBuffer>() {
+    public WebSocketFrameSupplier whenBinaryFrameReceived = new WebSocketFrameSupplier() {
 
         @Override
-        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextBinaryFrameReceivedHook((Data) frame);
         }
     };
 
-    public WebSocketFrameSupplier<ByteBuffer> whenPongFrameReceived =
-            new WebSocketFrameSupplier<ByteBuffer>() {
+    public WebSocketFrameSupplier whenBinaryFrameSend = new WebSocketFrameSupplier() {
 
         @Override
-        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextBinaryFrameSendHook((Data) frame);
         }
     };
 
-    public WebSocketFrameSupplier<ByteBuffer> whenPongFrameIsBeingSent =
-            new WebSocketFrameSupplier<ByteBuffer>() {
+    public WebSocketFrameSupplier whenCloseFrameReceived = new WebSocketFrameSupplier() {
 
         @Override
-        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextCloseFrameReceivedHook((Close) frame);
         }
     };
 
-    public WebSocketFrameSupplier<ByteBuffer> whenCloseFrameReceived =
-            new WebSocketFrameSupplier<ByteBuffer>() {
+    public WebSocketFrameSupplier whenCloseFrameSend = new WebSocketFrameSupplier() {
 
         @Override
-        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextCloseFrameSendHook((Close) frame);
         }
     };
 
-    public WebSocketFrameSupplier<ByteBuffer> whenCloseFrameIsBeingSent =
-            new WebSocketFrameSupplier<ByteBuffer>() {
+    public WebSocketFrameSupplier whenPingFrameReceived = new WebSocketFrameSupplier() {
 
         @Override
-        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextPingFrameReceivedHook((Ping) frame);
         }
     };
 
-    public WebSocketFrameSupplier<ByteBuffer> whenBinaryFrameReceived =
-            new WebSocketFrameSupplier<ByteBuffer>() {
+    public WebSocketFrameSupplier whenPongFrameReceived = new WebSocketFrameSupplier() {
 
         @Override
-        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextPongFrameReceivedHook((Pong) frame);
         }
     };
 
-    public WebSocketFrameSupplier<ByteBuffer> whenBinaryFrameIsBeingSent =
-            new WebSocketFrameSupplier<ByteBuffer>() {
+    public WebSocketFrameSupplier whenPongFrameSend = new WebSocketFrameSupplier() {
 
         @Override
-        public ByteBuffer apply(WebSocketContext context, byte flagsAndOpcode, ByteBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextPongFrameSendHook((Pong) frame);
         }
     };
 
-    public WebSocketFrameSupplier<CharBuffer> whenTextFrameReceived =
-            new WebSocketFrameSupplier<CharBuffer>() {
+    public WebSocketFrameSupplier whenTextFrameReceived = new WebSocketFrameSupplier() {
 
         @Override
-        public CharBuffer apply(WebSocketContext context, byte flagsAndOpcode, CharBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextTextFrameReceivedHook((Data) frame);
         }
     };
 
-    public WebSocketFrameSupplier<CharBuffer> whenTextFrameIsBeingSent =
-            new WebSocketFrameSupplier<CharBuffer>() {
+    public WebSocketFrameSupplier whenTextFrameSend = new WebSocketFrameSupplier() {
 
         @Override
-        public CharBuffer apply(WebSocketContext context, byte flagsAndOpcode, CharBuffer payload) throws IOException {
-            return payload;
+        public void apply(WebSocketContext context, Frame frame) throws IOException {
+            context.doNextTextFrameSendHook((Data) frame);
         }
     };
 }

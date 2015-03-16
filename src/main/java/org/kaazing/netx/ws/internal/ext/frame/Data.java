@@ -44,7 +44,7 @@ public class Data extends Frame {
     }
 
     @Override
-    protected int getMaxPayloadLength() {
+    public int getMaxPayloadLength() {
         return maxWsMessageSize;
     }
 

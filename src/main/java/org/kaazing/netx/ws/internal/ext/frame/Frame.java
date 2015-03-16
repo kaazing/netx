@@ -20,6 +20,8 @@ import static java.lang.String.format;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
+import org.kaazing.netx.ws.internal.util.FrameUtil;
+
 
 public abstract class Frame extends Flyweight {
     private static final byte FIN_MASK = (byte) 0x80;
@@ -57,7 +59,7 @@ public abstract class Frame extends Flyweight {
     }
 
     public void encode(OpCode opcode, boolean fin, boolean masked, byte[] payload) {
-        int need = FrameUtil.calculateNeed(masked, payload);
+        int need = FrameUtil.calculateNeed(masked, payload.length);
         int capacity = limit() - offset();
         byte[] maskBuf = FrameUtil.EMPTY_MASK;
 
@@ -111,12 +113,7 @@ public abstract class Frame extends Flyweight {
 
     public int getMaskOffset() {
         if (!isMasked()) {
-            return -1;
-        }
-
-        int len = getLength();
-        if (len == 0) {
-            return 2;
+            return getDataOffset();
         }
 
         return getDataOffset() - 4;
@@ -132,10 +129,6 @@ public abstract class Frame extends Flyweight {
     }
 
     public Payload getPayload(boolean mutable) {
-        if (payload.buffer() != null) {
-            return payload;
-        }
-
         if (!isMasked()) {
             payload.wrap(buffer(), getDataOffset(), limit(), false);
         }
@@ -151,7 +144,7 @@ public abstract class Frame extends Flyweight {
                 }
 
                 if (unmaskedPayload == null) {
-                    unmaskedPayload = ByteBuffer.wrap(new byte[getMaxPayloadLength()]);
+                    unmaskedPayload = ByteBuffer.wrap(new byte[getLength()]);
                 }
 
                 for (int i = 0; i < len; i++) {

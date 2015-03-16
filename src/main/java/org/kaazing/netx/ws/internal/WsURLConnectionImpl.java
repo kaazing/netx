@@ -37,7 +37,6 @@ import java.io.Writer;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -58,8 +57,19 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter.Metadata;
+import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
+import org.kaazing.netx.ws.internal.ext.frame.Close;
+import org.kaazing.netx.ws.internal.ext.frame.Control;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
+import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
+import org.kaazing.netx.ws.internal.ext.frame.OpCode;
+import org.kaazing.netx.ws.internal.ext.frame.Ping;
+import org.kaazing.netx.ws.internal.ext.frame.Pong;
+import org.kaazing.netx.ws.internal.ext.frame.ProtocolException;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
 import org.kaazing.netx.ws.internal.io.WsMessageReader;
 import org.kaazing.netx.ws.internal.io.WsMessageWriter;
@@ -67,6 +77,7 @@ import org.kaazing.netx.ws.internal.io.WsOutputStream;
 import org.kaazing.netx.ws.internal.io.WsReader;
 import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
     private static final String MSG_END_OF_STREAM = "End of stream";
@@ -102,7 +113,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final Map<String, WebSocketExtensionParameterValues> enabledExtensionsRO;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensions;
     private final Map<String, WebSocketExtensionParameterValues> negotiatedExtensionsRO;
-
     private final List<WebSocketExtensionHooks> negotiatedExtensionsHooks;
 
     private String negotiatedProtocol;
@@ -168,7 +178,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     // -------------------------- WsURLConnection Methods -------------------
     @Override
     public void close() throws IOException {
-        close(0, null); // ### TODO: Should this be 1000(WS_NORMAL_CLOSE)?
+        close(0, null); // ### TODO: Should this be 1005(WS_MISSING_STATUS) instead of 0?
     }
 
     @Override
@@ -459,12 +469,17 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     public void doFail(int code, String exceptionMessage) throws IOException {
-        sendClose(code, null);
+        sendClose(code, null, 0, 0);
         throw new IOException(exceptionMessage);
     }
 
-    public DefaultWebSocketContext getContext() {
-        return new DefaultWebSocketContext(this, unmodifiableList(this.negotiatedExtensionsHooks));
+    public DefaultWebSocketContext getContext(WebSocketExtensionHooks sentinel, boolean reverse) {
+        List<WebSocketExtensionHooks> hooks = new ArrayList<WebSocketExtensionHooks>(this.negotiatedExtensionsHooks);
+        if (reverse) {
+            Collections.reverse(hooks);
+        }
+        hooks.add(sentinel);
+        return new DefaultWebSocketContext(this, unmodifiableList(hooks));
     }
 
     public Random getRandom() {
@@ -495,32 +510,46 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return outputState;
     }
 
-    public int receiveBinaryFrame(byte[] buf, int offset, int length, byte flagsAndOpcode) throws IOException {
-        if (buf == null) {
-            throw new NullPointerException("Null buffer passed in");
+    public void receiveBinaryFrame(final Data dataFrame) throws IOException {
+        if (dataFrame == null) {
+            throw new NullPointerException("Null frame passed in");
         }
-        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
-            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
-        }
-        else if (length == 0) {
-            return 0;
+
+        long payloadLength = dataFrame.getLength();
+
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenBinaryFrameReceived = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        Data sourceFrame = (Data) frame;
+                        if (sourceFrame == dataFrame) {
+                            return;
+                        }
+
+                        FrameUtil.copy(sourceFrame, dataFrame);
+                    }
+                };
+            }
+        };
+
+        if (payloadLength == 0) {
+            inputStateMachine.receivedBinaryFrame(getContext(sentinelHooks, false), dataFrame);
+            return;
         }
 
         InputStream in = connection.getInputStream();
         int bytesRead = 0;
-        int len = length;
-        int mark = offset;
-
-        if (buf.length < (offset + length)) {
-            int size = buf.length - offset;
-            throw new IOException(format(MSG_BUFFER_SIZE_SMALL, size, length));
-        }
+        int len = (int) payloadLength;
+        Payload payload = dataFrame.getPayload();
+        int offset = payload.offset();
 
         // Read the entire payload from the current frame into the buffer.
+        int size = payload.limit();
         while (len > 0) {
-            assert offset + len <= buf.length;
+            assert offset + len <= size;
 
-            bytesRead = in.read(buf, offset, len);
+            bytesRead = in.read(payload.buffer().array(), offset, len);
             if (bytesRead == -1) {
                 doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
             }
@@ -529,40 +558,58 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             len -= bytesRead;
         }
 
-        ByteBuffer payload = ByteBuffer.wrap(buf, mark, bytesRead);
-        ByteBuffer transformedPayload = inputStateMachine.receivedBinaryFrame(getContext(), flagsAndOpcode, payload);
-
-        if (transformedPayload == null) {
-            return 0;
-        }
-
-        int remaining = transformedPayload.remaining();
-        if (remaining > buf.length) {
-            buf = new byte[remaining];
-        }
-        transformedPayload.get(buf, mark, remaining);
-        return remaining;
+        inputStateMachine.receivedBinaryFrame(getContext(sentinelHooks, false), dataFrame);
     }
 
-    public void receiveControlFrame(byte flagsAndOpcode, long payloadLength) throws IOException {
-        int opcode = flagsAndOpcode & 0x0F;
+    public void receiveControlFrame(final Control controlFrame) throws IOException {
+        if (controlFrame == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
 
-        switch (opcode) {
-        case 0x08:
+        long payloadLength = controlFrame.getLength();
+
+        readControlFramePayload(controlFrame, (int) payloadLength);
+
+        OpCode opCode = controlFrame.getOpCode();
+
+        switch (controlFrame.getOpCode()) {
+        case CLOSE:
+            WebSocketExtensionHooks closeSentinelHooks = new WebSocketExtensionHooks() {
+                {
+                    whenCloseFrameReceived = new WebSocketFrameSupplier() {
+                        @Override
+                        public void apply(WebSocketContext context, Frame frame) throws IOException {
+                            Control sourceFrame = (Control) frame;
+                            if (sourceFrame == controlFrame) {
+                                return;
+                            }
+
+                            FrameUtil.copy(sourceFrame, controlFrame);
+                        }
+                    };
+                }
+            };
+
+            inputStateMachine.receivedCloseFrame(getContext(closeSentinelHooks, false), (Close) controlFrame);
+
+            Close closeFrame = (Close) controlFrame;
+            int closePayloadLength = closeFrame.getLength();
             int code = 0;
             int closeCodeRO = 0;
-            byte[] reason = null;
-
-            ByteBuffer closePayload = readControlFramePayload(flagsAndOpcode, (int) payloadLength);
-            int closePayloadLength = 0;
-
-            if (closePayload != null) {
-                closePayloadLength = closePayload.remaining();
-            }
+            int reasonOffset = 0;
+            int reasonLength = 0;
 
             if (closePayloadLength >= 2) {
-                code = closePayload.getShort();
+                code = closeFrame.getStatusCode();
+                Payload reasonPayload = null;
                 closeCodeRO = code;
+
+                try {
+                    reasonPayload = closeFrame.getReason();
+                }
+                catch (ProtocolException ex) {
+                    code = WS_PROTOCOL_ERROR;
+                }
 
                 switch (code) {
                 case WS_MISSING_STATUS_CODE:
@@ -574,76 +621,120 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                     break;
                 }
 
-                if (closePayloadLength > 2) {
-                    reason = new byte[closePayloadLength - 2];
-                    closePayload.get(reason);
+                if (reasonPayload != null) {
+                    reasonOffset = reasonPayload.offset();
+                    reasonLength = closePayloadLength - 2;
 
-                    if ((reason.length > (MAX_COMMAND_FRAME_PAYLOAD - 2)) || !validBytesUTF8(reason)) {
-                        code = WS_PROTOCOL_ERROR;
-                    }
+                    if (closePayloadLength > 2) {
+                        if ((closePayloadLength > MAX_COMMAND_FRAME_PAYLOAD) ||
+                            !validBytesUTF8(reasonPayload.buffer(), reasonOffset, reasonLength)) {
+                            code = WS_PROTOCOL_ERROR;
+                        }
 
-                    if (code != WS_NORMAL_CLOSE) {
-                        reason = null;
+                        if (code != WS_NORMAL_CLOSE) {
+                            reasonLength = 0;
+                        }
                     }
                 }
             }
 
-            sendClose(code, reason);
+            sendClose(code, closeFrame.buffer().array(), reasonOffset, reasonLength);
 
             if (code == WS_PROTOCOL_ERROR) {
-                throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, (reason == null) ? 0 : reason.length));
+                throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, reasonLength));
             }
+
             break;
 
-        case 0x09:
+        case PING:
             if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
                 doFail(WS_PROTOCOL_ERROR, format(MSG_PING_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
 
-            ByteBuffer pingPayload = readControlFramePayload(flagsAndOpcode, (int) payloadLength);
+            WebSocketExtensionHooks pingSentinelHooks = new WebSocketExtensionHooks() {
+                {
+                    whenPingFrameReceived = new WebSocketFrameSupplier() {
+                        @Override
+                        public void apply(WebSocketContext context, Frame frame) throws IOException {
+                            Control sourceFrame = (Control) frame;
+                            if (sourceFrame == controlFrame) {
+                                return;
+                            }
 
-            if (pingPayload != null) {
-                // Make sure that the transformed payload is also lesser than MAX_COMMAND_FRAME_PAYLOAD.
-                if (pingPayload.remaining() > MAX_COMMAND_FRAME_PAYLOAD) {
-                    doFail(WS_PROTOCOL_ERROR, format(MSG_PING_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
+                            FrameUtil.copy(sourceFrame, controlFrame);
+                        }
+                    };
                 }
+            };
 
-                byte[] pingBuf = new byte[pingPayload.remaining()];
-                pingPayload.get(pingBuf);
-                sendPong(pingBuf);
-            }
+            inputStateMachine.receivedPingFrame(getContext(pingSentinelHooks, false), (Ping) controlFrame);
+
+            Ping pingFrame = (Ping) controlFrame;
+            Payload pingPayload = pingFrame.getPayload();
+            sendPong(pingPayload.buffer().array(), pingPayload.offset(), pingPayload.limit() - pingPayload.offset());
             break;
 
-        case 0x0A:
+        case PONG:
             if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
                 doFail(WS_PROTOCOL_ERROR, format(MSG_PONG_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
 
-            // Not doing anything with the PONG payload.
-            readControlFramePayload(flagsAndOpcode, (int) payloadLength);
+            WebSocketExtensionHooks pongSentinelHooks = new WebSocketExtensionHooks() {
+                {
+                    whenPongFrameReceived = new WebSocketFrameSupplier() {
+                        @Override
+                        public void apply(WebSocketContext context, Frame frame) throws IOException {
+                            Control sourceFrame = (Control) frame;
+                            if (sourceFrame == controlFrame) {
+                                return;
+                            }
+
+                            FrameUtil.copy(sourceFrame, controlFrame);
+                        }
+                    };
+                }
+            };
+            inputStateMachine.receivedPongFrame(getContext(pongSentinelHooks, false), (Pong) controlFrame);
             break;
 
         default:
-            doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opcode));
-            break;
+            doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opCode));
         }
     }
 
-    public int receiveTextFrame(char[] cbuf, int offset, int length, long payloadLength, byte flagsAndOpcode)
-            throws IOException {
-        if (cbuf == null) {
+    public void receiveTextFrame(final Data dataFrame) throws IOException {
+        if (dataFrame == null) {
             throw new NullPointerException("Null buffer passed in");
         }
-        else if ((offset < 0) || (length < 0) || (offset + length > cbuf.length)) {
-            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
-        }
-        else if (length == 0) {
-            return 0;
+
+        long payloadLength = dataFrame.getLength();
+
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenTextFrameReceived = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        Data sourceFrame = (Data) frame;
+                        if (sourceFrame == dataFrame) {
+                            return;
+                        }
+
+                        FrameUtil.copy(sourceFrame, dataFrame);
+                    }
+                };
+            }
+        };
+
+        if (payloadLength == 0) {
+            inputStateMachine.receivedTextFrame(getContext(sentinelHooks, false), dataFrame);
+            return;
         }
 
         InputStream in = connection.getInputStream();
+        int offset = 0;
         int mark = offset;
         int payloadOffset = 0;
+        char[] cbuf = new char[(int) payloadLength];
 
         outer:
         for (;;) {
@@ -654,7 +745,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 // surrogate pair
                 if (codePoint != 0 && remainingBytes == 0) {
                     int charCount = charCount(codePoint);
-                    if (offset + charCount > length) {
+                    if (offset + charCount > cbuf.length) {
                         break outer;
                     }
                     toChars(codePoint, cbuf, offset);
@@ -711,30 +802,28 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             doFail(WS_NORMAL_CLOSE, MSG_END_OF_STREAM);
         }
 
-        CharBuffer payload = CharBuffer.wrap(cbuf, mark, offset - mark);
-        CharBuffer transformedPayload = inputStateMachine.receivedTextFrame(getContext(), flagsAndOpcode, payload);
+        byte[] bytes = String.valueOf(cbuf, 0, offset).getBytes(UTF_8);
+        FrameUtil.encode(dataFrame.buffer(), dataFrame.offset(), dataFrame.getOpCode(), dataFrame.isFin(), false, null, bytes);
 
-        if (transformedPayload == null) {
-            return 0;
-        }
-
-        int remaining = transformedPayload.remaining();
-        if (remaining > cbuf.length) {
-            cbuf = new char[remaining];
-        }
-        transformedPayload.get(cbuf, mark, remaining);
-        return remaining;
+        inputStateMachine.receivedTextFrame(getContext(sentinelHooks, false), dataFrame);
     }
 
     public void sendClose(int code, byte[] reason) throws IOException {
-        getOutputStream().writeClose(code, reason);
+        getOutputStream().writeClose(code, reason, 0, reason == null ? 0 : reason.length);
         disconnect();
         inputState = CLOSED;
         outputState = CLOSED;
     }
 
-    public void sendPong(byte[] buf) throws IOException {
-        getOutputStream().writePong(buf);
+    public void sendClose(int code, byte[] reason, int offset, int length) throws IOException {
+        getOutputStream().writeClose(code, reason, offset, length);
+        disconnect();
+        inputState = CLOSED;
+        outputState = CLOSED;
+    }
+
+    public void sendPong(byte[] buffer, int offset, int length) throws IOException {
+        getOutputStream().writePong(buffer, offset, length);
     }
 
     public void setInputState(WebSocketState state) {
@@ -744,6 +833,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public void setOutputState(WebSocketState state) {
         this.outputState = state;
     }
+
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -821,14 +911,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    private ByteBuffer readControlFramePayload(byte flagsAndOpcode, int length) throws IOException {
-        int opcode = flagsAndOpcode & 0x0F;
+    private void readControlFramePayload(Control controlFrame, long payloadLength) throws IOException {
         InputStream in = connection.getInputStream();
-        byte[] buf = new byte[length];
-        int offset = 0;
+        int offset = controlFrame.getDataOffset();
+        int length = (int) payloadLength;
 
-        while (offset < buf.length) {
-            int bytesRead = in.read(buf, offset, length);
+        while (length > 0) {
+            int bytesRead = in.read(controlFrame.buffer().array(), offset, length);
 
             if (bytesRead == -1) {
                 doFail(WS_PROTOCOL_ERROR, MSG_END_OF_STREAM);
@@ -837,23 +926,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             offset += bytesRead;
             length -= bytesRead;
         }
-
-        ByteBuffer payload = ByteBuffer.wrap(buf);
-        ByteBuffer transformedPayload = null;
-
-        switch (opcode) {
-        case 0x08:
-            transformedPayload = inputStateMachine.receivedCloseFrame(getContext(), flagsAndOpcode, payload);
-            break;
-        case 0x09:
-            transformedPayload = inputStateMachine.receivedPingFrame(getContext(), flagsAndOpcode, payload);
-            break;
-        case 0x0A:
-            transformedPayload = inputStateMachine.receivedPongFrame(getContext(), flagsAndOpcode, payload);
-            break;
-        }
-
-        return transformedPayload;
     }
 
     private byte[] randomBytes(int size) {

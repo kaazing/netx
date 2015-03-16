@@ -15,25 +15,51 @@
  */
 package org.kaazing.netx.ws.internal.ext.frame;
 
+import static java.lang.String.format;
+
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
+import org.kaazing.netx.ws.internal.util.FrameUtil;
+
 public final class FrameFactory extends Flyweight {
+    private static final String MSG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: %s payload is more than 125 bytes";
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final Close close = new Close();
     private final Continuation continuation;
     private final Data data;
     private final Ping ping = new Ping();
     private final Pong pong = new Pong();
+    private final int maxWsMessageSize;
 
     private final byte[] mask;
     private final SecureRandom random;
 
     private FrameFactory(int maxWsMessageSize) {
-        continuation = new Continuation(maxWsMessageSize);
-        data = new Data(maxWsMessageSize);
+        this.maxWsMessageSize = maxWsMessageSize;
         this.mask = new byte[4];
         this.random = new SecureRandom();
+        this.continuation = new Continuation(maxWsMessageSize);
+        this.data = new Data(maxWsMessageSize);
+
+        byte[] closeBuf = new byte[131];
+        closeBuf[0] = (byte) (0x80 | OpCode.toInt(OpCode.CLOSE));
+        close.wrap(ByteBuffer.wrap(closeBuf), 0);
+
+        byte[] pingBuf = new byte[131];
+        pingBuf[0] = (byte) (0x80 | OpCode.toInt(OpCode.PING));
+        ping.wrap(ByteBuffer.wrap(pingBuf), 0);
+
+        byte[] pongBuf = new byte[131];
+        pongBuf[0] = (byte) (0x80 | OpCode.toInt(OpCode.PONG));
+        pong.wrap(ByteBuffer.wrap(pongBuf), 0);
+
+        byte[] continationBuf = new byte[maxWsMessageSize];
+        continuation.wrap(ByteBuffer.wrap(continationBuf), 0);
+
+        byte[] dataBuf = new byte[maxWsMessageSize];
+        data.wrap(ByteBuffer.wrap(dataBuf), 0);
     }
 
     public static FrameFactory newInstance(int maxWsMessageSize) {
@@ -42,7 +68,9 @@ public final class FrameFactory extends Flyweight {
 
     public Frame wrap(ByteBuffer buffer, int offset) throws ProtocolException {
         Frame frame = null;
-        switch(FrameUtil.getOpCode(buffer, offset)) {
+        OpCode opcode = FrameUtil.getOpCode(buffer, offset);
+
+        switch(opcode) {
         case BINARY:
             frame = data.wrap(buffer, offset);
             break;
@@ -62,20 +90,58 @@ public final class FrameFactory extends Flyweight {
             frame = data.wrap(buffer, offset);
             break;
         default:
-            Frame.protocolError(null);
+            Frame.protocolError(format("Protocol Violation: Invalid opcode: %s", opcode));
             break;
         }
         return frame;
     }
 
-    public Frame createFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload) {
-        return encode(opcode, fin, masked, payload);
+    public Frame createFrame(OpCode opcode, boolean fin, boolean masked, long payloadLength) {
+        Frame frame = null;
+
+        switch (opcode) {
+        case BINARY:
+        case TEXT:
+            ensureCapacity(data, masked, payloadLength, maxWsMessageSize);
+            frame = data;
+            break;
+        case CLOSE:
+            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+                Frame.protocolError(format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
+            }
+            ensureCapacity(close, masked, payloadLength, MAX_COMMAND_FRAME_PAYLOAD);
+            frame = close;
+            break;
+        case CONTINUATION:
+            ensureCapacity(continuation, masked, payloadLength, maxWsMessageSize);
+            frame = continuation;
+            break;
+        case PING:
+            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+                Frame.protocolError(format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
+            }
+            ensureCapacity(ping, masked, payloadLength, MAX_COMMAND_FRAME_PAYLOAD);
+            frame = ping;
+            break;
+        case PONG:
+            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+                Frame.protocolError(format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
+            }
+            ensureCapacity(pong, masked, payloadLength, MAX_COMMAND_FRAME_PAYLOAD);
+            frame = pong;
+            break;
+        default:
+            Frame.protocolError(format("Protocol Violation: Invalid opcode: %s", opcode));
+            break;
+        }
+
+        FrameUtil.putFinAndOpCode(frame.buffer(), frame.offset(), opcode, fin);
+        FrameUtil.putLengthAndMaskBit(frame.buffer(), frame.offset() + 1, (int) payloadLength, masked);
+        return frame;
     }
 
-    private Frame encode(OpCode opcode, boolean fin, boolean masked, byte[] payload) {
-        int offset = 0;
-        int capacity = FrameUtil.calculateNeed(masked, payload);
-        ByteBuffer buffer = ByteBuffer.wrap(new byte[capacity]);
+    public Frame createFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload) {
+        Frame frame = createFrame(opcode, fin, masked, (payload == null) ? 0 : payload.length);
         byte[] maskBuf = FrameUtil.EMPTY_MASK;
 
         if (masked) {
@@ -83,7 +149,38 @@ public final class FrameFactory extends Flyweight {
             maskBuf = mask;
         }
 
-        FrameUtil.encode(buffer, offset, opcode, fin, masked, maskBuf, payload);
-        return wrap(buffer, offset);
+        FrameUtil.putMaskAndPayload(frame.buffer(), frame.getMaskOffset(), masked, maskBuf, payload);
+        return frame;
+    }
+
+    public Frame createFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int offset, long length) {
+        Frame frame = createFrame(opcode, fin, masked, (payload == null) ? 0 : length);
+        byte[] maskBuf = FrameUtil.EMPTY_MASK;
+
+        if (masked) {
+            random.nextBytes(mask);
+            maskBuf = mask;
+        }
+
+        FrameUtil.putMaskAndPayload(frame.buffer(), frame.getMaskOffset(), masked, maskBuf, payload, offset, length);
+        return frame;
+    }
+
+    private void ensureCapacity(Frame frame, boolean masked, long payloadLength, long maxPayloadLength) {
+        int need = FrameUtil.calculateNeed(masked, payloadLength);
+        ByteBuffer buf = frame.buffer();
+
+        if (buf == null) {
+            buf = ByteBuffer.allocate((int) Math.max(need, maxPayloadLength));
+            frame.wrap(buf, 0, false);
+            return;
+        }
+
+        int size = buf.capacity();
+        if (need > size) {
+            buf = ByteBuffer.allocate(need);
+            System.arraycopy(frame.buffer().array(), frame.offset(), buf.array(), 0, size);
+            frame.wrap(buf, 0, false);
+        }
     }
 }

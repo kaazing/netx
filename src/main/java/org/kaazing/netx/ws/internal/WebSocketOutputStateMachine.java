@@ -26,8 +26,11 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_PONG_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_TEXT_FRAME;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
+
+import org.kaazing.netx.ws.internal.ext.frame.Close;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.frame.Pong;
 
 public class WebSocketOutputStateMachine {
     private static final WebSocketState[][] STATE_MACHINE;
@@ -51,67 +54,82 @@ public class WebSocketOutputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
+    private FrameFactory frameFactory;
+
     public WebSocketOutputStateMachine() {
+        frameFactory = FrameFactory.newInstance(8192);
     }
 
     public void start(WsURLConnectionImpl connection) {
         connection.setOutputState(WebSocketState.START);
     }
 
-    public ByteBuffer sendBinaryFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+    public void sendBinaryFrame(DefaultWebSocketContext context, Data frame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        WebSocketState state = context.getConnection().getOutputState();
 
         switch (state) {
         case OPEN:
             transition(context.getConnection(), WebSocketTransition.SEND_BINARY_FRAME);
-            return context.doNextBinaryFrameIsBeingSentHook(flagsAndOpcode, payload);
+            context.doNextBinaryFrameSendHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a BINARY frame", state));
         }
     }
 
-    public ByteBuffer sendCloseFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+    public void sendCloseFrame(DefaultWebSocketContext context, Close frame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        WebSocketState state = context.getConnection().getOutputState();
 
         switch (state) {
         case OPEN:
             // Do not transition to CLOSED state at this point as we still haven't yet sent the CLOSE frame.
-            return context.doNextCloseFrameIsBeingSentHook(flagsAndOpcode, payload);
+            context.doNextCloseFrameSendHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a CLOSE frame", state));
         }
     }
 
-    public ByteBuffer sendPongFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+    public void sendPongFrame(DefaultWebSocketContext context, Pong frame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        WebSocketState state = context.getConnection().getOutputState();
 
         switch (state) {
         case OPEN:
             transition(context.getConnection(), WebSocketTransition.SEND_PONG_FRAME);
-            return context.doNextPongFrameIsBeingSentHook(flagsAndOpcode, payload);
+            context.doNextPongFrameSendHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a PONG frame", state));
         }
     }
 
-    public CharBuffer sendTextFrame(DefaultWebSocketContext context, byte flagsAndOpcode, CharBuffer payload)
+    public void sendTextFrame(DefaultWebSocketContext context, Data frame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        WebSocketState state = context.getConnection().getOutputState();
 
         switch (state) {
         case OPEN:
             transition(context.getConnection(), WebSocketTransition.SEND_TEXT_FRAME);
-            return context.doNextTextFrameIsBeingSentHook(flagsAndOpcode, payload);
+            context.doNextTextFrameSendHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a TEXT frame", state));
         }
     }
 
+    public FrameFactory getFrameFactory() {
+        return frameFactory;
+    }
+
+    public void setFrameFactory(FrameFactory frameFactory) {
+        this.frameFactory = frameFactory;
+    }
+
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {
-        WebSocketState state = STATE_MACHINE[connection.getInputState().ordinal()][transition.ordinal()];
+        WebSocketState state = STATE_MACHINE[connection.getOutputState().ordinal()][transition.ordinal()];
         connection.setOutputState(state);
     }
 }

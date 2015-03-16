@@ -22,6 +22,7 @@ import static org.kaazing.netx.ws.WsURLConnection.WS_ENDPOINT_GOING_AWAY;
 import static org.kaazing.netx.ws.WsURLConnection.WS_INCONSISTENT_DATA_MESSAGE_TYPE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_INCORRECT_MESSAGE_TYPE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_MESSAGE_TOO_BIG;
+import static org.kaazing.netx.ws.WsURLConnection.WS_MISSING_STATUS_CODE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_NORMAL_CLOSE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
 import static org.kaazing.netx.ws.WsURLConnection.WS_SERVER_TERMINATED_CONNECTION;
@@ -36,22 +37,39 @@ import java.nio.ByteBuffer;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.WebSocketContext;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
+import org.kaazing.netx.ws.internal.ext.frame.Close;
+import org.kaazing.netx.ws.internal.ext.frame.Control;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
+import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
+import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.frame.OpCode;
+import org.kaazing.netx.ws.internal.ext.frame.Pong;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public final class WsOutputStream extends FilterOutputStream {
     private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
+    private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
+
     private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
-    private static final int MAX_PAYLOAD_LENGTH = 8192;
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final byte[] mask;
     private final WsURLConnectionImpl connection;
 
-    private byte[] maskedBuffer;
+    private final byte[] controlFramePayload;
+    private Close closeFrame;
+    private Control controlFrame;
+    private Data dataFrame;
 
     public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
         super(connection.getTcpOutputStream());
         this.connection = connection;
         this.mask = new byte[4];
-        this.maskedBuffer = new byte[MAX_PAYLOAD_LENGTH];
+        this.controlFramePayload = new byte[150]; // To handle negative tests. Have some extra bytes.
     }
 
     @Override
@@ -66,59 +84,123 @@ public final class WsOutputStream extends FilterOutputStream {
 
     @Override
     public void write(byte[] buf, int offset, int length) throws IOException {
-        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        ByteBuffer payload = ByteBuffer.wrap(buf, offset, length);
-        ByteBuffer transformedPayload = outputStateMachine.sendBinaryFrame(connection.getContext(), (byte) 0x82, payload);
-        int remaining = transformedPayload.remaining();
-
-        if (maskedBuffer.length < remaining) {
-            maskedBuffer = new byte[remaining];
+        if (buf == null) {
+            throw new NullPointerException("Null buffer passed in");
         }
+        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
+        }
+
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenBinaryFrameSend = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        Data sourceFrame = (Data) frame;
+                        if (sourceFrame == dataFrame) {
+                            return;
+                        }
+
+                        FrameUtil.copy(sourceFrame, dataFrame);
+                    }
+                };
+            }
+        };
+
+        dataFrame = (Data) getFrame(OpCode.BINARY, true, true, buf, offset, length);
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
+        outputStateMachine.sendBinaryFrame(connection.getContext(sentinelHooks, true), dataFrame);
 
         out.write(0x82);
 
-        encodePayloadLength(length);
-
+        encodePayloadLength(dataFrame.getLength());
         connection.getRandom().nextBytes(mask);
         out.write(mask);
 
-        for (int i = 0; i < remaining; i++) {
-            maskedBuffer[i] = (byte) (transformedPayload.get() ^ mask[i % mask.length]);
+        Payload payload = dataFrame.getPayload();
+        int payloadOffset = payload.offset();
+        for (int i = 0; i < dataFrame.getLength(); i++) {
+            byte b = (byte) (payload.buffer().get(payloadOffset++) ^ mask[i % mask.length]);
+            out.write(b);
         }
-
-        out.write(maskedBuffer, 0, remaining);
     }
 
-    public void writeClose(int code, byte[] reason) throws IOException {
+    public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
         if (connection.getOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 
-        int len = 0;
-        int closeCode = code;
-        int capacity = 0;
-        ByteBuffer payload = null;
+        if (reason != null) {
+            if ((offset < 0) || (length < 0) || (offset + length > reason.length)) {
+                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, reason.length));
+            }
+        }
+
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenCloseFrameSend = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        Close sourceFrame = (Close) frame;
+                        if (sourceFrame == closeFrame) {
+                            return;
+                        }
+
+                        FrameUtil.copy(sourceFrame, closeFrame);
+                    }
+                };
+            }
+        };
+
+        int payloadLen = 0;
         IOException exception = null;
 
         if (code > 0) {
-            capacity += 2;
-            if (reason != null) {
-                capacity += reason.length;
+            payloadLen += 2;
+            payloadLen += length;
+
+            if (payloadLen > MAX_COMMAND_FRAME_PAYLOAD) {
+                out.write(0x88);
+                encodePayloadLength(payloadLen);
+                connection.getRandom().nextBytes(mask);
+                out.write(mask);
+
+                for (int i = 0; i < payloadLen; i++) {
+                    switch (i) {
+                    case 0:
+                        out.write((byte) (((code >> 8) & 0xFF) ^ mask[i % mask.length]));
+                        break;
+                    case 1:
+                        out.write((byte) (((code >> 0) & 0xFF) ^ mask[i % mask.length]));
+                        break;
+                    default:
+                        out.write((byte) (reason[offset++] ^ mask[i % mask.length]));
+                        break;
+                    }
+                }
+
+                out.flush();
+                out.close();
+
+                throw new IOException("Protocol Violation: CLOSE frame payload execeds the maximum allowed size of 125");
             }
 
-            payload = ByteBuffer.allocate(capacity);
-            payload.putShort((short) code);
+            controlFramePayload[0] = (byte) ((code >> 8) & 0xFF);
+            controlFramePayload[1] = (byte) (code & 0xFF);
             if (reason != null) {
-                payload.put(reason);
+                System.arraycopy(reason, offset, controlFramePayload, 2, length);
             }
-            payload.flip();
         }
 
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        ByteBuffer transformedPayload = outputStateMachine.sendCloseFrame(connection.getContext(), (byte) 0x88, payload);
-        if ((transformedPayload != null) && (transformedPayload.remaining() > 0)) {
-            closeCode = transformedPayload.getShort();
-        }
+        closeFrame = (Close) getFrame(OpCode.CLOSE, true, true, controlFramePayload, 0, payloadLen);
+        outputStateMachine.sendCloseFrame(connection.getContext(sentinelHooks, true), closeFrame);
+
+        int len = 0;
+        Payload reasonPayload = null;
+        int reasonOffset = 0;
+        int closeCode = closeFrame.getStatusCode();
+        int closePayloadLen = closeFrame.getLength();
 
         if (closeCode != 0) {
             switch (closeCode) {
@@ -126,6 +208,7 @@ public final class WsOutputStream extends FilterOutputStream {
             case WS_ENDPOINT_GOING_AWAY:
             case WS_PROTOCOL_ERROR:
             case WS_INCORRECT_MESSAGE_TYPE:
+            case WS_MISSING_STATUS_CODE:
             case WS_INCONSISTENT_DATA_MESSAGE_TYPE:
             case WS_VIOLATE_POLICY:
             case WS_MESSAGE_TOO_BIG:
@@ -139,23 +222,26 @@ public final class WsOutputStream extends FilterOutputStream {
                     len += 2;
                 }
 
-                throw new IOException(format("Invalid CLOSE code %d", code));
+                throw new IOException(format("Invalid CLOSE code %d", closeCode));
             }
 
-            int reasonLength = transformedPayload.remaining();
-            if (reasonLength > 0) {
-                if (reasonLength > 123) {
-                    exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, reasonLength));
-                }
+            if (closePayloadLen > 2) {
+                reasonPayload = closeFrame.getReason();
+                reasonOffset = reasonPayload.offset();
 
-                len += reasonLength;
+                int reasonLength = reasonPayload.limit() - reasonPayload.offset();
+                if (reasonLength > 0) {
+                    if (reasonLength > 123) {
+                        exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, reasonLength));
+                    }
+
+                    len += reasonLength;
+                }
             }
         }
 
         out.write(0x88);
-
         encodePayloadLength(len);
-
         if (len == 0) {
             out.write(EMPTY_MASK);
         }
@@ -165,21 +251,27 @@ public final class WsOutputStream extends FilterOutputStream {
             connection.getRandom().nextBytes(mask);
             out.write(mask);
 
+            ByteBuffer tempBuf = ByteBuffer.allocate(2);
+            byte b1 = (byte) (((closeCode >> 8) & 0xFF) ^ mask[0]);
+            byte b2 = (byte) (((closeCode >> 0) & 0xFF) ^ mask[1]);
+
+            tempBuf.put(0, b1);
+            tempBuf.put(1, b2);
+
             for (int i = 0; i < len; i++) {
                 switch (i) {
                 case 0:
-                    maskedBuffer[i] = (byte) (((closeCode >> 8) & 0xFF) ^ mask[i % mask.length]);
+                    out.write((byte) (((closeCode >> 8) & 0xFF) ^ mask[i % mask.length]));
                     break;
                 case 1:
-                    maskedBuffer[i] = (byte) (((closeCode >> 0) & 0xFF) ^ mask[i % mask.length]);
+                    out.write((byte) (((closeCode >> 0) & 0xFF) ^ mask[i % mask.length]));
                     break;
                 default:
-                    maskedBuffer[i] = (byte) (transformedPayload.get() ^ mask[i % mask.length]);
+                    out.write((byte) (reasonPayload.buffer().get(reasonOffset++) ^ mask[i % mask.length]));
                     break;
                 }
             }
 
-            out.write(maskedBuffer, 0, len);
             out.flush();
             out.close();
 
@@ -189,21 +281,35 @@ public final class WsOutputStream extends FilterOutputStream {
         }
     }
 
-    public void writePong(byte[] buf) throws IOException {
-        int len = 0;
-        ByteBuffer transformedPayload = null;
+    public void writePong(byte[] buf, int offset, int length) throws IOException {
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenPongFrameSend = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        Pong sourceFrame = (Pong) frame;
+                        if (sourceFrame == controlFrame) {
+                            return;
+                        }
 
-        if (buf != null) {
-            WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-            ByteBuffer payload = ByteBuffer.wrap(buf);
-            transformedPayload = outputStateMachine.sendPongFrame(connection.getContext(), (byte) 0x8A, payload);
-            len = transformedPayload.remaining();
-        }
+                        FrameUtil.copy(sourceFrame, controlFrame);
+                    }
+                };
+            }
+        };
+
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
+        controlFrame = (Control) getFrame(OpCode.PONG, true, true, buf, offset, length);
+        outputStateMachine.sendPongFrame(connection.getContext(sentinelHooks, true), (Pong) controlFrame);
+
+        Payload payload = controlFrame.getPayload();
+        int payloadOffset = payload.offset();
+        int payloadLen = payload.limit() - payload.offset();
 
         out.write(0x8A);
-        encodePayloadLength(len);
+        encodePayloadLength(payloadLen);
 
-        if (transformedPayload == null) {
+        if (payloadLen == 0) {
             out.write(EMPTY_MASK);
             return;
         }
@@ -211,12 +317,9 @@ public final class WsOutputStream extends FilterOutputStream {
         connection.getRandom().nextBytes(mask);
         out.write(mask);
 
-        int length = transformedPayload.remaining();
-        for (int i = 0; i < length; i++) {
-            maskedBuffer[i] = (byte) (transformedPayload.get() ^ mask[i % mask.length]);
+        for (int i = 0; i < payloadLen; i++) {
+            out.write((byte) (payload.buffer().get(payloadOffset++) ^ mask[i % mask.length]));
         }
-
-        out.write(maskedBuffer, 0, length);
     }
 
     private void encodePayloadLength(int len) throws IOException {
@@ -275,5 +378,11 @@ public final class WsOutputStream extends FilterOutputStream {
             out.write((int) ((length >> 0) & 0xff));
             break;
         }
+    }
+
+    private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
+            throws IOException {
+        FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
+        return factory.createFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
     }
 }

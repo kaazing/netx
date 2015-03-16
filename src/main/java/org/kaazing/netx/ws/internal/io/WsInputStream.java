@@ -23,6 +23,12 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.frame.Control;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
+import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
+import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.frame.OpCode;
 
 public final class WsInputStream extends InputStream {
     private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
@@ -32,8 +38,9 @@ public final class WsInputStream extends InputStream {
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
+    private static final String MSG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: %s payload is more than 125 bytes";
 
-    private static final int MAX_BINARY_PAYLOAD_LENGTH = 8192;
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
@@ -42,7 +49,8 @@ public final class WsInputStream extends InputStream {
     private int headerOffset;
     private int payloadOffset;
     private long payloadLength;
-    private byte[] receiveBuffer;
+    private int payloadMark;
+    private Data dataFrame;
 
     public WsInputStream(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -53,7 +61,6 @@ public final class WsInputStream extends InputStream {
         this.in = connection.getTcpInputStream();
         this.header = new byte[10];
         this.payloadOffset = -1;
-        this.receiveBuffer = new byte[MAX_BINARY_PAYLOAD_LENGTH];
     }
 
     @Override
@@ -155,12 +162,13 @@ public final class WsInputStream extends InputStream {
                 headerOffset = 0;
             }
             else {
-                if (payloadLength > receiveBuffer.length) {
-                    receiveBuffer = new byte[(int) payloadLength];
-                }
+                dataFrame = (Data) getFrame(header[0] & 0x0F, payloadLength);
+                connection.receiveBinaryFrame(dataFrame);
+                payloadLength = dataFrame.getLength();
+                payloadOffset = dataFrame.getPayload().offset();
+                payloadMark = payloadOffset;
 
-                int bytesRead = connection.receiveBinaryFrame(receiveBuffer, 0, (int) payloadLength, header[0]);
-                if (bytesRead == 0) {
+                if (payloadLength == 0) {
                     // An extension can consume the payload and not let it surface to the app. In which case, we just try to
                     // read the next frame.
                     headerOffset = 0;
@@ -170,9 +178,10 @@ public final class WsInputStream extends InputStream {
             }
         }
 
-        int b = receiveBuffer[payloadOffset++];
+        Payload payload = dataFrame.getPayload();
+        int b = payload.buffer().get(payloadOffset++);
 
-        if (payloadOffset == payloadLength) {
+        if ((payloadOffset - payloadMark) == payloadLength) {
             headerOffset = 0;
             payloadOffset = -1;
             payloadLength = 0;
@@ -224,12 +233,23 @@ public final class WsInputStream extends InputStream {
             return;
         }
 
-        connection.receiveControlFrame(header[0], payloadLength);
+        if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
+        }
+
+        Control frame = (Control) getFrame(opcode, payloadLength);
+        connection.receiveControlFrame(frame);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;
         payloadOffset = -1;
         headerOffset = 0;
+    }
+
+    private Frame getFrame(int opcode, long payloadLen) throws IOException {
+        FrameFactory factory = connection.getInputStateMachine().getFrameFactory();
+        OpCode opCode = OpCode.fromInt(opcode);
+        return factory.createFrame(opCode, false, false, payloadLen);
     }
 
     private static long payloadLength(byte[] header) {
@@ -251,4 +271,5 @@ public final class WsInputStream extends InputStream {
             return length;
         }
     }
+
 }

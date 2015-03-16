@@ -22,6 +22,10 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.frame.Close;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Ping;
+import org.kaazing.netx.ws.internal.ext.frame.Pong;
 
 public abstract class WebSocketContext {
     protected final WsURLConnectionImpl connection;
@@ -40,85 +44,85 @@ public abstract class WebSocketContext {
         return null;
     }
 
-    public ByteBuffer doNextBinaryFrameReceivedHook(byte flagsAndOpcode, ByteBuffer payload) throws IOException {
+    public void doNextBinaryFrameReceivedHook(Data frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenBinaryFrameReceived.apply(this, flagsAndOpcode, payload);
+            next.whenBinaryFrameReceived.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
-    public ByteBuffer doNextCloseFrameReceivedHook(byte flagsAndOpcode, ByteBuffer payload) throws IOException {
+    public void doNextCloseFrameReceivedHook(Close frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenCloseFrameReceived.apply(this, flagsAndOpcode, payload);
+            next.whenCloseFrameReceived.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
-    public ByteBuffer doNextPingFrameReceivedHook(byte flagsAndOpcode, ByteBuffer payload) throws IOException {
+    public void doNextPingFrameReceivedHook(Ping frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenPingFrameReceived.apply(this, flagsAndOpcode, payload);
+            next.whenPingFrameReceived.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
-    public ByteBuffer doNextPongFrameReceivedHook(byte flagsAndOpcode, ByteBuffer payload) throws IOException {
+    public void doNextPongFrameReceivedHook(Pong frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenPongFrameReceived.apply(this, flagsAndOpcode, payload);
+            next.whenPongFrameReceived.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
-    public CharBuffer doNextTextFrameReceivedHook(byte flagsAndOpcode, CharBuffer payload) throws IOException {
+    public void doNextTextFrameReceivedHook(Data frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenTextFrameReceived.apply(this, flagsAndOpcode, payload);
+            next.whenTextFrameReceived.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
-    public ByteBuffer doNextBinaryFrameIsBeingSentHook(byte flagsAndOpcode, ByteBuffer payload) throws IOException {
+    public void doNextBinaryFrameSendHook(Data frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenBinaryFrameIsBeingSent.apply(this, flagsAndOpcode, payload);
+            next.whenBinaryFrameSend.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
-    public ByteBuffer doNextCloseFrameIsBeingSentHook(byte flagsAndOpcode, ByteBuffer payload) throws IOException {
+    public void doNextCloseFrameSendHook(Close frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenCloseFrameIsBeingSent.apply(this, flagsAndOpcode, payload);
+            next.whenCloseFrameSend.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
-    public ByteBuffer doNextPongFrameIsBeingSentHook(byte flagsAndOpcode, ByteBuffer payload) throws IOException {
+    public void doNextPongFrameSendHook(Pong frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenPongFrameIsBeingSent.apply(this, flagsAndOpcode, payload);
+            next.whenPongFrameSend.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
-    public CharBuffer doNextTextFrameIsBeingSentHook(byte flagsAndOpcode, CharBuffer payload) throws IOException {
+    public void doNextTextFrameSendHook(Data frame) throws IOException {
         WebSocketExtensionHooks next = nextExtensionHooks();
         if (next != null) {
-            return next.whenTextFrameIsBeingSent.apply(this, flagsAndOpcode, payload);
+            next.whenTextFrameSend.apply(this, frame);
         }
 
-        return payload;
+        return;
     }
 
     public void sendBinaryFrame(ByteBuffer payload) throws IOException {

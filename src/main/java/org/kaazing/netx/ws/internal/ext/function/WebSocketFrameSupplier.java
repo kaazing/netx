@@ -18,7 +18,8 @@ package org.kaazing.netx.ws.internal.ext.function;
 import java.io.IOException;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
 
-public interface WebSocketFrameSupplier<B> {
-    B apply(WebSocketContext context, byte flagsAndOpcode, B payload) throws IOException ;
+public interface WebSocketFrameSupplier {
+    void apply(WebSocketContext context, Frame frame) throws IOException ;
 }

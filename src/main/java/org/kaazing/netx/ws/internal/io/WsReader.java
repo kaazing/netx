@@ -24,6 +24,12 @@ import java.io.InputStream;
 import java.io.Reader;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.ext.frame.Control;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
+import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
+import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.frame.OpCode;
 
 public class WsReader extends Reader {
     private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
@@ -33,7 +39,9 @@ public class WsReader extends Reader {
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
+    private static final String MSG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: %s payload is more than 125 bytes";
 
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
     private static final int MAX_TEXT_PAYLOAD_LENGTH = 8192;
 
     private final WsURLConnectionImpl connection;
@@ -43,6 +51,7 @@ public class WsReader extends Reader {
     private int headerOffset;
     private int payloadOffset;
     private long payloadLength;
+    private Data dataFrame;
     private char[] receiveBuffer;
     private int charPayloadOffset;
     private int charPayloadLength;
@@ -155,21 +164,11 @@ public class WsReader extends Reader {
                 headerOffset = 0;
             }
             else {
-                if (payloadLength > receiveBuffer.length) {
-                    // Note that the payloadLength is in terms of bytes. And, we are allocating a char[]. If the payload
-                    // contains only ASCII chars, then the number of chars will be equal to the number of bytes in the
-                    // payload. However, if the payload has multi-byte UTF-8 codepoints, then the number of chars decoded
-                    // will be less than the number of bytes in the payload. So, if we allocate a char[] of using
-                    // payloadLength, then we should be fine regardless of what's in the payload.
-                    receiveBuffer = new char[(int) payloadLength];
-                }
+                dataFrame = (Data) getFrame(header[0] & 0x0F, payloadLength);
+                connection.receiveTextFrame(dataFrame);
+                payloadLength = dataFrame.getLength();
 
-                charPayloadLength = connection.receiveTextFrame(receiveBuffer,
-                                                                0,
-                                                                receiveBuffer.length,
-                                                                payloadLength,
-                                                                header[0]);
-                if (charPayloadLength == 0) {
+                if (payloadLength == 0) {
                     // An extension can consume the payload and not let it surface to the app. In which case, we just try to
                     // read the next frame.
                     headerOffset = 0;
@@ -177,6 +176,11 @@ public class WsReader extends Reader {
                     payloadLength = 0;
                     charPayloadOffset = 0;
                     charPayloadLength = 0;
+                }
+                else {
+                    Payload payload = dataFrame.getPayload();
+                    receiveBuffer = new String(payload.buffer().array(), payload.offset(), dataFrame.getLength()).toCharArray();
+                    charPayloadLength = receiveBuffer.length;
                 }
             }
         }
@@ -209,12 +213,23 @@ public class WsReader extends Reader {
             return;
         }
 
-        connection.receiveControlFrame(header[0], payloadLength);
+        if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
+            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
+        }
+
+        Control frame = (Control) getFrame(opcode, payloadLength);
+        connection.receiveControlFrame(frame);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;
         payloadOffset = -1;
         headerOffset = 0;
+    }
+
+    private Frame getFrame(int opcode, long payloadLen) throws IOException {
+        FrameFactory factory = connection.getInputStateMachine().getFrameFactory();
+        OpCode opCode = OpCode.fromInt(opcode);
+        return factory.createFrame(opCode, false, false, payloadLen);
     }
 
     private static long payloadLength(byte[] header) {

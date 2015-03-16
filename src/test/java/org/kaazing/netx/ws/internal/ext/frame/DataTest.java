@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theory;
 import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class DataTest extends FrameTest {
     enum Fin {

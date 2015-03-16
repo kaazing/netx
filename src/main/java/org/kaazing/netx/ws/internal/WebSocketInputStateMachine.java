@@ -29,8 +29,12 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_TEXT_FRA
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_UPGRADE_RESPONSE;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
+
+import org.kaazing.netx.ws.internal.ext.frame.Close;
+import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.frame.Ping;
+import org.kaazing.netx.ws.internal.ext.frame.Pong;
 
 public class WebSocketInputStateMachine {
     private static final WebSocketState[][] STATE_MACHINE;
@@ -57,80 +61,97 @@ public class WebSocketInputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
+    private FrameFactory frameFactory;
+
     public WebSocketInputStateMachine() {
+        frameFactory = FrameFactory.newInstance(8192);
     }
 
     public void start(WsURLConnectionImpl connection) {
         connection.setInputState(WebSocketState.START);
     }
 
-    public ByteBuffer receivedBinaryFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+    public void receivedBinaryFrame(DefaultWebSocketContext context, Data frame)
             throws IOException {
         WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
             transition(context.getConnection(), WebSocketTransition.RECEIVED_BINARY_FRAME);
-            return context.doNextBinaryFrameReceivedHook(flagsAndOpcode, payload);
+            context.doNextBinaryFrameReceivedHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a BINARY frame", state));
         }
     }
 
-    public ByteBuffer receivedCloseFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+    public void receivedCloseFrame(DefaultWebSocketContext context, Close frame)
             throws IOException {
         WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
             transition(context.getConnection(), WebSocketTransition.RECEIVED_CLOSE_FRAME);
-            return context.doNextCloseFrameReceivedHook(flagsAndOpcode, payload);
+            context.doNextCloseFrameReceivedHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a CLOSE frame", state));
         }
     }
 
-    public ByteBuffer receivedPingFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+    public void receivedPingFrame(DefaultWebSocketContext context, Ping frame)
             throws IOException {
         WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
             transition(context.getConnection(), WebSocketTransition.RECEIVED_PING_FRAME);
-            return context.doNextPingFrameReceivedHook(flagsAndOpcode, payload);
+            context.doNextPingFrameReceivedHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a PING frame", state));
         }
     }
 
-    public ByteBuffer receivedPongFrame(DefaultWebSocketContext context, byte flagsAndOpcode, ByteBuffer payload)
+    public void receivedPongFrame(DefaultWebSocketContext context, Pong frame)
             throws IOException {
         WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
             transition(context.getConnection(), WebSocketTransition.RECEIVED_PONG_FRAME);
-            return context.doNextPongFrameReceivedHook(flagsAndOpcode, payload);
+            context.doNextPongFrameReceivedHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a PONG frame", state));
         }
     }
 
-    public CharBuffer receivedTextFrame(DefaultWebSocketContext context, byte flagsAndOpcode, CharBuffer payload)
+    public void receivedTextFrame(DefaultWebSocketContext context, Data frame)
             throws IOException {
         WebSocketState state = context.getConnection().getInputState();
 
         switch (state) {
         case OPEN:
             transition(context.getConnection(), WebSocketTransition.RECEIVED_PONG_FRAME);
-            return context.doNextTextFrameReceivedHook(flagsAndOpcode, payload);
+            context.doNextTextFrameReceivedHook(frame);
+            break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a TEXT frame", state));
         }
+    }
+
+    public FrameFactory getFrameFactory() {
+        return frameFactory;
+    }
+
+    public void setFrameFactory(FrameFactory frameFactory) {
+        this.frameFactory = frameFactory;
     }
 
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {
         WebSocketState state = STATE_MACHINE[connection.getInputState().ordinal()][transition.ordinal()];
         connection.setInputState(state);
     }
+
 }

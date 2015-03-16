@@ -19,6 +19,7 @@ import static java.lang.String.format;
 
 import java.nio.ByteBuffer;
 
+import org.kaazing.netx.ws.internal.util.ErrorHandler;
 import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class Close extends Control {
@@ -34,9 +35,9 @@ public class Close extends Control {
     }
 
     public int getStatusCode() {
-        if (getLength() < 2) {
-            return 1005; // RFC 6455 section 7.4.1
-        }
+//        if (getLength() < 2) {
+//            return 1005; // RFC 6455 section 7.4.1
+//        }
         int status = uint16Get(getPayload().buffer(), getPayload().offset());
         validateStatusCode(status);
         return status;
@@ -72,14 +73,20 @@ public class Close extends Control {
             return reason;
         }
         reason.wrap(payload.buffer(), payload.offset() + 2, payload.limit(), mutable);
-        if (!Utf8Util.validBytesUTF8(reason.buffer(), reason.offset(), reason.limit())) {
-            protocolError("Invalid UTF-8 byte");
-        }
+        Utf8Util.validateUTF8(reason.buffer(), reason.offset(), getLength() - 2, new ErrorHandler() {
+
+            @Override
+            public void handleError(String message) {
+                protocolError(message);
+            }
+        });
+
         return reason;
     }
 
     private static void validateStatusCode(int status) {
-        if (status < 999 || status == 1005 || (status > 1014 && status < 3000) || status > 4999) {
+//        if (status < 999 || status == 1005 || (status > 1015 && status < 3000) || status > 4999) {
+        if ((status > 0 && status < 999) || (status > 1015 && status < 3000) || status > 4999) {
             protocolError(format("Invalid Close frame status code %d", status));
         }
     }
