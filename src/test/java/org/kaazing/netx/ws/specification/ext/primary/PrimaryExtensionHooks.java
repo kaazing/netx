@@ -42,7 +42,7 @@ public class PrimaryExtensionHooks extends WebSocketExtensionHooks {
                 String msg = "Hello, " + new String(payload.buffer().array(), payload.offset(), payloadLength);
                 byte[] bytes = msg.getBytes(UTF_8);
                 FrameFactory factory = FrameFactory.newInstance(8192);
-                Frame transformedFrame = factory.createFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
+                Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
                 context.doNextTextFrameReceivedHook((Data) transformedFrame);
             }
         };
@@ -58,7 +58,7 @@ public class PrimaryExtensionHooks extends WebSocketExtensionHooks {
                 String msg = new String(payload.buffer().array(), payload.offset(), payloadLength).substring("Hello, ".length());
                 byte[] bytes = msg.getBytes(UTF_8);
                 FrameFactory factory = FrameFactory.newInstance(8192);
-                Frame transformedFrame = factory.createFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
+                Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
 
                 context.doNextTextFrameSendHook((Data) transformedFrame);
             }

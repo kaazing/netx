@@ -45,84 +45,39 @@ public abstract class WebSocketContext {
     }
 
     public void doNextBinaryFrameReceivedHook(Data frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenBinaryFrameReceived.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenBinaryFrameReceived.apply(this, frame);
     }
 
     public void doNextCloseFrameReceivedHook(Close frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenCloseFrameReceived.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenCloseFrameReceived.apply(this, frame);
     }
 
     public void doNextPingFrameReceivedHook(Ping frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenPingFrameReceived.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenPingFrameReceived.apply(this, frame);
     }
 
     public void doNextPongFrameReceivedHook(Pong frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenPongFrameReceived.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenPongFrameReceived.apply(this, frame);
     }
 
     public void doNextTextFrameReceivedHook(Data frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenTextFrameReceived.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenTextFrameReceived.apply(this, frame);
     }
 
     public void doNextBinaryFrameSendHook(Data frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenBinaryFrameSend.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenBinaryFrameSend.apply(this, frame);
     }
 
     public void doNextCloseFrameSendHook(Close frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenCloseFrameSend.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenCloseFrameSend.apply(this, frame);
     }
 
     public void doNextPongFrameSendHook(Pong frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenPongFrameSend.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenPongFrameSend.apply(this, frame);
     }
 
     public void doNextTextFrameSendHook(Data frame) throws IOException {
-        WebSocketExtensionHooks next = nextExtensionHooks();
-        if (next != null) {
-            next.whenTextFrameSend.apply(this, frame);
-        }
-
-        return;
+        nextExtensionHooks().whenTextFrameSend.apply(this, frame);
     }
 
     public void sendBinaryFrame(ByteBuffer payload) throws IOException {

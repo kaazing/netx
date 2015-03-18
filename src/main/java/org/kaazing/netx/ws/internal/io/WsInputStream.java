@@ -249,7 +249,7 @@ public final class WsInputStream extends InputStream {
     private Frame getFrame(int opcode, long payloadLen) throws IOException {
         FrameFactory factory = connection.getInputStateMachine().getFrameFactory();
         OpCode opCode = OpCode.fromInt(opcode);
-        return factory.createFrame(opCode, false, false, payloadLen);
+        return factory.getFrame(opCode, false, false, payloadLen);
     }
 
     private static long payloadLength(byte[] header) {

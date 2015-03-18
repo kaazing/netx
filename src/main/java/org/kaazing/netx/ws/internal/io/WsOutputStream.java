@@ -34,6 +34,7 @@ import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
@@ -91,17 +92,20 @@ public final class WsOutputStream extends FilterOutputStream {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
         }
 
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
             {
                 whenBinaryFrameSend = new WebSocketFrameSupplier() {
                     @Override
                     public void apply(WebSocketContext context, Frame frame) throws IOException {
-                        Data sourceFrame = (Data) frame;
-                        if (sourceFrame == dataFrame) {
-                            return;
-                        }
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Data sourceFrame = (Data) frame;
+                            if (sourceFrame == dataFrame) {
+                                return;
+                            }
 
-                        FrameUtil.copy(sourceFrame, dataFrame);
+                            FrameUtil.copy(sourceFrame, dataFrame);
+                        }
                     }
                 };
             }
@@ -110,6 +114,12 @@ public final class WsOutputStream extends FilterOutputStream {
         dataFrame = (Data) getFrame(OpCode.BINARY, true, true, buf, offset, length);
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         outputStateMachine.sendBinaryFrame(connection.getContext(sentinelHooks, true), dataFrame);
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the BINARY frame propagate to the sentinel
+            // hook. In such a case, we should not render the frame on the wire.
+            return;
+        }
 
         out.write(0x82);
 
@@ -135,22 +145,6 @@ public final class WsOutputStream extends FilterOutputStream {
                 throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, reason.length));
             }
         }
-
-        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
-            {
-                whenCloseFrameSend = new WebSocketFrameSupplier() {
-                    @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
-                        Close sourceFrame = (Close) frame;
-                        if (sourceFrame == closeFrame) {
-                            return;
-                        }
-
-                        FrameUtil.copy(sourceFrame, closeFrame);
-                    }
-                };
-            }
-        };
 
         int payloadLen = 0;
         IOException exception = null;
@@ -192,9 +186,34 @@ public final class WsOutputStream extends FilterOutputStream {
             }
         }
 
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenCloseFrameSend = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Close sourceFrame = (Close) frame;
+                            if (sourceFrame == closeFrame) {
+                                return;
+                            }
+
+                            FrameUtil.copy(sourceFrame, closeFrame);
+                        }
+                    }
+                };
+            }
+        };
+
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         closeFrame = (Close) getFrame(OpCode.CLOSE, true, true, controlFramePayload, 0, payloadLen);
         outputStateMachine.sendCloseFrame(connection.getContext(sentinelHooks, true), closeFrame);
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the CLOSE frame propagate to the sentinel
+            // hook. In such a case, we should not render the frame on the wire.
+            return;
+        }
 
         int len = 0;
         Payload reasonPayload = null;
@@ -282,17 +301,20 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
             {
                 whenPongFrameSend = new WebSocketFrameSupplier() {
                     @Override
                     public void apply(WebSocketContext context, Frame frame) throws IOException {
-                        Pong sourceFrame = (Pong) frame;
-                        if (sourceFrame == controlFrame) {
-                            return;
-                        }
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Pong sourceFrame = (Pong) frame;
+                            if (sourceFrame == controlFrame) {
+                                return;
+                            }
 
-                        FrameUtil.copy(sourceFrame, controlFrame);
+                            FrameUtil.copy(sourceFrame, controlFrame);
+                        }
                     }
                 };
             }
@@ -301,6 +323,12 @@ public final class WsOutputStream extends FilterOutputStream {
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         controlFrame = (Control) getFrame(OpCode.PONG, true, true, buf, offset, length);
         outputStateMachine.sendPongFrame(connection.getContext(sentinelHooks, true), (Pong) controlFrame);
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the PONG frame propagate to the sentinel
+            // hook. In such a case, we should not render the frame on the wire.
+            return;
+        }
 
         Payload payload = controlFrame.getPayload();
         int payloadOffset = payload.offset();
@@ -383,6 +411,6 @@ public final class WsOutputStream extends FilterOutputStream {
     private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
             throws IOException {
         FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
-        return factory.createFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
+        return factory.getFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
     }
 }

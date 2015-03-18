@@ -25,6 +25,7 @@ import static java.util.Collections.unmodifiableMap;
 import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.putLengthAndMaskBit;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
@@ -81,12 +83,10 @@ import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
     private static final String MSG_END_OF_STREAM = "End of stream";
-    private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
     private static final String MSG_PING_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PING payload is more than %d bytes";
     private static final String MSG_PONG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: PONG payload is more than %d bytes";
     private static final String MSG_UNRECOGNIZED_OPCODE = "Protocol Violation: Unrecognized opcode %d";
     private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
-    private static final String MSG_BUFFER_SIZE_SMALL = "Buffer's remaining capacity %d too small for payload of size %d";
 
     private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
@@ -516,18 +516,20 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         long payloadLength = dataFrame.getLength();
-
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
             {
                 whenBinaryFrameReceived = new WebSocketFrameSupplier() {
                     @Override
                     public void apply(WebSocketContext context, Frame frame) throws IOException {
-                        Data sourceFrame = (Data) frame;
-                        if (sourceFrame == dataFrame) {
-                            return;
-                        }
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Data sourceFrame = (Data) frame;
+                            if (sourceFrame == dataFrame) {
+                                return;
+                            }
 
-                        FrameUtil.copy(sourceFrame, dataFrame);
+                            FrameUtil.copy(sourceFrame, dataFrame);
+                        }
                     }
                 };
             }
@@ -559,6 +561,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         inputStateMachine.receivedBinaryFrame(getContext(sentinelHooks, false), dataFrame);
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the BINARY frame propagate to the sentinel
+            // hook. In such a case, we should set the payload length of the frame to zero.
+            putLengthAndMaskBit(dataFrame.buffer(), dataFrame.offset() + 1, 0, dataFrame.isMasked());
+        }
     }
 
     public void receiveControlFrame(final Control controlFrame) throws IOException {
@@ -574,23 +581,31 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         switch (controlFrame.getOpCode()) {
         case CLOSE:
+            final AtomicBoolean closeHookExercised = new AtomicBoolean(false);
             WebSocketExtensionHooks closeSentinelHooks = new WebSocketExtensionHooks() {
                 {
                     whenCloseFrameReceived = new WebSocketFrameSupplier() {
                         @Override
                         public void apply(WebSocketContext context, Frame frame) throws IOException {
-                            Control sourceFrame = (Control) frame;
-                            if (sourceFrame == controlFrame) {
-                                return;
-                            }
+                            if (closeHookExercised.compareAndSet(false, true)) {
+                                Control sourceFrame = (Control) frame;
+                                if (sourceFrame == controlFrame) {
+                                    return;
+                                }
 
-                            FrameUtil.copy(sourceFrame, controlFrame);
+                                FrameUtil.copy(sourceFrame, controlFrame);
+                            }
                         }
                     };
                 }
             };
 
             inputStateMachine.receivedCloseFrame(getContext(closeSentinelHooks, false), (Close) controlFrame);
+            if (!closeHookExercised.get()) {
+                // One of the extensions may have decided to short-circuit and not let the CLOSE frame propagate to the sentinel
+                // hook. In such a case, we should set the payload length of the frame to zero.
+                putLengthAndMaskBit(controlFrame.buffer(), controlFrame.offset() + 1, 0, controlFrame.isMasked());
+            }
 
             Close closeFrame = (Close) controlFrame;
             int closePayloadLength = closeFrame.getLength();
@@ -651,23 +666,31 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 doFail(WS_PROTOCOL_ERROR, format(MSG_PING_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
 
+            final AtomicBoolean pingHookExcercised = new AtomicBoolean(false);
             WebSocketExtensionHooks pingSentinelHooks = new WebSocketExtensionHooks() {
                 {
                     whenPingFrameReceived = new WebSocketFrameSupplier() {
                         @Override
                         public void apply(WebSocketContext context, Frame frame) throws IOException {
-                            Control sourceFrame = (Control) frame;
-                            if (sourceFrame == controlFrame) {
-                                return;
-                            }
+                            if (pingHookExcercised.compareAndSet(false, true)) {
+                                Control sourceFrame = (Control) frame;
+                                if (sourceFrame == controlFrame) {
+                                    return;
+                                }
 
-                            FrameUtil.copy(sourceFrame, controlFrame);
+                                FrameUtil.copy(sourceFrame, controlFrame);
+                            }
                         }
                     };
                 }
             };
 
             inputStateMachine.receivedPingFrame(getContext(pingSentinelHooks, false), (Ping) controlFrame);
+            if (!pingHookExcercised.get()) {
+                // One of the extensions may have decided to short-circuit and not let the CLOSE frame propagate to the sentinel
+                // hook. In such a case, we should set the payload length of the frame to zero.
+                putLengthAndMaskBit(controlFrame.buffer(), controlFrame.offset() + 1, 0, controlFrame.isMasked());
+            }
 
             Ping pingFrame = (Ping) controlFrame;
             Payload pingPayload = pingFrame.getPayload();
@@ -679,22 +702,31 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 doFail(WS_PROTOCOL_ERROR, format(MSG_PONG_PAYLOAD_LENGTH_EXCEEDED, MAX_COMMAND_FRAME_PAYLOAD));
             }
 
+            final AtomicBoolean pongHookExercised = new AtomicBoolean(false);
             WebSocketExtensionHooks pongSentinelHooks = new WebSocketExtensionHooks() {
                 {
                     whenPongFrameReceived = new WebSocketFrameSupplier() {
                         @Override
                         public void apply(WebSocketContext context, Frame frame) throws IOException {
-                            Control sourceFrame = (Control) frame;
-                            if (sourceFrame == controlFrame) {
-                                return;
-                            }
+                            if (pongHookExercised.compareAndSet(false, true)) {
+                                Control sourceFrame = (Control) frame;
+                                if (sourceFrame == controlFrame) {
+                                    return;
+                                }
 
-                            FrameUtil.copy(sourceFrame, controlFrame);
+                                FrameUtil.copy(sourceFrame, controlFrame);
+                            }
                         }
                     };
                 }
             };
+
             inputStateMachine.receivedPongFrame(getContext(pongSentinelHooks, false), (Pong) controlFrame);
+            if (!pongHookExercised.get()) {
+                // One of the extensions may have decided to short-circuit and not let the CLOSE frame propagate to the sentinel
+                // hook. In such a case, we should set the payload length of the frame to zero.
+                putLengthAndMaskBit(controlFrame.buffer(), controlFrame.offset() + 1, 0, controlFrame.isMasked());
+            }
             break;
 
         default:
@@ -708,18 +740,20 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         long payloadLength = dataFrame.getLength();
-
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
             {
                 whenTextFrameReceived = new WebSocketFrameSupplier() {
                     @Override
                     public void apply(WebSocketContext context, Frame frame) throws IOException {
-                        Data sourceFrame = (Data) frame;
-                        if (sourceFrame == dataFrame) {
-                            return;
-                        }
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Data sourceFrame = (Data) frame;
+                            if (sourceFrame == dataFrame) {
+                                return;
+                            }
 
-                        FrameUtil.copy(sourceFrame, dataFrame);
+                            FrameUtil.copy(sourceFrame, dataFrame);
+                        }
                     }
                 };
             }
@@ -732,7 +766,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         InputStream in = connection.getInputStream();
         int offset = 0;
-        int mark = offset;
         int payloadOffset = 0;
         char[] cbuf = new char[(int) payloadLength];
 
@@ -806,6 +839,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         FrameUtil.encode(dataFrame.buffer(), dataFrame.offset(), dataFrame.getOpCode(), dataFrame.isFin(), false, null, bytes);
 
         inputStateMachine.receivedTextFrame(getContext(sentinelHooks, false), dataFrame);
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the TEXT frame propagate to the sentinel
+            // hook. In such a case, we should set the payload length of the frame to zero.
+            putLengthAndMaskBit(dataFrame.buffer(), dataFrame.offset() + 1, 0, dataFrame.isMasked());
+        }
     }
 
     public void sendClose(int code, byte[] reason) throws IOException {

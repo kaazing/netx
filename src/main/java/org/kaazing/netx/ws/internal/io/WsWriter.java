@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
@@ -66,17 +67,20 @@ public class WsWriter extends Writer {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
         }
 
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
             {
                 whenTextFrameSend = new WebSocketFrameSupplier() {
                     @Override
                     public void apply(WebSocketContext context, Frame frame) throws IOException {
-                        Data sourceFrame = (Data) frame;
-                        if (sourceFrame == dataFrame) {
-                            return;
-                        }
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Data sourceFrame = (Data) frame;
+                            if (sourceFrame == dataFrame) {
+                                return;
+                            }
 
-                        FrameUtil.copy(sourceFrame, dataFrame);
+                            FrameUtil.copy(sourceFrame, dataFrame);
+                        }
                     }
                 };
             }
@@ -84,8 +88,15 @@ public class WsWriter extends Writer {
 
         byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8);
         dataFrame = (Data) getFrame(OpCode.TEXT, true, true, bytesPayload, 0, bytesPayload.length);
+
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         outputStateMachine.sendTextFrame(connection.getContext(sentinelHooks, true), dataFrame);
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the frame propagate to the sentinel hook. In
+            // such a case, we should not render the frame on the wire.
+            return;
+        }
 
         Payload payload = dataFrame.getPayload();
         int payloadLen = dataFrame.getLength();
@@ -172,6 +183,6 @@ public class WsWriter extends Writer {
     private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
             throws IOException {
         FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
-        return factory.createFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
+        return factory.getFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
     }
 }

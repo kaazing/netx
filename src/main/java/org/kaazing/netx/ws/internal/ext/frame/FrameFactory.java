@@ -16,11 +16,16 @@
 package org.kaazing.netx.ws.internal.ext.frame;
 
 import static java.lang.String.format;
+import static org.kaazing.netx.ws.internal.ext.frame.Frame.protocolError;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.EMPTY_MASK;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.calculateNeed;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.getOpCode;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.putFinAndOpCode;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.putLengthAndMaskBit;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.putMaskAndPayload;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public final class FrameFactory extends Flyweight {
     private static final String MSG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: %s payload is more than 125 bytes";
@@ -68,7 +73,7 @@ public final class FrameFactory extends Flyweight {
 
     public Frame wrap(ByteBuffer buffer, int offset) throws ProtocolException {
         Frame frame = null;
-        OpCode opcode = FrameUtil.getOpCode(buffer, offset);
+        OpCode opcode = getOpCode(buffer, offset);
 
         switch(opcode) {
         case BINARY:
@@ -90,13 +95,13 @@ public final class FrameFactory extends Flyweight {
             frame = data.wrap(buffer, offset);
             break;
         default:
-            Frame.protocolError(format("Protocol Violation: Invalid opcode: %s", opcode));
+            protocolError(format("Protocol Violation: Invalid opcode: %s", opcode));
             break;
         }
         return frame;
     }
 
-    public Frame createFrame(OpCode opcode, boolean fin, boolean masked, long payloadLength) {
+    public Frame getFrame(OpCode opcode, boolean fin, boolean masked, long payloadLength) {
         Frame frame = null;
 
         switch (opcode) {
@@ -135,39 +140,26 @@ public final class FrameFactory extends Flyweight {
             break;
         }
 
-        FrameUtil.putFinAndOpCode(frame.buffer(), frame.offset(), opcode, fin);
-        FrameUtil.putLengthAndMaskBit(frame.buffer(), frame.offset() + 1, (int) payloadLength, masked);
+        putFinAndOpCode(frame.buffer(), frame.offset(), opcode, fin);
+        putLengthAndMaskBit(frame.buffer(), frame.offset() + 1, (int) payloadLength, masked);
         return frame;
     }
 
-    public Frame createFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload) {
-        Frame frame = createFrame(opcode, fin, masked, (payload == null) ? 0 : payload.length);
-        byte[] maskBuf = FrameUtil.EMPTY_MASK;
+    public Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int offset, long length) {
+        Frame frame = getFrame(opcode, fin, masked, (payload == null) ? 0 : length);
+        byte[] maskBuf = EMPTY_MASK;
 
         if (masked) {
             random.nextBytes(mask);
             maskBuf = mask;
         }
 
-        FrameUtil.putMaskAndPayload(frame.buffer(), frame.getMaskOffset(), masked, maskBuf, payload);
-        return frame;
-    }
-
-    public Frame createFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int offset, long length) {
-        Frame frame = createFrame(opcode, fin, masked, (payload == null) ? 0 : length);
-        byte[] maskBuf = FrameUtil.EMPTY_MASK;
-
-        if (masked) {
-            random.nextBytes(mask);
-            maskBuf = mask;
-        }
-
-        FrameUtil.putMaskAndPayload(frame.buffer(), frame.getMaskOffset(), masked, maskBuf, payload, offset, length);
+        putMaskAndPayload(frame.buffer(), frame.getMaskOffset(), masked, maskBuf, payload, offset, length);
         return frame;
     }
 
     private void ensureCapacity(Frame frame, boolean masked, long payloadLength, long maxPayloadLength) {
-        int need = FrameUtil.calculateNeed(masked, payloadLength);
+        int need = calculateNeed(masked, payloadLength);
         ByteBuffer buf = frame.buffer();
 
         if (buf == null) {
