@@ -18,9 +18,6 @@ package org.kaazing.netx.ws.internal.ext.frame;
 import static java.lang.String.format;
 
 import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 
 public abstract class Frame extends Flyweight {
@@ -35,12 +32,10 @@ public abstract class Frame extends Flyweight {
     private ByteBuffer unmaskedPayload;
     private final Payload payload;
     private final byte[] mask;
-    private final SecureRandom random;
 
     Frame() {
         payload = new Payload();
         this.mask = new byte[4];
-        this.random = new SecureRandom();
     }
 
     protected abstract int getMaxPayloadLength();
@@ -56,24 +51,6 @@ public abstract class Frame extends Flyweight {
         validateLength();
         payload.wrap(null, offset, 0, mutable);
         return this;
-    }
-
-    public void encode(OpCode opcode, boolean fin, boolean masked, byte[] payload) {
-        int need = FrameUtil.calculateNeed(masked, payload.length);
-        int capacity = limit() - offset();
-        byte[] maskBuf = FrameUtil.EMPTY_MASK;
-
-        if (need > capacity) {
-            final String msg = String.format("need=%d is beyond capacity=%d", need, capacity);
-            throw new IndexOutOfBoundsException(msg);
-        }
-
-        if (masked) {
-            random.nextBytes(mask);
-            maskBuf = mask;
-        }
-
-        FrameUtil.encode(super.buffer(), offset(), opcode, fin, masked, maskBuf, payload);
     }
 
     public int getDataOffset() {

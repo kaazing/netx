@@ -18,6 +18,11 @@ package org.kaazing.netx.ws.internal;
 
 import static java.lang.String.format;
 import static java.util.EnumSet.allOf;
+import static org.kaazing.netx.ws.WsURLConnection.WS_ABNORMAL_CLOSE;
+import static org.kaazing.netx.ws.WsURLConnection.WS_MISSING_STATUS_CODE;
+import static org.kaazing.netx.ws.WsURLConnection.WS_NORMAL_CLOSE;
+import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
+import static org.kaazing.netx.ws.WsURLConnection.WS_UNSUCCESSFUL_TLS_HANDSHAKE;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
 import static org.kaazing.netx.ws.internal.WebSocketState.START;
@@ -27,17 +32,30 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PING_FRA
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PONG_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_TEXT_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_UPGRADE_RESPONSE;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.putLengthAndMaskBit;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.kaazing.netx.ws.internal.ext.WebSocketContext;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 import org.kaazing.netx.ws.internal.ext.frame.Close;
+import org.kaazing.netx.ws.internal.ext.frame.Control;
 import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
+import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
 import org.kaazing.netx.ws.internal.ext.frame.Ping;
 import org.kaazing.netx.ws.internal.ext.frame.Pong;
+import org.kaazing.netx.ws.internal.ext.frame.ProtocolException;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class WebSocketInputStateMachine {
+    private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
     private static final WebSocketState[][] STATE_MACHINE;
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     static {
         int stateCount = WebSocketState.values().length;
@@ -61,7 +79,7 @@ public class WebSocketInputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
-    private FrameFactory frameFactory;
+    private final FrameFactory frameFactory;
 
     public WebSocketInputStateMachine() {
         frameFactory = FrameFactory.newInstance(8192);
@@ -71,73 +89,259 @@ public class WebSocketInputStateMachine {
         connection.setInputState(WebSocketState.START);
     }
 
-    public void receivedBinaryFrame(DefaultWebSocketContext context, Data frame)
+    public void receivedBinaryFrame(final WsURLConnectionImpl connection, final Data dataFrame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenBinaryFrameReceived = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Data sourceFrame = (Data) frame;
+                            if (sourceFrame == dataFrame) {
+                                return;
+                            }
+
+                            FrameUtil.copy(sourceFrame, dataFrame);
+                        }
+                    }
+                };
+            }
+        };
+
+        WebSocketContext context = connection.getContext(sentinelHooks, false);
+        WebSocketState state = connection.getInputState();
 
         switch (state) {
         case OPEN:
-            transition(context.getConnection(), WebSocketTransition.RECEIVED_BINARY_FRAME);
-            context.doNextBinaryFrameReceivedHook(frame);
+            transition(connection, WebSocketTransition.RECEIVED_BINARY_FRAME);
+            context.doNextBinaryFrameReceivedHook(dataFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a BINARY frame", state));
         }
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the BINARY frame propagate to the sentinel
+            // hook. In such a case, we should set the payload length of the frame to zero.
+            putLengthAndMaskBit(dataFrame.buffer(), dataFrame.offset() + 1, 0, dataFrame.isMasked());
+        }
     }
 
-    public void receivedCloseFrame(DefaultWebSocketContext context, Close frame)
+    public void receivedCloseFrame(final WsURLConnectionImpl connection, final Close closeFrame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenCloseFrameReceived = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Control sourceFrame = (Control) frame;
+                            if (sourceFrame == closeFrame) {
+                                return;
+                            }
+
+                            FrameUtil.copy(sourceFrame, closeFrame);
+                        }
+                    }
+                };
+            }
+        };
+
+        WebSocketContext context = connection.getContext(sentinelHooks, false);
+        WebSocketState state = connection.getInputState();
 
         switch (state) {
         case OPEN:
-            transition(context.getConnection(), WebSocketTransition.RECEIVED_CLOSE_FRAME);
-            context.doNextCloseFrameReceivedHook(frame);
+            transition(connection, WebSocketTransition.RECEIVED_CLOSE_FRAME);
+            context.doNextCloseFrameReceivedHook(closeFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a CLOSE frame", state));
         }
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the CLOSE frame propagate to the sentinel
+            // hook. In such a case, we just bail and do not send a CLOSE to the server.
+            return;
+        }
+
+        int closePayloadLength = closeFrame.getLength();
+        int code = 0;
+        int closeCodeRO = 0;
+        int reasonOffset = 0;
+        int reasonLength = 0;
+
+        if (closePayloadLength >= 2) {
+            code = closeFrame.getStatusCode();
+            Payload reasonPayload = null;
+            closeCodeRO = code;
+
+            try {
+                reasonPayload = closeFrame.getReason();
+            }
+            catch (ProtocolException ex) {
+                code = WS_PROTOCOL_ERROR;
+            }
+
+            switch (code) {
+            case WS_MISSING_STATUS_CODE:
+            case WS_ABNORMAL_CLOSE:
+            case WS_UNSUCCESSFUL_TLS_HANDSHAKE:
+                code = WS_PROTOCOL_ERROR;
+                break;
+            default:
+                break;
+            }
+
+            if (reasonPayload != null) {
+                reasonOffset = reasonPayload.offset();
+                reasonLength = closePayloadLength - 2;
+
+                if (closePayloadLength > 2) {
+                    if ((closePayloadLength > MAX_COMMAND_FRAME_PAYLOAD) ||
+                        !validBytesUTF8(reasonPayload.buffer(), reasonOffset, reasonLength)) {
+                        code = WS_PROTOCOL_ERROR;
+                    }
+
+                    if (code != WS_NORMAL_CLOSE) {
+                        reasonLength = 0;
+                    }
+                }
+            }
+        }
+
+        // Use the output state machine to send CLOSE.
+        connection.sendClose(code, closeFrame.buffer().array(), reasonOffset, reasonLength);
+
+        if (code == WS_PROTOCOL_ERROR) {
+            throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, reasonLength));
+        }
     }
 
-    public void receivedPingFrame(DefaultWebSocketContext context, Ping frame)
+    public void receivedPingFrame(final WsURLConnectionImpl connection, final Ping pingFrame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenPingFrameReceived = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Control sourceFrame = (Control) frame;
+                            if (sourceFrame == pingFrame) {
+                                return;
+                            }
+
+                            FrameUtil.copy(sourceFrame, pingFrame);
+                        }
+                    }
+                };
+            }
+        };
+
+        WebSocketContext context = connection.getContext(sentinelHooks, false);
+        WebSocketState state = connection.getInputState();
 
         switch (state) {
         case OPEN:
-            transition(context.getConnection(), WebSocketTransition.RECEIVED_PING_FRAME);
-            context.doNextPingFrameReceivedHook(frame);
+            transition(connection, WebSocketTransition.RECEIVED_PING_FRAME);
+            context.doNextPingFrameReceivedHook(pingFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a PING frame", state));
         }
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the BINARY frame propagate to the sentinel
+            // hook. In such a case, we just bail and do not send PONG.
+            return;
+
+        }
+        // Use output state-machine to send PONG.
+        Payload pingPayload = pingFrame.getPayload();
+        connection.sendPong(pingPayload.buffer().array(), pingPayload.offset(), pingPayload.limit() - pingPayload.offset());
     }
 
-    public void receivedPongFrame(DefaultWebSocketContext context, Pong frame)
+    public void receivedPongFrame(final WsURLConnectionImpl connection, final Pong pongFrame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenPongFrameReceived = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Control sourceFrame = (Control) frame;
+                            if (sourceFrame == pongFrame) {
+                                return;
+                            }
+
+                            FrameUtil.copy(sourceFrame, pongFrame);
+                        }
+                    }
+                };
+            }
+        };
+
+        WebSocketContext context = connection.getContext(sentinelHooks, false);
+        WebSocketState state = connection.getInputState();
 
         switch (state) {
         case OPEN:
-            transition(context.getConnection(), WebSocketTransition.RECEIVED_PONG_FRAME);
-            context.doNextPongFrameReceivedHook(frame);
+            transition(connection, WebSocketTransition.RECEIVED_PONG_FRAME);
+            context.doNextPongFrameReceivedHook(pongFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a PONG frame", state));
         }
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the CLOSE frame propagate to the sentinel
+            // hook. In such a case, we should set the payload length of the frame to zero.
+            putLengthAndMaskBit(pongFrame.buffer(), pongFrame.offset() + 1, 0, pongFrame.isMasked());
+        }
     }
 
-    public void receivedTextFrame(DefaultWebSocketContext context, Data frame)
+    public void receivedTextFrame(final WsURLConnectionImpl connection, final Data dataFrame)
             throws IOException {
-        WebSocketState state = context.getConnection().getInputState();
+        final AtomicBoolean hookExercised = new AtomicBoolean(false);
+        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
+            {
+                whenTextFrameReceived = new WebSocketFrameSupplier() {
+                    @Override
+                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                        if (hookExercised.compareAndSet(false, true)) {
+                            Data sourceFrame = (Data) frame;
+                            if (sourceFrame == dataFrame) {
+                                return;
+                            }
+
+                            FrameUtil.copy(sourceFrame, dataFrame);
+                        }
+                    }
+                };
+            }
+        };
+
+        WebSocketContext context = connection.getContext(sentinelHooks, false);
+        WebSocketState state = connection.getInputState();
 
         switch (state) {
         case OPEN:
-            transition(context.getConnection(), WebSocketTransition.RECEIVED_PONG_FRAME);
-            context.doNextTextFrameReceivedHook(frame);
+            transition(connection, WebSocketTransition.RECEIVED_PONG_FRAME);
+            context.doNextTextFrameReceivedHook(dataFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a TEXT frame", state));
+        }
+
+        if (!hookExercised.get()) {
+            // One of the extensions may have decided to short-circuit and not let the TEXT frame propagate to the sentinel
+            // hook. In such a case, we should set the payload length of the frame to zero.
+            putLengthAndMaskBit(dataFrame.buffer(), dataFrame.offset() + 1, 0, dataFrame.isMasked());
         }
     }
 
@@ -145,13 +349,8 @@ public class WebSocketInputStateMachine {
         return frameFactory;
     }
 
-    public void setFrameFactory(FrameFactory frameFactory) {
-        this.frameFactory = frameFactory;
-    }
-
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {
         WebSocketState state = STATE_MACHINE[connection.getInputState().ordinal()][transition.ordinal()];
         connection.setInputState(state);
     }
-
 }

@@ -16,7 +16,6 @@
 
 package org.kaazing.netx.ws.internal.io;
 
-import static java.lang.Integer.highestOneBit;
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 
@@ -24,19 +23,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.WebSocketContext;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 import org.kaazing.netx.ws.internal.ext.frame.Data;
 import org.kaazing.netx.ws.internal.ext.frame.Frame;
-import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
 import org.kaazing.netx.ws.internal.ext.frame.OpCode;
-import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class WsWriter extends Writer {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
@@ -44,14 +37,12 @@ public class WsWriter extends Writer {
 
     private final WsURLConnectionImpl connection;
     private final OutputStream out;
-    private final byte[] mask;
 
     private Data dataFrame;
 
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
         this.out = connection.getTcpOutputStream();
-        this.mask = new byte[4];
     }
 
     @Override
@@ -67,107 +58,12 @@ public class WsWriter extends Writer {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
         }
 
-        final AtomicBoolean hookExercised = new AtomicBoolean(false);
-        WebSocketExtensionHooks sentinelHooks = new WebSocketExtensionHooks() {
-            {
-                whenTextFrameSend = new WebSocketFrameSupplier() {
-                    @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
-                        if (hookExercised.compareAndSet(false, true)) {
-                            Data sourceFrame = (Data) frame;
-                            if (sourceFrame == dataFrame) {
-                                return;
-                            }
-
-                            FrameUtil.copy(sourceFrame, dataFrame);
-                        }
-                    }
-                };
-            }
-        };
 
         byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8);
         dataFrame = (Data) getFrame(OpCode.TEXT, true, true, bytesPayload, 0, bytesPayload.length);
 
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        outputStateMachine.sendTextFrame(connection.getContext(sentinelHooks, true), dataFrame);
-
-        if (!hookExercised.get()) {
-            // One of the extensions may have decided to short-circuit and not let the frame propagate to the sentinel hook. In
-            // such a case, we should not render the frame on the wire.
-            return;
-        }
-
-        Payload payload = dataFrame.getPayload();
-        int payloadLen = dataFrame.getLength();
-        int payloadOffset = payload.offset();
-
-        out.write(0x81);
-
-        switch (highestOneBit(payloadLen)) {
-        case 0x0000:
-        case 0x0001:
-        case 0x0002:
-        case 0x0004:
-        case 0x0008:
-        case 0x0010:
-        case 0x0020:
-            out.write(0x80 | payloadLen);
-            break;
-        case 0x0040:
-            switch (length) {
-            case 126:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(126);
-                break;
-            case 127:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(127);
-                break;
-            default:
-                out.write(0x80 | payloadLen);
-                break;
-            }
-            break;
-        case 0x0080:
-        case 0x0100:
-        case 0x0200:
-        case 0x0400:
-        case 0x0800:
-        case 0x1000:
-        case 0x2000:
-        case 0x4000:
-        case 0x8000:
-            out.write(0x80 | 126);
-            out.write((length >> 8) & 0xff);
-            out.write((length >> 0) & 0xff);
-            break;
-        default:
-            // 65536+
-            out.write(0x80 | 127);
-
-            long lengthL = payloadLen;
-            out.write((int) ((lengthL >> 56) & 0xff));
-            out.write((int) ((lengthL >> 48) & 0xff));
-            out.write((int) ((lengthL >> 40) & 0xff));
-            out.write((int) ((lengthL >> 32) & 0xff));
-            out.write((int) ((lengthL >> 24) & 0xff));
-            out.write((int) ((lengthL >> 16) & 0xff));
-            out.write((int) ((lengthL >> 8) & 0xff));
-            out.write((int) ((lengthL >> 0) & 0xff));
-            break;
-        }
-
-        // Create the masking key.
-        connection.getRandom().nextBytes(mask);
-        out.write(mask);
-
-        // Mask the payload and write it out.
-        for (int i = 0; i < payloadLen; i++) {
-            out.write((byte) (payload.buffer().get(payloadOffset++) ^ mask[i % mask.length]));
-        }
+        outputStateMachine.sendTextFrame(connection, dataFrame);
     }
 
     @Override

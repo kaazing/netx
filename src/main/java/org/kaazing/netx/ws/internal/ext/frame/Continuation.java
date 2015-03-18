@@ -18,8 +18,8 @@ package org.kaazing.netx.ws.internal.ext.frame;
 import java.nio.ByteBuffer;
 
 public class Continuation extends Data {
-    Continuation(int maxWsMessageSize) {
-        super(maxWsMessageSize);
+    Continuation(int maxMessageSize) {
+        super(maxMessageSize);
     }
 
     @Override

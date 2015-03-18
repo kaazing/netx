@@ -41,12 +41,12 @@ public final class FrameFactory extends Flyweight {
     private final byte[] mask;
     private final SecureRandom random;
 
-    private FrameFactory(int maxWsMessageSize) {
-        this.maxWsMessageSize = maxWsMessageSize;
+    private FrameFactory(int maxMessageSize) {
+        this.maxWsMessageSize = maxMessageSize;
         this.mask = new byte[4];
         this.random = new SecureRandom();
-        this.continuation = new Continuation(maxWsMessageSize);
-        this.data = new Data(maxWsMessageSize);
+        this.continuation = new Continuation(maxMessageSize);
+        this.data = new Data(maxMessageSize);
 
         byte[] closeBuf = new byte[131];
         closeBuf[0] = (byte) (0x80 | OpCode.toInt(OpCode.CLOSE));
@@ -60,15 +60,15 @@ public final class FrameFactory extends Flyweight {
         pongBuf[0] = (byte) (0x80 | OpCode.toInt(OpCode.PONG));
         pong.wrap(ByteBuffer.wrap(pongBuf), 0);
 
-        byte[] continationBuf = new byte[maxWsMessageSize];
+        byte[] continationBuf = new byte[maxMessageSize];
         continuation.wrap(ByteBuffer.wrap(continationBuf), 0);
 
-        byte[] dataBuf = new byte[maxWsMessageSize];
+        byte[] dataBuf = new byte[maxMessageSize];
         data.wrap(ByteBuffer.wrap(dataBuf), 0);
     }
 
-    public static FrameFactory newInstance(int maxWsMessageSize) {
-        return new FrameFactory(maxWsMessageSize);
+    public static FrameFactory newInstance(int maxMessageSize) {
+        return new FrameFactory(maxMessageSize);
     }
 
     public Frame wrap(ByteBuffer buffer, int offset) throws ProtocolException {
