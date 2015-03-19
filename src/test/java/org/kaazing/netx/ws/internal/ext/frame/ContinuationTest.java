@@ -132,7 +132,7 @@ public class ContinuationTest extends FrameTest {
         int wsMaxMessageSize = 5000;
         try {
             FrameFactory.newInstance(wsMaxMessageSize).wrap(buffer, offset);
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             return;
         }
         fail("Exception was not thrown");

@@ -48,7 +48,7 @@ import org.kaazing.netx.ws.internal.ext.frame.Frame;
 import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
 import org.kaazing.netx.ws.internal.ext.frame.Pong;
-import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class WebSocketOutputStateMachine {
@@ -87,14 +87,14 @@ public class WebSocketOutputStateMachine {
         connection.setOutputState(WebSocketState.START);
     }
 
-    public void processBinaryFrame(final WsURLConnectionImpl connection, final Data dataFrame)
+    public void processBinary(final WsURLConnectionImpl connection, final Data dataFrame)
             throws IOException {
         final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onBinaryFrameSent = new WebSocketFrameSupplier() {
+                onBinaryFrameSent = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                         if (hookExercised.compareAndSet(false, true)) {
                             Data sourceFrame = (Data) frame;
                             if (sourceFrame == dataFrame) {
@@ -114,7 +114,7 @@ public class WebSocketOutputStateMachine {
         switch (state) {
         case OPEN:
             transition(connection, WebSocketTransition.SEND_BINARY_FRAME);
-            context.onBinaryFrameSent(dataFrame);
+            context.onBinarySent(dataFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a BINARY frame", state));
@@ -141,14 +141,14 @@ public class WebSocketOutputStateMachine {
         }
     }
 
-    public void processCloseFrame(final WsURLConnectionImpl connection, final Close closeFrame)
+    public void processClose(final WsURLConnectionImpl connection, final Close closeFrame)
             throws IOException {
         final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onCloseFrameSent = new WebSocketFrameSupplier() {
+                onCloseFrameSent = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                         if (hookExercised.compareAndSet(false, true)) {
                             Close sourceFrame = (Close) frame;
                             if (sourceFrame == closeFrame) {
@@ -168,7 +168,7 @@ public class WebSocketOutputStateMachine {
         switch (state) {
         case OPEN:
             // Do not transition to CLOSED state at this point as we still haven't yet sent the CLOSE frame.
-            context.onCloseFrameSent(closeFrame);
+            context.onCloseSent(closeFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a CLOSE frame", state));
@@ -260,14 +260,14 @@ public class WebSocketOutputStateMachine {
         }
     }
 
-    public void processPongFrame(final WsURLConnectionImpl connection, final Pong pongFrame)
+    public void processPong(final WsURLConnectionImpl connection, final Pong pongFrame)
             throws IOException {
         final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onPongFrameSent = new WebSocketFrameSupplier() {
+                onPongFrameSent = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                         if (hookExercised.compareAndSet(false, true)) {
                             Pong sourceFrame = (Pong) frame;
                             if (sourceFrame == pongFrame) {
@@ -287,7 +287,7 @@ public class WebSocketOutputStateMachine {
         switch (state) {
         case OPEN:
             transition(connection, WebSocketTransition.SEND_PONG_FRAME);
-            context.onPongFrameSent(pongFrame);
+            context.onPongSent(pongFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a PONG frame", state));
@@ -320,14 +320,14 @@ public class WebSocketOutputStateMachine {
         }
     }
 
-    public void processTextFrame(final WsURLConnectionImpl connection, final Data dataFrame)
+    public void processText(final WsURLConnectionImpl connection, final Data dataFrame)
             throws IOException {
         final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onTextFrameSent = new WebSocketFrameSupplier() {
+                onTextFrameSent = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                         if (hookExercised.compareAndSet(false, true)) {
                             Data sourceFrame = (Data) frame;
                             if (sourceFrame == dataFrame) {
@@ -347,7 +347,7 @@ public class WebSocketOutputStateMachine {
         switch (state) {
         case OPEN:
             transition(connection, WebSocketTransition.SEND_TEXT_FRAME);
-            context.onTextFrameSent(dataFrame);
+            context.onTextSent(dataFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be sending a TEXT frame", state));

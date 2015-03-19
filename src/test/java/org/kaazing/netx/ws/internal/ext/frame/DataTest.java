@@ -126,7 +126,7 @@ public class DataTest extends FrameTest {
         int wsMaxMessageSize = 30;
         try {
             FrameFactory.newInstance(wsMaxMessageSize).wrap(buffer, offset);
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             return;
         }
         fail("Exception was not thrown");
@@ -242,7 +242,7 @@ public class DataTest extends FrameTest {
         int wsMaxMessageSize = 5000;
         try {
             FrameFactory.newInstance(wsMaxMessageSize).wrap(buffer, offset);
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             return;
         }
         fail("Exception was not thrown");

@@ -48,8 +48,7 @@ import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
 import org.kaazing.netx.ws.internal.ext.frame.Ping;
 import org.kaazing.netx.ws.internal.ext.frame.Pong;
-import org.kaazing.netx.ws.internal.ext.frame.ProtocolException;
-import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class WebSocketInputStateMachine {
@@ -89,15 +88,15 @@ public class WebSocketInputStateMachine {
         connection.setInputState(WebSocketState.START);
     }
 
-    public void processBinaryFrame(final WsURLConnectionImpl connection, final Data dataFrame)
+    public void processBinary(final WsURLConnectionImpl connection, final Data dataFrame)
             throws IOException {
         final AtomicBoolean hookExercised = new AtomicBoolean(false);
 
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onBinaryFrameReceived = new WebSocketFrameSupplier() {
+                onBinaryFrameReceived = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                         if (hookExercised.compareAndSet(false, true)) {
                             Data sourceFrame = (Data) frame;
                             if (sourceFrame == dataFrame) {
@@ -116,7 +115,7 @@ public class WebSocketInputStateMachine {
         switch (state) {
         case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_BINARY_FRAME);
-            context.onBinaryFrameReceived(dataFrame);
+            context.onBinaryReceived(dataFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a BINARY frame", state));
@@ -129,14 +128,14 @@ public class WebSocketInputStateMachine {
         }
     }
 
-    public void processCloseFrame(final WsURLConnectionImpl connection, final Close closeFrame)
+    public void processClose(final WsURLConnectionImpl connection, final Close closeFrame)
             throws IOException {
         final AtomicBoolean hookExercised = new AtomicBoolean(false);
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onCloseFrameReceived = new WebSocketFrameSupplier() {
+                onCloseFrameReceived = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                         if (hookExercised.compareAndSet(false, true)) {
                             Close sourceFrame = (Close) frame;
                             if (sourceFrame == closeFrame) {
@@ -156,7 +155,7 @@ public class WebSocketInputStateMachine {
         switch (state) {
         case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_CLOSE_FRAME);
-            context.onCloseFrameReceived(closeFrame);
+            context.onCloseReceived(closeFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a CLOSE frame", state));
@@ -176,15 +175,8 @@ public class WebSocketInputStateMachine {
 
         if (closePayloadLength >= 2) {
             code = closeFrame.getStatusCode();
-            Payload reasonPayload = null;
+            Payload reasonPayload = closeFrame.getReason();
             closeCodeRO = code;
-
-            try {
-                reasonPayload = closeFrame.getReason();
-            }
-            catch (ProtocolException ex) {
-                code = WS_PROTOCOL_ERROR;
-            }
 
             switch (code) {
             case WS_MISSING_STATUS_CODE:
@@ -223,16 +215,16 @@ public class WebSocketInputStateMachine {
         return;
     }
 
-    public void processPingFrame(final WsURLConnectionImpl connection, final Ping pingFrame)
+    public void processPing(final WsURLConnectionImpl connection, final Ping pingFrame)
             throws IOException {
         final AtomicReference<Ping> reference = new AtomicReference<Ping>(pingFrame);
         final AtomicBoolean hookExercised = new AtomicBoolean(false);
 
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onPingFrameReceived = new WebSocketFrameSupplier() {
+                onPingFrameReceived = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                         reference.set((Ping) frame);
                         hookExercised.set(true);
                     }
@@ -245,7 +237,7 @@ public class WebSocketInputStateMachine {
         switch (state) {
         case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_PING_FRAME);
-            context.onPingFrameReceived(pingFrame);
+            context.onPingReceived(pingFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a PING frame", state));
@@ -263,13 +255,13 @@ public class WebSocketInputStateMachine {
         connection.sendPong(pingPayload.buffer().array(), pingPayload.offset(), pingPayload.limit() - pingPayload.offset());
     }
 
-    public void processPongFrame(final WsURLConnectionImpl connection, final Pong pongFrame)
+    public void processPong(final WsURLConnectionImpl connection, final Pong pongFrame)
             throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onPongFrameReceived = new WebSocketFrameSupplier() {
+                onPongFrameReceived = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                     }
                 };
             }
@@ -281,22 +273,22 @@ public class WebSocketInputStateMachine {
         switch (state) {
         case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_PONG_FRAME);
-            context.onPongFrameReceived(pongFrame);
+            context.onPongReceived(pongFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a PONG frame", state));
         }
     }
 
-    public void processTextFrame(final WsURLConnectionImpl connection, final Data dataFrame)
+    public void processText(final WsURLConnectionImpl connection, final Data dataFrame)
             throws IOException {
         final AtomicBoolean hookExercised = new AtomicBoolean(false);
 
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onTextFrameReceived = new WebSocketFrameSupplier() {
+                onTextFrameReceived = new WebSocketFrameConsumer() {
                     @Override
-                    public void apply(WebSocketContext context, Frame frame) throws IOException {
+                    public void accept(WebSocketContext context, Frame frame) throws IOException {
                         if (hookExercised.compareAndSet(false, true)) {
                             Data sourceFrame = (Data) frame;
                             if (sourceFrame == dataFrame) {
@@ -315,7 +307,7 @@ public class WebSocketInputStateMachine {
         switch (state) {
         case OPEN:
             transition(connection, WebSocketTransition.RECEIVED_PONG_FRAME);
-            context.onTextFrameReceived(dataFrame);
+            context.onTextReceived(dataFrame);
             break;
         default:
             throw new IllegalStateException(format("Invalid state %s to be receiving a TEXT frame", state));

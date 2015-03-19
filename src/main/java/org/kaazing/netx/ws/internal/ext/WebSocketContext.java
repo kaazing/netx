@@ -42,55 +42,55 @@ public class WebSocketContext {
         return null;
     }
 
-    public void onBinaryFrameReceived(Data frame) throws IOException {
-        nextExtension().onBinaryFrameReceived.apply(this, frame);
+    public void onBinaryReceived(Data frame) throws IOException {
+        nextExtension().onBinaryFrameReceived.accept(this, frame);
     }
 
-    public void onCloseFrameReceived(Close frame) throws IOException {
-        nextExtension().onCloseFrameReceived.apply(this, frame);
+    public void onCloseReceived(Close frame) throws IOException {
+        nextExtension().onCloseFrameReceived.accept(this, frame);
     }
 
-    public void onPingFrameReceived(Ping frame) throws IOException {
-        nextExtension().onPingFrameReceived.apply(this, frame);
+    public void onPingReceived(Ping frame) throws IOException {
+        nextExtension().onPingFrameReceived.accept(this, frame);
     }
 
-    public void onPongFrameReceived(Pong frame) throws IOException {
-        nextExtension().onPongFrameReceived.apply(this, frame);
+    public void onPongReceived(Pong frame) throws IOException {
+        nextExtension().onPongFrameReceived.accept(this, frame);
     }
 
-    public void onTextFrameReceived(Data frame) throws IOException {
-        nextExtension().onTextFrameReceived.apply(this, frame);
+    public void onTextReceived(Data frame) throws IOException {
+        nextExtension().onTextFrameReceived.accept(this, frame);
     }
 
-    public void onBinaryFrameSent(Data frame) throws IOException {
-        nextExtension().onBinaryFrameSent.apply(this, frame);
+    public void onBinarySent(Data frame) throws IOException {
+        nextExtension().onBinaryFrameSent.accept(this, frame);
     }
 
-    public void onCloseFrameSent(Close frame) throws IOException {
-        nextExtension().onCloseFrameSent.apply(this, frame);
+    public void onCloseSent(Close frame) throws IOException {
+        nextExtension().onCloseFrameSent.accept(this, frame);
     }
 
-    public void onPongFrameSent(Pong frame) throws IOException {
-        nextExtension().onPongFrameSent.apply(this, frame);
+    public void onPongSent(Pong frame) throws IOException {
+        nextExtension().onPongFrameSent.accept(this, frame);
     }
 
-    public void onTextFrameSent(Data frame) throws IOException {
-        nextExtension().onTextFrameSent.apply(this, frame);
+    public void onTextSent(Data frame) throws IOException {
+        nextExtension().onTextFrameSent.accept(this, frame);
     }
 
-    public void doSendBinaryFrame(Data dataFrame) throws IOException {
-        // ### TODO
+    public void doSendBinary(Data dataFrame) throws IOException {
+        connection.getOutputStateMachine().processBinary(connection, dataFrame);
     }
 
-    public void doSendClosedFrame(Close closeFrame) throws IOException {
-        // ### TODO
+    public void doSendClose(Close closeFrame) throws IOException {
+        connection.getOutputStateMachine().processClose(connection, closeFrame);
     }
 
-    public void doSendPongFrame(Pong pongFrame) throws IOException {
-        // ### TODO
+    public void doSendPong(Pong pongFrame) throws IOException {
+        connection.getOutputStateMachine().processPong(connection, pongFrame);
     }
 
-    public void doSendTextFrame(Data dataFrame) throws IOException {
-        // ### TODO
+    public void doSendText(Data dataFrame) throws IOException {
+        connection.getOutputStateMachine().processText(connection, dataFrame);
     }
 }

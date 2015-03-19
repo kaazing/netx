@@ -52,27 +52,14 @@ public abstract class WebSocketFactory {
     /**
      * Adds the specified extension to the list of enabled extensions. The extension's toString() method should return RFC-3864
      * formatted string so that it can be sent as part of <i>Sec-Websocket-Extensions</i> header during the opening handshake.
-     * All the WebSockets created using this factory will inherit the enabled extension.
-     *
+     * All the WebSockets created using this factory will inherit the enabled extension. The <i>toString()</i> method of the
+     * extension should return a RFC-3864 formatted string that looks as shown below:
+     * {@code}
+     *         extension_name[;param1=value1;param2=value2]
+     * {@code}
      * @param extension WebSocketExtension with toString() method that returns RFC-3864 formatted string
      */
     public abstract void addDefaultEnabledExtension(WebSocketExtension extension);
-
-    /**
-     * Enables the specified extensions. The enabled extensions should be a subset of the supported extensions. The specified
-     * extensions(along with their parameters) are specified as the value of the <i>Sec-Websocket-Extensions</i> header
-     * during the opening handshake. Invoking this method clears previously enabled extensions. All the WebSockets created
-     * using this factory will inherit the enabled extensions.
-     *
-     * @param extensions  the format for each string that is passed in must be as per RFC-3864
-     *                            extension_name[;param1=value1;param2=value2]
-     */
-    public abstract void addDefaultEnabledExtensions(String...extensions);
-
-    /**
-     * Clears the default enabled extensions.
-     */
-    public abstract void clearDefaultEnabledExtensions();
 
     /**
      * Creates a {@link WebSocket} to establish a full-duplex connection to the target location.
@@ -122,14 +109,14 @@ public abstract class WebSocketFactory {
     public abstract int getDefaultConnectTimeout();
 
     /**
-     * Gets the names of the default enabled extensions that will be inherited by all the {@link WebSocket}s created using this
+     * Gets the default enabled extensions that will be inherited by all the {@link WebSocket}s created using this
      * factory. These extensions are negotiated between the client and the server during the WebSocket handshake only if all the
      * required parameters belonging to the extension have been set as enabled parameters. An empty Collection is returned if no
      * extensions have been enabled for this factory.
      *
-     * @return Collection<String>     names of the enabled extensions for
+     * @return Collection<WebSocketExtension>     list of enabled extensions
      */
-    public abstract Collection<String> getDefaultEnabledExtensions();
+    public abstract Collection<WebSocketExtension> getDefaultEnabledExtensions();
 
     /**
      * Returns the default {@link HttpRedirectPolicy} that was specified at on the factory. The default redirect policy

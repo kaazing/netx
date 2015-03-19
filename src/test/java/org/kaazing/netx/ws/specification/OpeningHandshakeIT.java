@@ -19,8 +19,6 @@ package org.kaazing.netx.ws.specification;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension.PRIMARY_EXTENSION;
-import static org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension.SECONDARY_EXTENSION;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
@@ -38,6 +36,7 @@ import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension;
+import org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension;
 
 /**
  * RFC-6455, section 4.1 "Client-Side Requirements"
@@ -134,7 +133,8 @@ public class OpeningHandshakeIT {
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
-        conn.addEnabledExtensions(PRIMARY_EXTENSION.name(), SECONDARY_EXTENSION.name());
+        conn.addEnabledExtension(new PrimaryExtension());
+        conn.addEnabledExtension(new SecondaryExtension());
         conn.connect();
         k3po.join();
         assertEquals(PrimaryExtension.PRIMARY_EXTENSION.name(), conn.getNegotiatedExtensions().iterator().next());

@@ -42,20 +42,13 @@ public abstract class WebSocket implements Closeable {
     /**
      * Adds the specified extension to the list of enabled extensions. The extension's toString() method should return RFC-3864
      * formatted string so that it can be sent as part of <i>Sec-Websocket-Extensions</i> header during the opening handshake.
-     *
+     * The <i>toString()</i> method of the extension should return a RFC-3864 formatted string that looks as shown below:
+     * {@code}
+     *         extension_name[;param1=value1;param2=value2]
+     * {@code}
      * @param extension WebSocketExtension with toString() method that returns RFC-3864 formatted string
      */
     public abstract void addEnabledExtension(WebSocketExtension extension);
-
-    /**
-     * Enables the specified extensions. The enabled extensions should be a subset of the supported extensions. The specified
-     * extensions(along with their parameters) are specified as the value of the <i>Sec-Websocket-Extensions</i> header
-     * during the opening handshake. Invoking this method clears previously enabled extensions.
-     *
-     * @param extensions  the format for each string that is passed in must be as per RFC-3864
-     *                            extension_name[;param1=value1;param2=value2]
-     */
-    public abstract void addEnabledExtensions(String...extensions);
 
     /**
      * Disconnects with the server. This is a blocking call that returns only when the shutdown is complete.
@@ -110,14 +103,14 @@ public abstract class WebSocket implements Closeable {
     public abstract int getConnectTimeout();
 
     /**
-     * Gets the names of all the extensions that have been enabled for this connection. The enabled extensions are negotiated
+     * Gets all the extensions that have been enabled for this connection. The enabled extensions are negotiated
      * between the client and the server during the handshake. The names of the negotiated extensions can be obtained using
      * {@link #getNegotiatedExtensions()} API. An empty Collection is returned if no extensions have been enabled for
      * this connection. The enabled extensions will be a subset of the supported extensions.
      *
-     * @return Collection<String>     names of the enabled extensions for this connection
+     * @return Collection<WebSocketExtension>     names of the enabled extensions for this connection
      */
-    public abstract Collection<String> getEnabledExtensions();
+    public abstract Collection<WebSocketExtension> getEnabledExtensions();
 
     /**
      * Gets the names of all the protocols that are enabled for this connection. Returns an empty Collection if protocols are

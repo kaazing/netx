@@ -60,10 +60,6 @@ public class Flyweight {
         return storage.buffer();
     }
 
-    public ByteBuffer mutableBuffer() {
-        return storage.mutableBuffer();
-    }
-
     /**
      * Wrap a flyweight to use a specific buffer starting at a given offset.
      * Immutable flyweights should provide a public wrap(buffer, offset) method
@@ -85,66 +81,6 @@ public class Flyweight {
     }
 
     /**
-     * Return the 32-bit field at a given location as an float.
-     *
-     * @param buffer
-     *            to read from
-     * @param offset
-     *            to read from
-     * @return float representation of the 32-bit field
-     */
-    public static float floatGet(final ByteBuffer buffer, final int offset) {
-        return buffer.getFloat(offset);
-    }
-
-    /**
-     * Encode the given float value as a 32-bit field at the given location.
-     *
-     * @param buffer
-     *            to write from
-     * @param offset
-     *            to write at
-     * @param byteOrder
-     *            to encode with
-     * @param value
-     *            to encode represented as a 32-bit field
-     */
-    public static void floatPut(final ByteBuffer buffer, final int offset, final float value) {
-        buffer.putFloat(offset, value);
-    }
-
-    /**
-     * Return the 64-bit field at a given location as an double.
-     *
-     * @param buffer
-     *            to read from
-     * @param offset
-     *            to read from
-     * @param byteOrder
-     *            to decode with
-     * @return double representation of the 64-bit field
-     */
-    public static double doubleGet(final ByteBuffer buffer, final int offset) {
-        return buffer.getDouble(offset);
-    }
-
-    /**
-     * Encode the given double value as a 64-bit field at the given location.
-     *
-     * @param buffer
-     *            to write from
-     * @param offset
-     *            to write at
-     * @param byteOrder
-     *            to encode with
-     * @param value
-     *            to encode represented as a 64-bit field
-     */
-    public static void doublePut(final ByteBuffer buffer, final int offset, final double value) {
-        buffer.putDouble(offset, value);
-    }
-
-    /**
      * Return the 8-bit field at a given location as an unsigned integer.
      *
      * @param buffer
@@ -155,47 +91,6 @@ public class Flyweight {
      */
     public static short uint8Get(final ByteBuffer buffer, final int offset) {
         return (short) (buffer.get(offset) & 0xFF);
-    }
-
-    /**
-     * Encode a given value as an 8-bit unsigned integer at a given location.
-     *
-     * @param buffer
-     *            to write to
-     * @param offset
-     *            to write at
-     * @param value
-     *            to encode represented as a short
-     */
-    public static void uint8Put(final ByteBuffer buffer, final int offset, final short value) {
-        buffer.put(offset, (byte) value);
-    }
-
-    /**
-     * Return the 8-bit field at a given location as a signed integer.
-     *
-     * @param buffer
-     *            to read from
-     * @param offset
-     *            to read from
-     * @return byte representation of the 8-bit signed value
-     */
-    public static byte int8Get(final ByteBuffer buffer, final int offset) {
-        return buffer.get(offset);
-    }
-
-    /**
-     * Encode a given value as an 8-bit signed integer at a given location.
-     *
-     * @param buffer
-     *            to write to
-     * @param offset
-     *            to write at
-     * @param value
-     *            to encode represented as a byte
-     */
-    public static void int8Put(final ByteBuffer buffer, final int offset, final byte value) {
-        buffer.put(offset, value);
     }
 
     /**
@@ -214,107 +109,6 @@ public class Flyweight {
     }
 
     /**
-     * Encode a given value as an 16-bit unsigned integer at a given location.
-     *
-     * @param buffer
-     *            to write to
-     * @param offset
-     *            to write at
-     * @param value
-     *            to encode represented as an int
-     */
-    public static void uint16Put(final ByteBuffer buffer, final int offset, final int value) {
-        buffer.putShort(offset, (short) value);
-    }
-
-    /**
-     * Return the 16-bit field at a given location as a signed integer.
-     *
-     * @param buffer
-     *            to read from
-     * @param offset
-     *            to read from
-     * @param byteOrder
-     *            to decode with
-     * @return short representation of the 16-bit signed value
-     */
-    public static short int16Get(final ByteBuffer buffer, final int offset) {
-        return buffer.getShort(offset);
-    }
-
-    /**
-     * Encode a given value as an 16-bit signed integer at a given location.
-     *
-     * @param buffer
-     *            to write to
-     * @param offset
-     *            to write at
-     * @param value
-     *            to encode represented as a short
-     * @param byteOrder
-     *            to encode with
-     */
-    public static void int16Put(final ByteBuffer buffer, final int offset, final short value) {
-        buffer.putShort(offset, value);
-    }
-
-    /**
-     * Return the 32-bit field at a given location as an unsigned integer.
-     *
-     * @param buffer
-     *            to read from
-     * @param offset
-     *            to read from
-     * @param byteOrder
-     *            to decode with
-     * @return long representation of the 32-bit signed value
-     */
-    public static long uint32Get(final ByteBuffer buffer, final int offset) {
-        return buffer.getInt(offset) & 0xFFFFFFFFL;
-    }
-
-    /**
-     * Encode a given value as an 32-bit unsigned integer at a given location.
-     *
-     * @param buffer
-     *            to write to
-     * @param offset
-     *            to write at
-     * @param value
-     *            to encode represented as an long
-     */
-    public static void uint32Put(final ByteBuffer buffer, final int offset, final long value) {
-        buffer.putInt(offset, (int) value);
-    }
-
-    /**
-     * Return the 32-bit field at a given location as a signed integer.
-     *
-     * @param buffer
-     *            to read from
-     * @param offset
-     *            to read from
-     * @return int representation of the 32-bit signed value
-     */
-    public static int int32Get(final ByteBuffer buffer, final int offset) {
-        return buffer.getInt(offset);
-    }
-
-    /**
-     * Encode a given value as an 32-bit signed integer at a given location.
-     *
-     * @param buffer
-     *            to write to
-     * @param offset
-     *            to write at
-     * @param value
-     *            to encode represented as a int
-     */
-    public static void int32Put(final ByteBuffer buffer, final int offset, final int value) {
-        buffer.putInt(offset, value);
-    }
-
-    /**
      * Return the 64-bit field at a given location as a signed integer.
      *
      * @param buffer
@@ -325,55 +119,6 @@ public class Flyweight {
      */
     public static long int64Get(final ByteBuffer buffer, final int offset) {
         return buffer.getLong(offset);
-    }
-
-    /**
-     * Encode a given value as an 64-bit signed integer at a given location.
-     *
-     * @param buffer
-     *            to write to
-     * @param offset
-     *            to write at
-     * @param byteOrder
-     *            to encode with
-     * @param value
-     *            to encode represented as a long
-     */
-    public static void int64Put(final ByteBuffer buffer, final int offset, final long value) {
-        buffer.putLong(offset, value);
-    }
-
-    /**
-     * Is a bit set at a given index.
-     *
-     * @param buffer
-     *            to read from.
-     * @param offset
-     *            of the beginning byte
-     * @param bitIndex
-     *            bit index to read
-     * @return true if the bit is set otherwise false.
-     */
-    public static boolean bitSet(final ByteBuffer buffer, final int offset, final int bitIndex) {
-        return 0 != (buffer.get(offset) & (1 << bitIndex));
-    }
-
-    /**
-     * Set a bit on or off at a given index.
-     *
-     * @param buffer
-     *            to write the bit too.
-     * @param offset
-     *            of the beginning byte.
-     * @param bitIndex
-     *            bit index to set.
-     * @param switchOn
-     *            true sets bit to 1 and false sets it to 0.
-     */
-    public static void bitSet(final ByteBuffer buffer, final int offset, final int bitIndex, final boolean switchOn) {
-        byte bits = buffer.get(offset);
-        bits = (byte) ((switchOn ? bits | (1 << bitIndex) : bits & ~(1 << bitIndex)));
-        buffer.put(offset, bits);
     }
 
     private interface Storage {

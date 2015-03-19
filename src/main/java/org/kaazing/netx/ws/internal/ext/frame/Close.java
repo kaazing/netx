@@ -24,7 +24,7 @@ public class Close extends Control {
 
     }
 
-    public Close wrap(ByteBuffer buffer, int offset) throws ProtocolException {
+    public Close wrap(ByteBuffer buffer, int offset) {
         wrap(buffer, offset, false);
         return this;
     }

@@ -22,7 +22,7 @@ public class Ping extends Control {
 
     }
 
-    public Ping wrap(ByteBuffer buffer, int offset) throws ProtocolException {
+    public Ping wrap(ByteBuffer buffer, int offset) {
         super.wrap(buffer, offset, false);
         return this;
     }

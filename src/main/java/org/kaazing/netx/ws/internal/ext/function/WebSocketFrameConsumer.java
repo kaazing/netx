@@ -13,16 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.frame;
+package org.kaazing.netx.ws.internal.ext.function;
 
-public class ProtocolException extends RuntimeException {
-    private static final long serialVersionUID = 3580990130982554297L;
+import java.io.IOException;
 
-    public ProtocolException(String message) {
-        super(message);
-    }
+import org.kaazing.netx.ws.internal.ext.WebSocketContext;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
 
-    public ProtocolException(String message, Throwable cause) {
-        super(message, cause);
-    }
+public interface WebSocketFrameConsumer {
+    void accept(WebSocketContext context, Frame frame) throws IOException ;
 }

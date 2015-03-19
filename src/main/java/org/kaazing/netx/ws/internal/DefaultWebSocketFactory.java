@@ -16,7 +16,6 @@
 
 package org.kaazing.netx.ws.internal;
 
-import static java.lang.String.format;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
@@ -24,7 +23,6 @@ import static java.util.Collections.unmodifiableMap;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,9 +41,9 @@ import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 public final class DefaultWebSocketFactory extends WebSocketFactory {
     private static final Map<String, WebSocketExtensionFactorySpi>  extensionFactories;
 
-    private final List<String> enabledExtensions;
-    private final List<String> enabledExtensionsRO;
-    private final Collection<String>  supportedExtensions;
+    private final List<WebSocketExtension> enabledExtensions;
+    private final List<WebSocketExtension> enabledExtensionsRO;
+    private final Collection<String> supportedExtensions;
 
     private HttpRedirectPolicy        redirectPolicy;
     private ChallengeHandler          challengeHandler;
@@ -67,7 +65,7 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
     }
 
     public DefaultWebSocketFactory() {
-        this.enabledExtensions = new ArrayList<String>();
+        this.enabledExtensions = new ArrayList<WebSocketExtension>();
         this.enabledExtensionsRO = unmodifiableList(enabledExtensions);
 
         this.supportedExtensions = new HashSet<String>();
@@ -82,29 +80,7 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
         if (extension == null) {
             throw new NullPointerException("Null extension passed in");
         }
-        this.enabledExtensions.add(extension.toString());
-    }
-
-    @Override
-    public void addDefaultEnabledExtensions(String...extensions) {
-        if (extensions == null) {
-            throw new NullPointerException("Null extensions passed in");
-        }
-
-        this.enabledExtensions.clear();
-
-        for (String extension : extensions) {
-            if (!supportedExtensions.contains(extension)) {
-                throw new IllegalStateException(format("%s is not a supported extension", extension));
-            }
-        }
-
-        this.enabledExtensions.addAll(Arrays.asList(extensions));
-    }
-
-    @Override
-    public void clearDefaultEnabledExtensions() {
-        this.enabledExtensions.clear();
+        this.enabledExtensions.add(extension);
     }
 
     @Override
@@ -119,11 +95,15 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
         // Create a WebSocket instance that inherits the enabled protocols,
         // enabled extensions, enabled parameters, the HttpRedirectOption,
         // the extension factories(ie. the supported extensions).
-        WebSocketImpl   ws = new WebSocketImpl(location, enabledExtensionsRO);
+        WebSocketImpl   ws = new WebSocketImpl(location);
         ws.setRedirectPolicy(redirectPolicy);
         ws.setEnabledProtocols(protocols);
         ws.setChallengeHandler(challengeHandler);
         ws.setConnectTimeout(connectTimeout);
+
+        for (WebSocketExtension extension : enabledExtensions) {
+            ws.addEnabledExtension(extension);
+        }
 
         return ws;
     }
@@ -139,7 +119,7 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
     }
 
     @Override
-    public Collection<String> getDefaultEnabledExtensions() {
+    public Collection<WebSocketExtension> getDefaultEnabledExtensions() {
         return this.enabledExtensionsRO;
     }
 

@@ -25,16 +25,16 @@ import org.kaazing.netx.ws.internal.ext.frame.Frame;
 import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
 import org.kaazing.netx.ws.internal.ext.frame.OpCode;
-import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameSupplier;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     {
-        onTextFrameReceived = new WebSocketFrameSupplier() {
+        onTextFrameReceived = new WebSocketFrameConsumer() {
 
             @Override
-            public void apply(WebSocketContext context, Frame frame) throws IOException {
+            public void accept(WebSocketContext context, Frame frame) throws IOException {
                 OpCode opcode = frame.getOpCode();
                 int payloadLength = frame.getLength();
                 Payload payload = frame.getPayload();
@@ -43,14 +43,14 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
                 byte[] bytes = msg.getBytes(UTF_8);
                 FrameFactory factory = FrameFactory.newInstance(8192);
                 Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
-                context.onTextFrameReceived((Data) transformedFrame);
+                context.onTextReceived((Data) transformedFrame);
             }
         };
 
-        onTextFrameSent = new WebSocketFrameSupplier() {
+        onTextFrameSent = new WebSocketFrameConsumer() {
 
             @Override
-            public void apply(WebSocketContext context, Frame frame) throws IOException {
+            public void accept(WebSocketContext context, Frame frame) throws IOException {
                 OpCode opcode = frame.getOpCode();
                 int payloadLength = frame.getLength();
                 Payload payload = frame.getPayload();
@@ -60,7 +60,7 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
                 FrameFactory factory = FrameFactory.newInstance(8192);
                 Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
 
-                context.onTextFrameSent((Data) transformedFrame);
+                context.onTextSent((Data) transformedFrame);
             }
         };
     }

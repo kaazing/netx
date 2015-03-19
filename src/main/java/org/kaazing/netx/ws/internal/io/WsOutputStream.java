@@ -70,7 +70,7 @@ public final class WsOutputStream extends FilterOutputStream {
 
         dataFrame = (Data) getFrame(OpCode.BINARY, true, true, buf, offset, length);
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        outputStateMachine.processBinaryFrame(connection, dataFrame);
+        outputStateMachine.processBinary(connection, dataFrame);
     }
 
     public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
@@ -99,13 +99,13 @@ public final class WsOutputStream extends FilterOutputStream {
 
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         closeFrame = (Close) getFrame(OpCode.CLOSE, true, true, controlFramePayload, 0, payloadLen);
-        outputStateMachine.processCloseFrame(connection, closeFrame);
+        outputStateMachine.processClose(connection, closeFrame);
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         controlFrame = (Control) getFrame(OpCode.PONG, true, true, buf, offset, length);
-        outputStateMachine.processPongFrame(connection, (Pong) controlFrame);
+        outputStateMachine.processPong(connection, (Pong) controlFrame);
     }
 
     private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)

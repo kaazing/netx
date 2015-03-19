@@ -123,7 +123,7 @@ public abstract class Frame extends Flyweight {
 
                 for (int i = 0; i < len; i++) {
                     byte b = (byte) (uint8Get(buffer(), getDataOffset() + i) ^ mask[i % mask.length]);
-                    uint8Put(unmaskedPayload, i, b);
+                    unmaskedPayload.put(i, b);
                 }
 
                 payload.wrap(unmaskedPayload, 0, len, false);
@@ -153,9 +153,5 @@ public abstract class Frame extends Flyweight {
         public int limit() {
             return limit;
         }
-    }
-
-    static void protocolError(String message) throws ProtocolException {
-        throw new ProtocolException(message);
     }
 }

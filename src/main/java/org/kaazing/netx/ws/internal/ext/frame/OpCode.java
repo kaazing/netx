@@ -35,7 +35,7 @@ public enum OpCode {
         case 0x0A:
             return PONG;
         default:
-            throw new ProtocolException(format("Unrecognized WebSocket OpCode %x", value));
+            throw new IllegalStateException(format("Unrecognized WebSocket OpCode %x", value));
         }
     };
 
@@ -54,7 +54,7 @@ public enum OpCode {
         case PONG:
             return 0x0A;
         default:
-            throw new ProtocolException(format("Unrecognised OpCode %s", value));
+            throw new IllegalStateException(format("Unrecognised OpCode %s", value));
         }
     };
 }

@@ -22,11 +22,17 @@ public final class SecondaryExtension extends WebSocketExtension {
 
     private static final String EXTENSION_NAME = "secondary";
 
-    private SecondaryExtension() {
+    public SecondaryExtension() {
     }
 
     @Override
     public String name() {
+        return EXTENSION_NAME;
+    }
+
+    @Override
+    public String toString() {
+        // ### TODO: Maybe add some parameters.
         return EXTENSION_NAME;
     }
 }

@@ -26,8 +26,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
@@ -50,17 +48,11 @@ public class WebSocketImpl extends WebSocket {
      * @throws Exception      if connection could not be established
      */
     public WebSocketImpl(URI location) throws URISyntaxException {
-        this(location, Collections.<String>emptyList());
-    }
-
-    public WebSocketImpl(URI location, List<String> enabledExtensions)
-           throws URISyntaxException {
         try {
             URLConnectionHelper helper = URLConnectionHelper.newInstance();
             URL locationURL = helper.toURL(location);
 
             connection = (WsURLConnectionImpl) locationURL.openConnection();
-            connection.addEnabledExtensions(enabledExtensions.toArray(new String[enabledExtensions.size()]));
         }
         catch (MalformedURLException e) {
             throw new IllegalStateException(e);
@@ -73,11 +65,6 @@ public class WebSocketImpl extends WebSocket {
     @Override
     public void addEnabledExtension(WebSocketExtension extension) {
         connection.addEnabledExtension(extension);
-    }
-
-    @Override
-    public void addEnabledExtensions(String... extensions) {
-        connection.addEnabledExtensions(extensions);
     }
 
     @Override
@@ -111,7 +98,7 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public Collection<String> getEnabledExtensions() {
+    public Collection<WebSocketExtension> getEnabledExtensions() {
         return connection.getEnabledExtensions();
     }
 

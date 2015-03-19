@@ -62,7 +62,7 @@ public class PongTest extends FrameTest {
         putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
         try {
             frameFactory.wrap(buffer, offset);
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             System.out.println(e);
             return;
         }
@@ -76,7 +76,7 @@ public class PongTest extends FrameTest {
         putLengthAndMaskBit(buffer, offset + 1, 126, masked);
         try {
             frameFactory.wrap(buffer, offset);
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             System.out.println(e);
             return;
         }

@@ -16,7 +16,6 @@
 package org.kaazing.netx.ws.internal.ext.frame;
 
 import static java.lang.String.format;
-import static org.kaazing.netx.ws.internal.ext.frame.Frame.protocolError;
 import static org.kaazing.netx.ws.internal.util.FrameUtil.EMPTY_MASK;
 import static org.kaazing.netx.ws.internal.util.FrameUtil.calculateNeed;
 import static org.kaazing.netx.ws.internal.util.FrameUtil.getOpCode;
@@ -70,7 +69,7 @@ public final class FrameFactory extends Flyweight {
         return new FrameFactory(maxMessageSize);
     }
 
-    public Frame wrap(ByteBuffer buffer, int offset) throws ProtocolException {
+    public Frame wrap(ByteBuffer buffer, int offset) {
         Frame frame = null;
         OpCode opcode = getOpCode(buffer, offset);
 
@@ -94,8 +93,7 @@ public final class FrameFactory extends Flyweight {
             frame = data.wrap(buffer, offset);
             break;
         default:
-            protocolError(format("Protocol Violation: Invalid opcode: %s", opcode));
-            break;
+            throw new IllegalStateException(format("Protocol Violation: Invalid opcode: %s", opcode));
         }
         return frame;
     }
@@ -126,8 +124,7 @@ public final class FrameFactory extends Flyweight {
             frame = pong;
             break;
         default:
-            Frame.protocolError(format("Protocol Violation: Invalid opcode: %s", opcode));
-            break;
+            throw new IllegalStateException(format("Protocol Violation: Invalid opcode: %s", opcode));
         }
 
         putFinAndOpCode(frame.buffer(), frame.offset(), opcode, fin);

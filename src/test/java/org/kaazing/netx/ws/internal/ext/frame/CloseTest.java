@@ -90,7 +90,7 @@ public class CloseTest extends FrameTest {
         putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
         try {
             frameFactory.wrap(buffer, offset);
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             System.out.println(e);
             return;
         }
@@ -105,7 +105,7 @@ public class CloseTest extends FrameTest {
         try {
             Close frame = (Close) frameFactory.wrap(buffer, offset);
             frame.getLength();
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             System.out.println(e);
             return;
         }
@@ -120,7 +120,7 @@ public class CloseTest extends FrameTest {
         try {
             Close frame = (Close) frameFactory.wrap(buffer, offset);
             frame.getPayload();
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             System.out.println(e);
             return;
         }
@@ -135,7 +135,7 @@ public class CloseTest extends FrameTest {
         Close close = (Close) frameFactory.wrap(buffer, offset);
         try {
             close.getStatusCode();
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             System.out.println(e);
             return;
         }
@@ -150,7 +150,7 @@ public class CloseTest extends FrameTest {
         Close close = (Close) frameFactory.wrap(buffer, offset);
         try {
             close.getStatusCode();
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             System.out.println(e);
             return;
         }
@@ -167,7 +167,7 @@ public class CloseTest extends FrameTest {
         Close frame = (Close) frameFactory.wrap(buffer, offset);
         try {
             frame.getReason();
-        } catch (ProtocolException e) {
+        } catch (Exception e) {
             return;
         }
         fail("Exception was not thrown");

@@ -23,7 +23,7 @@ public class Pong extends Control {
 
     }
 
-    public Pong wrap(ByteBuffer buffer, int offset) throws ProtocolException {
+    public Pong wrap(ByteBuffer buffer, int offset) {
         super.wrap(buffer, offset, false);
         return this;
     }
