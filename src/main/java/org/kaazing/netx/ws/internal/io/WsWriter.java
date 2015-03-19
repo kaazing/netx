@@ -63,7 +63,7 @@ public class WsWriter extends Writer {
         dataFrame = (Data) getFrame(OpCode.TEXT, true, true, bytesPayload, 0, bytesPayload.length);
 
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        outputStateMachine.sendTextFrame(connection, dataFrame);
+        outputStateMachine.processTextFrame(connection, dataFrame);
     }
 
     @Override

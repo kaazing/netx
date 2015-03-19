@@ -18,13 +18,13 @@ package org.kaazing.netx.ws.ext;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension.PRIMARY_EXTENSION;
+import static org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension.SECONDARY_EXTENSION;
 
 import java.io.Reader;
 import java.io.Writer;
 import java.net.URI;
 import java.net.URL;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Random;
 
 import org.junit.Rule;
@@ -36,13 +36,8 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.internal.WebSocketExtensionParameterValues;
-import org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension;
-import org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension;
 
 public class ExtensionsIT {
-    private final Random random = new Random();
-
     private final K3poRule k3po = new K3poRule().setScriptRoot("org/kaazing/netx/ws/ext");
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(5, SECONDS));
@@ -58,12 +53,8 @@ public class ExtensionsIT {
         URI location = URI.create("ws://localhost:8080/path");
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
-        Map<String, WebSocketExtensionParameterValues> enabledExtensions =
-                                                    new LinkedHashMap<String, WebSocketExtensionParameterValues>();
+        conn.addEnabledExtensions(PRIMARY_EXTENSION.name(), SECONDARY_EXTENSION.name());
 
-        enabledExtensions.put(PrimaryExtension.PRIMARY_EXTENSION.name(), null);
-        enabledExtensions.put(SecondaryExtension.SECONDARY_EXTENSION.name(), null);
-        conn.setEnabledExtensions(enabledExtensions);
         conn.connect();
 
         Writer writer = conn.getWriter();

@@ -25,12 +25,9 @@ import java.io.Writer;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collection;
-import java.util.Map;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.internal.WebSocketExtensionParameterValues;
-import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 
 /**
  * A URLConnection with support for WebSocket RFC-6455 specification.
@@ -123,6 +120,24 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     }
 
     /**
+     * Adds the specified extension to the list of enabled extensions. The extension's toString() method should return RFC-3864
+     * formatted string so that it can be sent as part of <i>Sec-Websocket-Extensions</i> header during the opening handshake.
+     *
+     * @param extension WebSocketExtension with toString() method that returns RFC-3864 formatted string
+     */
+    public abstract void addEnabledExtension(WebSocketExtension extension);
+
+    /**
+     * Enables the specified extensions. The enabled extensions should be a subset of the supported extensions. The specified
+     * extensions(along with their parameters) are specified as the value of the <i>Sec-Websocket-Extensions</i> header
+     * during the opening handshake. Invoking this method clears previously enabled extensions.
+     *
+     * @param extensions  the format for each string that is passed in must be as per RFC-3864
+     *                            extension_name[;param1=value1;param2=value2]
+     */
+    public abstract void addEnabledExtensions(String...extensions);
+
+    /**
      * Disconnects with the server. This is a blocking call that returns only when the shutdown is complete.
      *
      * @throws IOException    if the disconnect did not succeed
@@ -179,15 +194,6 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract Collection<String> getEnabledExtensions();
 
     /**
-     * Gets the value of the specified {@link Parameter} defined in an enabled extension.
-     *
-     * @param <T>          Generic type of the value of the Parameter
-     * @param parameter    Parameter whose value needs to be set
-     * @return the value of the specified parameter
-     */
-    public abstract <T> T getEnabledParameter(Parameter<T> parameter);
-
-    /**
      * Gets the names of all the protocols that are enabled for this connection. Returns an empty Collection if protocols are
      * not enabled.
      *
@@ -233,16 +239,6 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
      * @throws IOException if an I/O error occurs when negotiating the extension or connection is closed
      */
     public abstract Collection<String> getNegotiatedExtensions() throws IOException;
-
-    /**
-     * Returns the value of the specified {@link Parameter} of a negotiated extension.
-     *
-     * @param <T>          parameter type
-     * @param parameter    parameter of a negotiated extension
-     * @return T           value of the specified parameter
-     * @throws IOException if an I/O error occurs when negotiating the extension or connection is closed
-     */
-    public abstract <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException;
 
     /**
      * Gets the protocol that the client and the server have successfully negotiated.
@@ -307,20 +303,6 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract void setChallengeHandler(ChallengeHandler challengeHandler);
 
     /**
-     * Registers the extensions to be negotiated between the client and the server during the handshake. This method must be
-     * called before invoking the {@link #connect()} method. The enabled extensions should be a subset of the supported
-     * extensions. Only the extensions that are explicitly enabled are put on the wire even though there could be more
-     * supported extensions on this connection. All the required parameters defined in the extension must have values with
-     * string representation.
-     * <p>
-     * @param enabledExtensions    Map keyed by extension name with WebSocketExtensionParameterValue as the corresponding
-     *                             value
-     * @throw IllegalStateException   if this method is invoked after successful connection or any of the specified
-     *                                extensions is not a supported extension
-     */
-    public abstract void setEnabledExtensions(Map<String, WebSocketExtensionParameterValues> enabledExtensions);
-
-    /**
      * Registers the protocols to be negotiated with the server during the handshake. This method must be invoked before
      * {@link #connect()} is called.
      * <p>
@@ -329,7 +311,7 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
      * @param protocols  the list of protocols to be negotiated with the server during the WebSocket handshake
      * @throws IllegalStateException   if this method is invoked after connect()
      */
-    public abstract void setEnabledProtocols(Collection<String> protocols) throws IllegalStateException;
+    public abstract void setEnabledProtocols(String... protocols) throws IllegalStateException;
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx).

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.internal;
+package org.kaazing.netx.ws;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -23,13 +23,9 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.Collection;
-import java.util.Map;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageWriter;
-import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
 
 
 /**
@@ -44,6 +40,24 @@ import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
  */
 public abstract class WebSocket implements Closeable {
     /**
+     * Adds the specified extension to the list of enabled extensions. The extension's toString() method should return RFC-3864
+     * formatted string so that it can be sent as part of <i>Sec-Websocket-Extensions</i> header during the opening handshake.
+     *
+     * @param extension WebSocketExtension with toString() method that returns RFC-3864 formatted string
+     */
+    public abstract void addEnabledExtension(WebSocketExtension extension);
+
+    /**
+     * Enables the specified extensions. The enabled extensions should be a subset of the supported extensions. The specified
+     * extensions(along with their parameters) are specified as the value of the <i>Sec-Websocket-Extensions</i> header
+     * during the opening handshake. Invoking this method clears previously enabled extensions.
+     *
+     * @param extensions  the format for each string that is passed in must be as per RFC-3864
+     *                            extension_name[;param1=value1;param2=value2]
+     */
+    public abstract void addEnabledExtensions(String...extensions);
+
+    /**
      * Disconnects with the server. This is a blocking call that returns only when the shutdown is complete.
      *
      * @throws IOException    if the disconnect did not succeed
@@ -52,27 +66,23 @@ public abstract class WebSocket implements Closeable {
     public abstract void close() throws IOException;
 
     /**
-     * Disconnects with the server with code. This is a blocking call that returns only when the shutdown is complete.
+     * Disconnects with the server with code. This is a blocking call that returns only when the shutdown is complete. An
+     * IllegalArgumentException is thrown if the code isn't 1000 or out of 3000 - 4999 range.
      *
      * @param code                         the error code for closing
      * @throws IOException                 if the disconnect did not succeed
-     * @throws IllegalArgumentException    if the code isn't 1000 or out of
-     *                                     range 3000 - 4999.
      */
-    public abstract void close(int code)
-           throws IOException;
+    public abstract void close(int code) throws IOException;
 
     /**
      * Disconnects with the server with code and reason. This is a blocking call that returns only when the shutdown is complete.
      *
      * @param code                         the error code for closing
      * @param reason                       the reason for closing
-     * @throws IOException                 if the disconnect did not succeed
-     * @throws IllegalArgumentException    if the code isn't 1000 or out of range 3000 - 4999 OR if the reason is more than
-     *                                     123 bytes
+     * @throws IOException                 if the disconnect did not succeed OR if the code isn't 1000 or out of range
+     *                                     3000 - 4999 OR if the reason is more than 123 bytes
      */
-    public abstract void close(int code, String reason)
-           throws IOException;
+    public abstract void close(int code, String reason) throws IOException;
 
     /**
      * Connects with the server using an end-point. This is a blocking call. The thread invoking this method will be blocked
@@ -108,15 +118,6 @@ public abstract class WebSocket implements Closeable {
      * @return Collection<String>     names of the enabled extensions for this connection
      */
     public abstract Collection<String> getEnabledExtensions();
-
-    /**
-     * Gets the value of the specified {@link Parameter} defined in an enabled extension.
-     *
-     * @param <T>          Generic type of the value of the Parameter
-     * @param parameter    Parameter whose value needs to be set
-     * @return the value of the specified parameter
-     */
-    public abstract <T> T getEnabledParameter(Parameter<T> parameter);
 
     /**
      * Gets the names of all the protocols that are enabled for this connection. Returns an empty Collection if protocols are
@@ -163,16 +164,6 @@ public abstract class WebSocket implements Closeable {
      * @throws IOException if an I/O error occurs when negotiating the extension or connection is closed
      */
     public abstract Collection<String> getNegotiatedExtensions() throws IOException;
-
-    /**
-     * Returns the value of the specified {@link Parameter} of a negotiated extension.
-     *
-     * @param <T>          parameter type
-     * @param parameter    parameter of a negotiated extension
-     * @return T           value of the specified parameter
-     * @throws IOException if an I/O error occurs when negotiating the extension or connection is closed
-     */
-    public abstract <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException;
 
     /**
      * Gets the protocol that the client and the server have successfully negotiated.
@@ -237,39 +228,23 @@ public abstract class WebSocket implements Closeable {
 
     /**
      * Sets the connect timeout in milliseconds. The timeout will expire if there is no exchange of packets(for example,
-     * 100% packet loss) while establishing the connection. A timeout value of zero indicates no timeout.
+     * 100% packet loss) while establishing the connection. A timeout value of zero indicates no timeout. An
+     * IllegalStateException is thrown  if the connect timeout is being set after the connection has been established.
+     * An IllegalArgumentException is thrown if connectTimeout is negative.
      *
      * @param connectTimeout    timeout value in milliseconds
-     * @throws IllegalStateException  if the connect timeout is being set
-     *                                after the connection has been established
-     * @throws IllegalArgumentException   if connectTimeout is negative
      */
     public abstract void setConnectTimeout(int connectTimeout);
 
     /**
-     * Registers the extensions to be negotiated between the client and the server during the handshake. This method must be
-     * called before invoking the {@link #connect()} method. The enabled extensions should be a subset of the supported
-     * extensions. Only the extensions that are explicitly enabled are put on the wire even though there could be more
-     * supported extensions on this connection. All the required parameters defined in the extension must have values with
-     * string representation.
-     * <p>
-     * @param enabledExtensions    Map keyed by extension name with WebSocketExtensionParameterValue as the corresponding
-     *                             value
-     * @throw IllegalStateException   if this method is invoked after successful connection or any of the specified
-     *                                extensions is not a supported extension
-     */
-    public abstract void setEnabledExtensions(Map<String, WebSocketExtensionParameterValues> enabledExtensions);
-
-    /**
      * Registers the protocols to be negotiated with the server during the handshake. This method must be invoked before
-     * {@link #connect()} is called.
+     * the {@link #connect()} method is called. Invoking this method clears previously enabled extensions.
      * <p>
      * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
      * <p>
-     * @param protocols  the list of protocols to be negotiated with the server during the WebSocket handshake
-     * @throws IllegalStateException   if this method is invoked after connect()
+     * @param protocols  protocols to be negotiated with the server during the opening handshake
      */
-    public abstract void setEnabledProtocols(Collection<String> protocols);
+    public abstract void setEnabledProtocols(String... protocols);
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx).

@@ -401,7 +401,7 @@ public final class WsMessageReader extends MessageReader {
             return;
         }
 
-        connection.receiveBinaryFrame(frame);
+        connection.processReadBinaryFrame(frame);
 
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
@@ -416,7 +416,7 @@ public final class WsMessageReader extends MessageReader {
             return;
         }
 
-        connection.receiveTextFrame(frame);
+        connection.processReadTextFrame(frame);
 
         // Entire WebSocket frame has been read. Reset the state.
         headerOffset = 0;
@@ -439,7 +439,7 @@ public final class WsMessageReader extends MessageReader {
         }
 
         Control frame = (Control) getFrame(opcode, payloadLength);
-        connection.receiveControlFrame(frame);
+        connection.processReadControlFrame(frame);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

@@ -165,7 +165,7 @@ public class WsReader extends Reader {
             }
             else {
                 dataFrame = (Data) getFrame(header[0] & 0x0F, payloadLength);
-                connection.receiveTextFrame(dataFrame);
+                connection.processReadTextFrame(dataFrame);
                 payloadLength = dataFrame.getLength();
 
                 if (payloadLength == 0) {
@@ -218,7 +218,7 @@ public class WsReader extends Reader {
         }
 
         Control frame = (Control) getFrame(opcode, payloadLength);
-        connection.receiveControlFrame(frame);
+        connection.processReadControlFrame(frame);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

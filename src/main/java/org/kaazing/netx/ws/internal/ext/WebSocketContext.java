@@ -16,8 +16,6 @@
 package org.kaazing.netx.ws.internal.ext;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -27,16 +25,16 @@ import org.kaazing.netx.ws.internal.ext.frame.Data;
 import org.kaazing.netx.ws.internal.ext.frame.Ping;
 import org.kaazing.netx.ws.internal.ext.frame.Pong;
 
-public abstract class WebSocketContext {
+public class WebSocketContext {
     protected final WsURLConnectionImpl connection;
-    private final ListIterator<WebSocketExtensionHooks> iterator;
+    private final ListIterator<WebSocketExtensionSpi> iterator;
 
-    public WebSocketContext(WsURLConnectionImpl connection, List<WebSocketExtensionHooks> extensionHooks) {
+    public WebSocketContext(WsURLConnectionImpl connection, List<WebSocketExtensionSpi> extensions) {
         this.connection = connection;
-        this.iterator = extensionHooks.listIterator();
+        this.iterator = extensions.listIterator();
     }
 
-    public WebSocketExtensionHooks nextExtensionHooks() {
+    public WebSocketExtensionSpi nextExtension() {
         if (iterator.hasNext()) {
             return iterator.next();
         }
@@ -44,56 +42,55 @@ public abstract class WebSocketContext {
         return null;
     }
 
-    public void doNextBinaryFrameReceivedHook(Data frame) throws IOException {
-        nextExtensionHooks().whenBinaryFrameReceived.apply(this, frame);
+    public void onBinaryFrameReceived(Data frame) throws IOException {
+        nextExtension().onBinaryFrameReceived.apply(this, frame);
     }
 
-    public void doNextCloseFrameReceivedHook(Close frame) throws IOException {
-        nextExtensionHooks().whenCloseFrameReceived.apply(this, frame);
+    public void onCloseFrameReceived(Close frame) throws IOException {
+        nextExtension().onCloseFrameReceived.apply(this, frame);
     }
 
-    public void doNextPingFrameReceivedHook(Ping frame) throws IOException {
-        nextExtensionHooks().whenPingFrameReceived.apply(this, frame);
+    public void onPingFrameReceived(Ping frame) throws IOException {
+        nextExtension().onPingFrameReceived.apply(this, frame);
     }
 
-    public void doNextPongFrameReceivedHook(Pong frame) throws IOException {
-        nextExtensionHooks().whenPongFrameReceived.apply(this, frame);
+    public void onPongFrameReceived(Pong frame) throws IOException {
+        nextExtension().onPongFrameReceived.apply(this, frame);
     }
 
-    public void doNextTextFrameReceivedHook(Data frame) throws IOException {
-        nextExtensionHooks().whenTextFrameReceived.apply(this, frame);
+    public void onTextFrameReceived(Data frame) throws IOException {
+        nextExtension().onTextFrameReceived.apply(this, frame);
     }
 
-    public void doNextBinaryFrameSendHook(Data frame) throws IOException {
-        nextExtensionHooks().whenBinaryFrameSend.apply(this, frame);
+    public void onBinaryFrameSent(Data frame) throws IOException {
+        nextExtension().onBinaryFrameSent.apply(this, frame);
     }
 
-    public void doNextCloseFrameSendHook(Close frame) throws IOException {
-        nextExtensionHooks().whenCloseFrameSend.apply(this, frame);
+    public void onCloseFrameSent(Close frame) throws IOException {
+        nextExtension().onCloseFrameSent.apply(this, frame);
     }
 
-    public void doNextPongFrameSendHook(Pong frame) throws IOException {
-        nextExtensionHooks().whenPongFrameSend.apply(this, frame);
+    public void onPongFrameSent(Pong frame) throws IOException {
+        nextExtension().onPongFrameSent.apply(this, frame);
     }
 
-    public void doNextTextFrameSendHook(Data frame) throws IOException {
-        nextExtensionHooks().whenTextFrameSend.apply(this, frame);
+    public void onTextFrameSent(Data frame) throws IOException {
+        nextExtension().onTextFrameSent.apply(this, frame);
     }
 
-    public void sendBinaryFrame(ByteBuffer payload) throws IOException {
+    public void doSendBinaryFrame(Data dataFrame) throws IOException {
         // ### TODO
     }
 
-    public void sendClosedFrame(int code, byte[] reason) throws IOException {
+    public void doSendClosedFrame(Close closeFrame) throws IOException {
         // ### TODO
     }
 
-    public void sendPongFrame(ByteBuffer payload) throws IOException {
+    public void doSendPongFrame(Pong pongFrame) throws IOException {
         // ### TODO
     }
 
-    public void sendTextFrame(CharBuffer payload) throws IOException {
+    public void doSendTextFrame(Data dataFrame) throws IOException {
         // ### TODO
     }
-
 }

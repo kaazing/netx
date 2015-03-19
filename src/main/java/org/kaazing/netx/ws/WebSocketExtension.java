@@ -13,19 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal;
 
-import java.util.List;
+package org.kaazing.netx.ws;
 
-import org.kaazing.netx.ws.internal.ext.WebSocketContext;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 
-public final class DefaultWebSocketContext extends WebSocketContext {
-    public DefaultWebSocketContext(WsURLConnectionImpl connection, List<WebSocketExtensionHooks> extensionHooks) {
-        super(connection, extensionHooks);
+/**
+ * Extension developers must extend {@link WebSocketExtension} class to define {@link Parameter}s constants specific to their
+ * extension.
+ */
+public abstract class WebSocketExtension {
+    /**
+     * Protected constructor to be invoked by the sub-class constructor.
+     *
+     * @param name    name of the WebSocketExtension
+     */
+    protected WebSocketExtension() {
     }
 
-    public WsURLConnectionImpl getConnection() {
-        return connection;
-    }
+
+    /**
+     * Returns the name of this {@link WebSocketExtension}.
+     *
+     * @return the name of the extension
+     */
+    public abstract String name() ;
 }

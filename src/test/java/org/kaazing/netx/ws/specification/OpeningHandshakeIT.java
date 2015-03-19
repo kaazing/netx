@@ -19,14 +19,13 @@ package org.kaazing.netx.ws.specification;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension.PRIMARY_EXTENSION;
+import static org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension.SECONDARY_EXTENSION;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.URI;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,9 +37,7 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.internal.WebSocketExtensionParameterValues;
 import org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension;
-import org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension;
 
 /**
  * RFC-6455, section 4.1 "Client-Side Requirements"
@@ -124,7 +121,7 @@ public class OpeningHandshakeIT {
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
-        conn.setEnabledProtocols(Arrays.asList("primary", "secondary"));
+        conn.setEnabledProtocols("primary", "secondary");
         conn.connect();
         k3po.join();
     }
@@ -136,12 +133,8 @@ public class OpeningHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path?query");
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
-        Map<String, WebSocketExtensionParameterValues> enabledExtensions =
-                                                    new LinkedHashMap<String, WebSocketExtensionParameterValues>();
 
-        enabledExtensions.put(PrimaryExtension.PRIMARY_EXTENSION.name(), null);
-        enabledExtensions.put(SecondaryExtension.SECONDARY_EXTENSION.name(), null);
-        conn.setEnabledExtensions(enabledExtensions);
+        conn.addEnabledExtensions(PRIMARY_EXTENSION.name(), SECONDARY_EXTENSION.name());
         conn.connect();
         k3po.join();
         assertEquals(PrimaryExtension.PRIMARY_EXTENSION.name(), conn.getNegotiatedExtensions().iterator().next());

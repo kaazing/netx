@@ -16,30 +16,35 @@
 
 package org.kaazing.netx.ws.internal;
 
+import static java.lang.String.format;
 import static java.util.Collections.unmodifiableCollection;
+import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.WebSocket;
+import org.kaazing.netx.ws.WebSocketExtension;
+import org.kaazing.netx.ws.WebSocketFactory;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 
 public final class DefaultWebSocketFactory extends WebSocketFactory {
     private static final Map<String, WebSocketExtensionFactorySpi>  extensionFactories;
 
-    private final Map<String, WebSocketExtensionParameterValues> enabledExtensions;
-    private final Map<String, WebSocketExtensionParameterValues> enabledExtensionsRO;
+    private final List<String> enabledExtensions;
+    private final List<String> enabledExtensionsRO;
     private final Collection<String>  supportedExtensions;
 
     private HttpRedirectPolicy        redirectPolicy;
@@ -62,14 +67,44 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
     }
 
     public DefaultWebSocketFactory() {
-        this.enabledExtensions = new LinkedHashMap<String, WebSocketExtensionParameterValues>();
-        this.enabledExtensionsRO = unmodifiableMap(enabledExtensions);
+        this.enabledExtensions = new ArrayList<String>();
+        this.enabledExtensionsRO = unmodifiableList(enabledExtensions);
 
         this.supportedExtensions = new HashSet<String>();
         this.supportedExtensions.addAll(extensionFactories.keySet());
 
         this.redirectPolicy = HttpRedirectPolicy.ORIGIN;
 
+    }
+
+    @Override
+    public void addDefaultEnabledExtension(WebSocketExtension extension) {
+        if (extension == null) {
+            throw new NullPointerException("Null extension passed in");
+        }
+        this.enabledExtensions.add(extension.toString());
+    }
+
+    @Override
+    public void addDefaultEnabledExtensions(String...extensions) {
+        if (extensions == null) {
+            throw new NullPointerException("Null extensions passed in");
+        }
+
+        this.enabledExtensions.clear();
+
+        for (String extension : extensions) {
+            if (!supportedExtensions.contains(extension)) {
+                throw new IllegalStateException(format("%s is not a supported extension", extension));
+            }
+        }
+
+        this.enabledExtensions.addAll(Arrays.asList(extensions));
+    }
+
+    @Override
+    public void clearDefaultEnabledExtensions() {
+        this.enabledExtensions.clear();
     }
 
     @Override
@@ -81,26 +116,12 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
     @Override
     public WebSocket createWebSocket(URI location, String... protocols)
             throws URISyntaxException {
-        Collection<String> enabledProtocols = null;
-
-        // Clone enabled protocols maintained at the WebSocketFactory level to
-        // pass into the WebSocket instance.
-        if (protocols != null) {
-            enabledProtocols = new HashSet<String>(Arrays.asList(protocols));
-        }
-
-        // Clone the map of default parameters maintained at the
-        // WebSocketFactory level to pass into the WebSocket instance.
-        Map<String, WebSocketExtensionParameterValues> enabledExtns =
-                      new HashMap<String, WebSocketExtensionParameterValues>();
-        enabledExtns.putAll(this.enabledExtensions);
-
         // Create a WebSocket instance that inherits the enabled protocols,
         // enabled extensions, enabled parameters, the HttpRedirectOption,
         // the extension factories(ie. the supported extensions).
-        WebSocketImpl   ws = new WebSocketImpl(location, enabledExtns);
+        WebSocketImpl   ws = new WebSocketImpl(location, enabledExtensionsRO);
         ws.setRedirectPolicy(redirectPolicy);
-        ws.setEnabledProtocols(enabledProtocols);
+        ws.setEnabledProtocols(protocols);
         ws.setChallengeHandler(challengeHandler);
         ws.setConnectTimeout(connectTimeout);
 
@@ -119,20 +140,12 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
 
     @Override
     public Collection<String> getDefaultEnabledExtensions() {
-        return this.enabledExtensionsRO.keySet();
+        return this.enabledExtensionsRO;
     }
 
     @Override
     public HttpRedirectPolicy getDefaultRedirectPolicy() {
         return redirectPolicy;
-    }
-
-    @Override
-    public <T> T getDefaultEnabledParameter(Parameter<T> parameter) {
-        WebSocketExtension extension = parameter.extension();
-        WebSocketExtensionParameterValues enabledParameterValues = enabledExtensions.get(extension.name());
-        return (enabledParameterValues != null) ? enabledParameterValues.getParameterValue(parameter) : null;
-
     }
 
     @Override
@@ -149,12 +162,6 @@ public final class DefaultWebSocketFactory extends WebSocketFactory {
     @Override
     public void setDefaultConnectTimeout(int connectTimeout) {
        this.connectTimeout = connectTimeout;
-    }
-
-    @Override
-    public void setDefaultEnabledExtensions(Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
-        this.enabledExtensions.clear();
-        this.enabledExtensions.putAll(enabledExtensions);
     }
 
     @Override

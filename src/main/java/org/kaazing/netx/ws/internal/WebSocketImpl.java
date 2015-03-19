@@ -27,14 +27,15 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageWriter;
-import org.kaazing.netx.ws.internal.WebSocketExtension.Parameter;
+import org.kaazing.netx.ws.WebSocket;
+import org.kaazing.netx.ws.WebSocketExtension;
 
 public class WebSocketImpl extends WebSocket {
 
@@ -49,17 +50,17 @@ public class WebSocketImpl extends WebSocket {
      * @throws Exception      if connection could not be established
      */
     public WebSocketImpl(URI location) throws URISyntaxException {
-        this(location, Collections.<String, WebSocketExtensionParameterValues>emptyMap());
+        this(location, Collections.<String>emptyList());
     }
 
-    public WebSocketImpl(URI location, Map<String, WebSocketExtensionParameterValues> enabledExtensions)
+    public WebSocketImpl(URI location, List<String> enabledExtensions)
            throws URISyntaxException {
         try {
             URLConnectionHelper helper = URLConnectionHelper.newInstance();
             URL locationURL = helper.toURL(location);
 
             connection = (WsURLConnectionImpl) locationURL.openConnection();
-            connection.setEnabledExtensions(enabledExtensions);
+            connection.addEnabledExtensions(enabledExtensions.toArray(new String[enabledExtensions.size()]));
         }
         catch (MalformedURLException e) {
             throw new IllegalStateException(e);
@@ -69,6 +70,15 @@ public class WebSocketImpl extends WebSocket {
         }
     }
 
+    @Override
+    public void addEnabledExtension(WebSocketExtension extension) {
+        connection.addEnabledExtension(extension);
+    }
+
+    @Override
+    public void addEnabledExtensions(String... extensions) {
+        connection.addEnabledExtensions(extensions);
+    }
 
     @Override
     public synchronized void close() throws IOException {
@@ -106,11 +116,6 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public <T> T getEnabledParameter(Parameter<T> parameter) {
-        return connection.getEnabledParameter(parameter);
-    }
-
-    @Override
     public Collection<String> getEnabledProtocols() {
         return connection.getEnabledProtocols();
     }
@@ -138,11 +143,6 @@ public class WebSocketImpl extends WebSocket {
     @Override
     public Collection<String> getNegotiatedExtensions() throws IOException {
         return connection.getNegotiatedExtensions();
-    }
-
-    @Override
-    public <T> T getNegotiatedParameter(Parameter<T> parameter) throws IOException {
-        return connection.getNegotiatedParameter(parameter);
     }
 
     @Override
@@ -181,12 +181,7 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public void setEnabledExtensions(Map<String, WebSocketExtensionParameterValues> enabledExtensions) {
-        connection.setEnabledExtensions(enabledExtensions);
-    }
-
-    @Override
-    public void setEnabledProtocols(Collection<String> protocols) {
+    public void setEnabledProtocols(String... protocols) {
         connection.setEnabledProtocols(protocols);
     }
 

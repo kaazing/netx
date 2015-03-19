@@ -18,7 +18,8 @@ package org.kaazing.netx.ws.specification.ext.primary;
 
 import static org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension.PRIMARY_EXTENSION;
 
-import org.kaazing.netx.ws.internal.WebSocketExtensionParameterValues;
+import java.util.Map;
+
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 
@@ -30,7 +31,7 @@ public class PrimaryExtensionFactory extends WebSocketExtensionFactorySpi {
     }
 
     @Override
-    public WebSocketExtensionSpi createExtension(WebSocketExtensionParameterValues parameters) {
+    public WebSocketExtensionSpi createExtension(Map<String, String> parameters) {
         return new PrimaryExtensionSpi();
     }
 }

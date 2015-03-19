@@ -15,7 +15,7 @@
  */
 package org.kaazing.netx.ws.specification.ext.secondary;
 
-import org.kaazing.netx.ws.internal.WebSocketExtension;
+import org.kaazing.netx.ws.WebSocketExtension;
 
 public final class SecondaryExtension extends WebSocketExtension {
     public static final SecondaryExtension SECONDARY_EXTENSION = new SecondaryExtension();

@@ -163,7 +163,7 @@ public final class WsInputStream extends InputStream {
             }
             else {
                 dataFrame = (Data) getFrame(header[0] & 0x0F, payloadLength);
-                connection.receiveBinaryFrame(dataFrame);
+                connection.processReadBinaryFrame(dataFrame);
                 payloadLength = dataFrame.getLength();
                 payloadOffset = dataFrame.getPayload().offset();
                 payloadMark = payloadOffset;
@@ -238,7 +238,7 @@ public final class WsInputStream extends InputStream {
         }
 
         Control frame = (Control) getFrame(opcode, payloadLength);
-        connection.receiveControlFrame(frame);
+        connection.processReadControlFrame(frame);
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

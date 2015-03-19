@@ -18,8 +18,6 @@ package org.kaazing.netx.ws;
 
 import java.io.IOException;
 
-import org.kaazing.netx.ws.internal.WebSocket;
-
 /**
  * {@link MessageWriter} is used to send binary and text messages. A reference to {@link MessageWriter} is obtained by invoking
  * either {@link WsURLConnection#getMessageWriter()} or {@link WebSocket#getMessageWriter()} methods.

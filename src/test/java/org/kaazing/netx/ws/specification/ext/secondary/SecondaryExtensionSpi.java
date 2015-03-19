@@ -16,15 +16,9 @@
 package org.kaazing.netx.ws.specification.ext.secondary;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionHooks;
 
 public class SecondaryExtensionSpi extends WebSocketExtensionSpi {
 
     public SecondaryExtensionSpi() {
-    }
-
-    @Override
-    public WebSocketExtensionHooks createWebSocketHooks() {
-        return null;
     }
 }
