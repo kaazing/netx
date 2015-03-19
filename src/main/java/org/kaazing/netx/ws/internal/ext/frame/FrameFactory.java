@@ -28,7 +28,6 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
 public final class FrameFactory extends Flyweight {
-    private static final String MSG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: %s payload is more than 125 bytes";
     private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final Close close = new Close();
@@ -36,13 +35,13 @@ public final class FrameFactory extends Flyweight {
     private final Data data;
     private final Ping ping = new Ping();
     private final Pong pong = new Pong();
-    private final int maxWsMessageSize;
+    private final int maxMessageSize;
 
     private final byte[] mask;
     private final SecureRandom random;
 
     private FrameFactory(int maxMessageSize) {
-        this.maxWsMessageSize = maxMessageSize;
+        this.maxMessageSize = maxMessageSize;
         this.mask = new byte[4];
         this.random = new SecureRandom();
         this.continuation = new Continuation(maxMessageSize);
@@ -107,31 +106,22 @@ public final class FrameFactory extends Flyweight {
         switch (opcode) {
         case BINARY:
         case TEXT:
-            ensureCapacity(data, masked, payloadLength, maxWsMessageSize);
+            ensureCapacity(data, masked, payloadLength, maxMessageSize);
             frame = data;
             break;
         case CLOSE:
-            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
-                Frame.protocolError(format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
-            }
             ensureCapacity(close, masked, payloadLength, MAX_COMMAND_FRAME_PAYLOAD);
             frame = close;
             break;
         case CONTINUATION:
-            ensureCapacity(continuation, masked, payloadLength, maxWsMessageSize);
+            ensureCapacity(continuation, masked, payloadLength, maxMessageSize);
             frame = continuation;
             break;
         case PING:
-            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
-                Frame.protocolError(format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
-            }
             ensureCapacity(ping, masked, payloadLength, MAX_COMMAND_FRAME_PAYLOAD);
             frame = ping;
             break;
         case PONG:
-            if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
-                Frame.protocolError(format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
-            }
             ensureCapacity(pong, masked, payloadLength, MAX_COMMAND_FRAME_PAYLOAD);
             frame = pong;
             break;

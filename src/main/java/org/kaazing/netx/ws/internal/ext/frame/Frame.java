@@ -15,8 +15,6 @@
  */
 package org.kaazing.netx.ws.internal.ext.frame;
 
-import static java.lang.String.format;
-
 import java.nio.ByteBuffer;
 
 
@@ -48,7 +46,6 @@ public abstract class Frame extends Flyweight {
     @Override
     protected Flyweight wrap(final ByteBuffer buffer, final int offset, final boolean mutable) {
         super.wrap(buffer, offset, mutable);
-        validateLength();
         payload.wrap(null, offset, 0, mutable);
         return this;
     }
@@ -160,11 +157,5 @@ public abstract class Frame extends Flyweight {
 
     static void protocolError(String message) throws ProtocolException {
         throw new ProtocolException(message);
-    }
-
-    private void validateLength() {
-        if (getLength() > getMaxPayloadLength()) {
-            protocolError(format("%s frame payload exceeds %d bytes", getOpCode(), getMaxPayloadLength()));
-        }
     }
 }

@@ -15,8 +15,6 @@
  */
 package org.kaazing.netx.ws.internal.ext.frame;
 
-import static java.lang.String.format;
-
 import java.nio.ByteBuffer;
 
 public abstract class Control extends Frame {
@@ -26,10 +24,6 @@ public abstract class Control extends Frame {
     @Override
     protected Control wrap(ByteBuffer buffer, int offset, boolean mutable) {
         super.wrap(buffer, offset, mutable);
-
-        if (!isFin()) {
-            protocolError(format("Expected FIN for %s frame", getOpCode()));
-        }
         return this;
     }
 

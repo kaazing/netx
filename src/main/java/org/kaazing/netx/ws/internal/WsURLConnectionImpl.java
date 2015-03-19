@@ -477,9 +477,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         InputStream in = connection.getInputStream();
+        Payload payload = dataFrame.getPayload();
         int bytesRead = 0;
         int bytesRemaining = dataFrame.getLength();
-        Payload payload = dataFrame.getPayload();
         int bytesOffset = payload.offset();
 
         // Read the entire payload from the current frame into the buffer.

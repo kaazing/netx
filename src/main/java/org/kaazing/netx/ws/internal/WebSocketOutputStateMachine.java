@@ -23,7 +23,6 @@ import static org.kaazing.netx.ws.WsURLConnection.WS_ENDPOINT_GOING_AWAY;
 import static org.kaazing.netx.ws.WsURLConnection.WS_INCONSISTENT_DATA_MESSAGE_TYPE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_INCORRECT_MESSAGE_TYPE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_MESSAGE_TOO_BIG;
-import static org.kaazing.netx.ws.WsURLConnection.WS_MISSING_STATUS_CODE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_NORMAL_CLOSE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
 import static org.kaazing.netx.ws.WsURLConnection.WS_SERVER_TERMINATED_CONNECTION;
@@ -195,7 +194,7 @@ public class WebSocketOutputStateMachine {
             case WS_ENDPOINT_GOING_AWAY:
             case WS_PROTOCOL_ERROR:
             case WS_INCORRECT_MESSAGE_TYPE:
-            case WS_MISSING_STATUS_CODE:
+//            case WS_MISSING_STATUS_CODE:
             case WS_INCONSISTENT_DATA_MESSAGE_TYPE:
             case WS_VIOLATE_POLICY:
             case WS_MESSAGE_TOO_BIG:

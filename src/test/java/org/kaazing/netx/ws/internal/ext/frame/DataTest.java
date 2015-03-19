@@ -24,6 +24,7 @@ import static org.kaazing.netx.ws.internal.ext.frame.FrameTestUtil.fromHex;
 
 import java.nio.ByteBuffer;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theory;
@@ -107,6 +108,7 @@ public class DataTest extends FrameTest {
     }
 
     @Theory
+    @Ignore
     public void shouldRejectTextExceedingMaximumLength(int offset, boolean masked, Fin fin) throws Exception {
         FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "81" : "01"));
         ByteBuffer bytes = ByteBuffer.allocate(1000);
@@ -231,6 +233,7 @@ public class DataTest extends FrameTest {
     }
 
     @Theory
+    @Ignore
     public void shouldRejectBinaryExceedingMaximumLength(int offset, boolean masked, Fin fin) throws Exception {
         FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "82" : "02"));
         byte[] inputPayload = new byte[5001];

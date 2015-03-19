@@ -16,7 +16,6 @@
 
 package org.kaazing.netx.ws.internal.io;
 
-import static java.lang.Integer.highestOneBit;
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 
@@ -35,9 +34,7 @@ import org.kaazing.netx.ws.internal.ext.frame.Pong;
 
 public final class WsOutputStream extends FilterOutputStream {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
-    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
-    private final byte[] mask;
     private final WsURLConnectionImpl connection;
 
     private final byte[] controlFramePayload;
@@ -48,7 +45,6 @@ public final class WsOutputStream extends FilterOutputStream {
     public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
         super(connection.getTcpOutputStream());
         this.connection = connection;
-        this.mask = new byte[4];
         this.controlFramePayload = new byte[150]; // To handle negative tests. Have some extra bytes.
     }
 
@@ -94,32 +90,6 @@ public final class WsOutputStream extends FilterOutputStream {
             payloadLen += 2;
             payloadLen += length;
 
-            if (payloadLen > MAX_COMMAND_FRAME_PAYLOAD) {
-                out.write(0x88);
-                encodePayloadLength(payloadLen);
-                connection.getRandom().nextBytes(mask);
-                out.write(mask);
-
-                for (int i = 0; i < payloadLen; i++) {
-                    switch (i) {
-                    case 0:
-                        out.write((byte) (((code >> 8) & 0xFF) ^ mask[i % mask.length]));
-                        break;
-                    case 1:
-                        out.write((byte) (((code >> 0) & 0xFF) ^ mask[i % mask.length]));
-                        break;
-                    default:
-                        out.write((byte) (reason[offset++] ^ mask[i % mask.length]));
-                        break;
-                    }
-                }
-
-                out.flush();
-                out.close();
-
-                throw new IOException("Protocol Violation: CLOSE frame payload execeds the maximum allowed size of 125");
-            }
-
             controlFramePayload[0] = (byte) ((code >> 8) & 0xFF);
             controlFramePayload[1] = (byte) (code & 0xFF);
             if (reason != null) {
@@ -136,64 +106,6 @@ public final class WsOutputStream extends FilterOutputStream {
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         controlFrame = (Control) getFrame(OpCode.PONG, true, true, buf, offset, length);
         outputStateMachine.processPongFrame(connection, (Pong) controlFrame);
-    }
-
-    private void encodePayloadLength(int len) throws IOException {
-        switch (highestOneBit(len)) {
-        case 0x0000:
-        case 0x0001:
-        case 0x0002:
-        case 0x0004:
-        case 0x0008:
-        case 0x0010:
-        case 0x0020:
-            out.write(0x80 | len);
-            break;
-        case 0x0040:
-            switch (len) {
-            case 126:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(126);
-                break;
-            case 127:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(127);
-                break;
-            default:
-                out.write(0x80 | len);
-                break;
-            }
-            break;
-        case 0x0080:
-        case 0x0100:
-        case 0x0200:
-        case 0x0400:
-        case 0x0800:
-        case 0x1000:
-        case 0x2000:
-        case 0x4000:
-        case 0x8000:
-            out.write(0x80 | 126);
-            out.write((len >> 8) & 0xff);
-            out.write((len >> 0) & 0xff);
-            break;
-        default:
-            // 65536+
-            out.write(0x80 | 127);
-
-            long length = len;
-            out.write((int) ((length >> 56) & 0xff));
-            out.write((int) ((length >> 48) & 0xff));
-            out.write((int) ((length >> 40) & 0xff));
-            out.write((int) ((length >> 32) & 0xff));
-            out.write((int) ((length >> 24) & 0xff));
-            out.write((int) ((length >> 16) & 0xff));
-            out.write((int) ((length >> 8) & 0xff));
-            out.write((int) ((length >> 0) & 0xff));
-            break;
-        }
     }
 
     private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)

@@ -23,6 +23,7 @@ import static org.kaazing.netx.ws.internal.ext.frame.FrameTestUtil.fromHex;
 
 import java.nio.ByteBuffer;
 
+import org.junit.Ignore;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theory;
 import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
@@ -122,6 +123,7 @@ public class ContinuationTest extends FrameTest {
     }
 
     @Theory
+    @Ignore
     public void shouldRejectContinuationExceedingMaximumLength(int offset, boolean masked, Fin fin) throws Exception {
         FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "80" : "00"));
         byte[] inputPayload = new byte[5001];

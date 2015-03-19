@@ -17,9 +17,6 @@ package org.kaazing.netx.ws.internal.ext.frame;
 
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.internal.util.ErrorHandler;
-import org.kaazing.netx.ws.internal.util.Utf8Util;
-
 public class Data extends Frame {
     private final int maxWsMessageSize;
 
@@ -30,16 +27,6 @@ public class Data extends Frame {
     @Override
     public Payload getPayload() {
         Payload payload = super.getPayload();
-        if (getOpCode() == OpCode.TEXT) {
-            Utf8Util.validateUTF8(payload.buffer(), payload.offset(), getLength(), new ErrorHandler() {
-
-                @Override
-                public void handleError(String message) {
-                    protocolError(message);
-                }
-            });
-
-        }
         return payload;
     }
 

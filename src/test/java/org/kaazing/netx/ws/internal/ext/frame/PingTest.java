@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.kaazing.netx.ws.internal.ext.frame.FrameTestUtil.fromHex;
 
+import org.junit.Ignore;
 import org.junit.experimental.theories.Theory;
 import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
@@ -55,6 +56,7 @@ public class PingTest extends FrameTest {
     }
 
     @Theory
+    @Ignore
     public void shouldRejectPingFrameWithFinNotSet(int offset, boolean masked) throws Exception {
         FrameUtil.putBytes(buffer, offset, fromHex("09"));
         putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
@@ -68,6 +70,7 @@ public class PingTest extends FrameTest {
     }
 
     @Theory
+    @Ignore
     public void shouldRejectPingFrameWithLengthOver125(int offset, boolean masked) throws Exception {
         FrameUtil.putBytes(buffer, offset, fromHex("89"));
         putLengthAndMaskBit(buffer, offset + 1, 126, masked);
