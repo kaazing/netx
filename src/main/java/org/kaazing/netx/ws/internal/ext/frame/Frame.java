@@ -36,17 +36,15 @@ public abstract class Frame extends Flyweight {
         this.mask = new byte[4];
     }
 
-    protected abstract int getMaxPayloadLength();
-
     @Override
     public int limit() {
         return getDataOffset() + getLength();
     }
 
     @Override
-    protected Flyweight wrap(final ByteBuffer buffer, final int offset, final boolean mutable) {
-        super.wrap(buffer, offset, mutable);
-        payload.wrap(null, offset, 0, mutable);
+    protected Flyweight wrap(final ByteBuffer buffer, final int offset) {
+        super.wrap(buffer, offset);
+        payload.wrap(null, offset, 0);
         return this;
     }
 
@@ -104,12 +102,12 @@ public abstract class Frame extends Flyweight {
 
     public Payload getPayload(boolean mutable) {
         if (!isMasked()) {
-            payload.wrap(buffer(), getDataOffset(), limit(), false);
+            payload.wrap(buffer(), getDataOffset(), limit());
         }
         else {
             int len = getLength();
             if (len == 0) {
-                payload.wrap(buffer(),  getDataOffset(),  getDataOffset(), false);
+                payload.wrap(buffer(),  getDataOffset(),  getDataOffset());
             }
             else {
                 int maskOff = getMaskOffset();
@@ -126,7 +124,7 @@ public abstract class Frame extends Flyweight {
                     unmaskedPayload.put(i, b);
                 }
 
-                payload.wrap(unmaskedPayload, 0, len, false);
+                payload.wrap(unmaskedPayload, 0, len);
             }
         }
         return payload;
@@ -143,8 +141,8 @@ public abstract class Frame extends Flyweight {
     public static class Payload extends Flyweight {
         private int limit;
 
-        protected Payload wrap(ByteBuffer buffer, int offset, int limit, boolean mutable) {
-            super.wrap(buffer, offset, mutable);
+        protected Payload wrap(ByteBuffer buffer, int offset, int limit) {
+            super.wrap(buffer, offset);
             this.limit = limit;
             return this;
         }

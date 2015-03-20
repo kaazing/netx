@@ -18,10 +18,8 @@ package org.kaazing.netx.ws.internal.ext.frame;
 import java.nio.ByteBuffer;
 
 public class Data extends Frame {
-    private final int maxWsMessageSize;
 
-    Data(int maxWsMessageSize) {
-        this.maxWsMessageSize = maxWsMessageSize;
+    Data() {
     }
 
     @Override
@@ -31,12 +29,8 @@ public class Data extends Frame {
     }
 
     @Override
-    public int getMaxPayloadLength() {
-        return maxWsMessageSize;
-    }
-
     public Data wrap(ByteBuffer buffer, int offset) {
-        super.wrap(buffer, offset, false);
+        super.wrap(buffer, offset);
         return this;
     }
 }

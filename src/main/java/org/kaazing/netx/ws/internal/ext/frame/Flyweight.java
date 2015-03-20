@@ -29,13 +29,12 @@ import java.nio.ByteBuffer;
  */
 public class Flyweight {
     private int offset;
-    private Storage storage;
+    private ByteBuffer buffer;
 
     /**
      * Construct a flyweight with a given byte order assumed
      *
-     * @param byteOrder
-     *            of the entire flyweight
+     * @param byteOrder of the entire flyweight
      */
     public Flyweight() {
         this.offset = 0;
@@ -49,15 +48,14 @@ public class Flyweight {
     }
 
     /**
-     * @return Byte index of the byte immediately following the data for this
-     *         flyweight
+     * @return Byte index of the byte immediately following the data for this flyweight
      */
     public int limit() {
         return offset;
     }
 
     public ByteBuffer buffer() {
-        return storage.buffer();
+        return buffer;
     }
 
     /**
@@ -70,12 +68,10 @@ public class Flyweight {
      *            to use
      * @param offset
      *            to start at
-     * @param whether
-     *            the flyweight is to be mutable
      * @return flyweight
      */
-    protected Flyweight wrap(final ByteBuffer buffer, final int offset, boolean mutable) {
-        this.storage = mutable ? new MutableStorage(buffer) : new ImmutableStorage(buffer);
+    protected Flyweight wrap(final ByteBuffer buffer, final int offset) {
+        this.buffer = buffer;
         this.offset = offset;
         return this;
     }
@@ -119,47 +115,5 @@ public class Flyweight {
      */
     public static long int64Get(final ByteBuffer buffer, final int offset) {
         return buffer.getLong(offset);
-    }
-
-    private interface Storage {
-        ByteBuffer buffer();
-
-        ByteBuffer mutableBuffer();
-    }
-
-    private static final class ImmutableStorage implements Storage {
-        ByteBuffer buffer;
-
-        ImmutableStorage(ByteBuffer buffer) {
-            this.buffer = buffer;
-        }
-
-        @Override
-        public ByteBuffer buffer() {
-            return buffer;
-        }
-
-        @Override
-        public ByteBuffer mutableBuffer() {
-            throw new UnsupportedOperationException("Flyweight is immutable");
-        }
-    }
-
-    private static final class MutableStorage implements Storage {
-        ByteBuffer buffer;
-
-        MutableStorage(ByteBuffer buffer) {
-            this.buffer = buffer;
-        }
-
-        @Override
-        public ByteBuffer buffer() {
-            return buffer;
-        }
-
-        @Override
-        public ByteBuffer mutableBuffer() {
-            return buffer;
-        }
     }
 }

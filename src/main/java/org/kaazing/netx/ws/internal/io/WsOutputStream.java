@@ -25,7 +25,6 @@ import java.io.IOException;
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.frame.Close;
-import org.kaazing.netx.ws.internal.ext.frame.Control;
 import org.kaazing.netx.ws.internal.ext.frame.Data;
 import org.kaazing.netx.ws.internal.ext.frame.Frame;
 import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
@@ -39,7 +38,7 @@ public final class WsOutputStream extends FilterOutputStream {
 
     private final byte[] controlFramePayload;
     private Close closeFrame;
-    private Control controlFrame;
+    private Pong pongFrame;
     private Data dataFrame;
 
     public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
@@ -104,8 +103,8 @@ public final class WsOutputStream extends FilterOutputStream {
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        controlFrame = (Control) getFrame(OpCode.PONG, true, true, buf, offset, length);
-        outputStateMachine.processPong(connection, (Pong) controlFrame);
+        pongFrame = (Pong) getFrame(OpCode.PONG, true, true, buf, offset, length);
+        outputStateMachine.processPong(connection, pongFrame);
     }
 
     private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)

@@ -22,14 +22,17 @@ import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.frame.Control;
+import org.kaazing.netx.ws.internal.ext.WebSocketContext;
+import org.kaazing.netx.ws.internal.ext.frame.Close;
 import org.kaazing.netx.ws.internal.ext.frame.Data;
 import org.kaazing.netx.ws.internal.ext.frame.Frame;
 import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
 import org.kaazing.netx.ws.internal.ext.frame.OpCode;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class WsReader extends Reader {
     private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
@@ -48,13 +51,31 @@ public class WsReader extends Reader {
     private final InputStream in;
     private final byte[] header;
 
+    private final AtomicReference<Data> dataReference = new AtomicReference<Data>();
+    private final WebSocketFrameConsumer terminalDataFrameConsumer = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            dataReference.set((Data) frame);
+        }
+    };
+
+    private final AtomicReference<Frame> controlReference = new AtomicReference<Frame>();
+    private final WebSocketFrameConsumer terminalControlFrameConsumer = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            controlReference.set(frame);
+        }
+    };
+
     private int headerOffset;
     private int payloadOffset;
     private long payloadLength;
-    private Data dataFrame;
     private char[] receiveBuffer;
     private int charPayloadOffset;
     private int charPayloadLength;
+    private Data dataFrame;
 
     public WsReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -165,8 +186,30 @@ public class WsReader extends Reader {
             }
             else {
                 dataFrame = (Data) getFrame(header[0] & 0x0F, payloadLength);
-                connection.processReadTextFrame(dataFrame);
-                payloadLength = dataFrame.getLength();
+
+                dataReference.set(null);
+                connection.processReadTextFrame(dataFrame, terminalDataFrameConsumer);
+
+                Data transformedDataFrame = dataReference.get();
+
+                if (transformedDataFrame == null) {
+                    // One of the extensions may have decided to short-circuit and not let the TEXT frame propagate to the
+                    // sentinel/terminal hook. In such a case, we should set the payload length of the frame to zero.
+                    payloadLength = 0;
+                }
+                else {
+                    payloadLength = transformedDataFrame.getLength();
+                    if (payloadLength > 0) {
+                        Payload payload = transformedDataFrame.getPayload();
+
+                        // ### TODO: Use custom UTF-8 decode to convert byte[] to char[].
+                        receiveBuffer = new String(payload.buffer().array(),
+                                                   payload.offset(),
+                                                   (int) payloadLength).toCharArray();
+                        charPayloadLength = receiveBuffer.length;
+                    }
+                }
+
 
                 if (payloadLength == 0) {
                     // An extension can consume the payload and not let it surface to the app. In which case, we just try to
@@ -176,11 +219,6 @@ public class WsReader extends Reader {
                     payloadLength = 0;
                     charPayloadOffset = 0;
                     charPayloadLength = 0;
-                }
-                else {
-                    Payload payload = dataFrame.getPayload();
-                    receiveBuffer = new String(payload.buffer().array(), payload.offset(), dataFrame.getLength()).toCharArray();
-                    charPayloadLength = receiveBuffer.length;
                 }
             }
         }
@@ -217,8 +255,26 @@ public class WsReader extends Reader {
             connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
         }
 
-        Control frame = (Control) getFrame(opcode, payloadLength);
-        connection.processReadControlFrame(frame);
+        Frame frame = getFrame(opcode, payloadLength);
+        controlReference.set(null);
+        connection.processReadControlFrame(frame, terminalControlFrameConsumer);
+
+        Frame controlFrame = controlReference.get();
+        if (controlFrame != null) {
+            switch (controlFrame.getOpCode()) {
+            case CLOSE:
+                connection.sendClose((Close) controlFrame);
+                break;
+            case PING:
+                Payload pingPayload = controlFrame.getPayload();
+                connection.sendPong(pingPayload.buffer().array(),
+                                    pingPayload.offset(),
+                                    pingPayload.limit() - pingPayload.offset());
+                break;
+            default:
+                break;
+            }
+        }
 
         // Get ready to read the next frame after CLOSE frame is sent out.
         payloadLength = 0;

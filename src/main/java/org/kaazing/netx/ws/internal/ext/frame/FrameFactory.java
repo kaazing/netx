@@ -30,8 +30,7 @@ public final class FrameFactory extends Flyweight {
     private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final Close close = new Close();
-    private final Continuation continuation;
-    private final Data data;
+    private final Data data = new Data();
     private final Ping ping = new Ping();
     private final Pong pong = new Pong();
     private final int maxMessageSize;
@@ -43,8 +42,6 @@ public final class FrameFactory extends Flyweight {
         this.maxMessageSize = maxMessageSize;
         this.mask = new byte[4];
         this.random = new SecureRandom();
-        this.continuation = new Continuation(maxMessageSize);
-        this.data = new Data(maxMessageSize);
 
         byte[] closeBuf = new byte[131];
         closeBuf[0] = (byte) (0x80 | OpCode.toInt(OpCode.CLOSE));
@@ -58,9 +55,6 @@ public final class FrameFactory extends Flyweight {
         pongBuf[0] = (byte) (0x80 | OpCode.toInt(OpCode.PONG));
         pong.wrap(ByteBuffer.wrap(pongBuf), 0);
 
-        byte[] continationBuf = new byte[maxMessageSize];
-        continuation.wrap(ByteBuffer.wrap(continationBuf), 0);
-
         byte[] dataBuf = new byte[maxMessageSize];
         data.wrap(ByteBuffer.wrap(dataBuf), 0);
     }
@@ -69,6 +63,7 @@ public final class FrameFactory extends Flyweight {
         return new FrameFactory(maxMessageSize);
     }
 
+    @Override
     public Frame wrap(ByteBuffer buffer, int offset) {
         Frame frame = null;
         OpCode opcode = getOpCode(buffer, offset);
@@ -81,7 +76,7 @@ public final class FrameFactory extends Flyweight {
             frame = close.wrap(buffer, offset);
             break;
         case CONTINUATION:
-            frame = continuation.wrap(buffer, offset);
+            frame = data.wrap(buffer, offset);
             break;
         case PING:
             frame = ping.wrap(buffer, offset);
@@ -112,8 +107,8 @@ public final class FrameFactory extends Flyweight {
             frame = close;
             break;
         case CONTINUATION:
-            ensureCapacity(continuation, masked, payloadLength, maxMessageSize);
-            frame = continuation;
+            ensureCapacity(data, masked, payloadLength, maxMessageSize);
+            frame = data;
             break;
         case PING:
             ensureCapacity(ping, masked, payloadLength, MAX_COMMAND_FRAME_PAYLOAD);
@@ -151,7 +146,7 @@ public final class FrameFactory extends Flyweight {
 
         if (buf == null) {
             buf = ByteBuffer.allocate((int) Math.max(need, maxPayloadLength));
-            frame.wrap(buf, 0, false);
+            frame.wrap(buf, 0);
             return;
         }
 
@@ -159,7 +154,7 @@ public final class FrameFactory extends Flyweight {
         if (need > size) {
             buf = ByteBuffer.allocate(need);
             System.arraycopy(frame.buffer().array(), frame.offset(), buf.array(), 0, size);
-            frame.wrap(buf, 0, false);
+            frame.wrap(buf, 0);
         }
     }
 }

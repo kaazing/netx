@@ -17,13 +17,14 @@ package org.kaazing.netx.ws.internal.ext.frame;
 
 import java.nio.ByteBuffer;
 
-public class Ping extends Control {
+public class Ping extends Frame {
     Ping() {
 
     }
 
+    @Override
     public Ping wrap(ByteBuffer buffer, int offset) {
-        super.wrap(buffer, offset, false);
+        super.wrap(buffer, offset);
         return this;
     }
 }

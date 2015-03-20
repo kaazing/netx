@@ -46,7 +46,7 @@ public class ContinuationTest extends FrameTest {
         putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
         Frame frame = frameFactory.wrap(buffer, offset);
         assertEquals(OpCode.CONTINUATION, frame.getOpCode());
-        Continuation continuation = (Continuation) frame;
+        Data continuation = (Data) frame;
         Payload payload = frame.getPayload();
         assertEquals(payload.offset(), payload.limit());
         assertEquals(0, continuation.getLength());
@@ -74,7 +74,7 @@ public class ContinuationTest extends FrameTest {
         byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
         FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
         assertArrayEquals(inputPayload, payloadBytes);
-        Continuation continuation = (Continuation) frame;
+        Data continuation = (Data) frame;
         assertEquals(inputPayload.length, continuation.getLength());
         assertEquals(fin == Fin.SET, continuation.isFin());
     }
@@ -100,7 +100,7 @@ public class ContinuationTest extends FrameTest {
         byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
         FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
         assertArrayEquals(inputPayload, payloadBytes);
-        Continuation continuation = (Continuation) frame;
+        Data continuation = (Data) frame;
         assertEquals(inputPayload.length, continuation.getLength());
         assertEquals(fin == Fin.SET, continuation.isFin());
     }
@@ -117,7 +117,7 @@ public class ContinuationTest extends FrameTest {
         byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
         FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
         assertArrayEquals(inputPayload, payloadBytes);
-        Continuation continuation = (Continuation) frame;
+        Data continuation = (Data) frame;
         assertEquals(inputPayload.length, continuation.getLength());
         assertEquals(fin == Fin.SET, continuation.isFin());
     }

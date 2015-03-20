@@ -17,14 +17,15 @@ package org.kaazing.netx.ws.internal.ext.frame;
 
 import java.nio.ByteBuffer;
 
-public class Pong extends Control {
+public class Pong extends Frame {
 
     Pong() {
 
     }
 
+    @Override
     public Pong wrap(ByteBuffer buffer, int offset) {
-        super.wrap(buffer, offset, false);
+        super.wrap(buffer, offset);
         return this;
     }
 }

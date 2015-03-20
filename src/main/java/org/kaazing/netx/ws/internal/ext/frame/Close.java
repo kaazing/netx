@@ -17,15 +17,17 @@ package org.kaazing.netx.ws.internal.ext.frame;
 
 import java.nio.ByteBuffer;
 
-public class Close extends Control {
+public class Close extends Frame {
     private final Payload reason = new Payload();
 
     Close() {
 
     }
 
+    @Override
     public Close wrap(ByteBuffer buffer, int offset) {
-        wrap(buffer, offset, false);
+        super.wrap(buffer, offset);
+        reason.wrap(null, offset, 0);
         return this;
     }
 
@@ -34,33 +36,16 @@ public class Close extends Control {
         return status;
     }
 
-    @Override
-    public int getLength() {
-        int length = super.getLength();
-        return length;
-    }
-
     public Payload getReason() {
-        return getReason(false);
-    }
-
-    @Override
-    protected Close wrap(final ByteBuffer buffer, final int offset, boolean mutable) {
-        super.wrap(buffer, offset, mutable);
-        reason.wrap(null, offset, 0, mutable);
-        return this;
-    }
-
-    Payload getReason(boolean mutable) {
         Payload payload = getPayload();
         if (getLength() < 2) {
             // return empty reason (TODO: fix this for mutable case)
-            return reason.wrap(payload.buffer(), payload.offset(), payload.offset(), false);
+            return reason.wrap(payload.buffer(), payload.offset(), payload.offset());
         }
         if (reason.buffer() != null) {
             return reason;
         }
-        reason.wrap(payload.buffer(), payload.offset() + 2, payload.limit(), mutable);
+        reason.wrap(payload.buffer(), payload.offset() + 2, payload.limit());
         return reason;
     }
 }

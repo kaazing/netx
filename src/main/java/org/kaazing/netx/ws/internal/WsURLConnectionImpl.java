@@ -27,6 +27,7 @@ import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
+import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,12 +58,13 @@ import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.frame.Close;
-import org.kaazing.netx.ws.internal.ext.frame.Control;
 import org.kaazing.netx.ws.internal.ext.frame.Data;
+import org.kaazing.netx.ws.internal.ext.frame.Frame;
 import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.frame.OpCode;
 import org.kaazing.netx.ws.internal.ext.frame.Ping;
 import org.kaazing.netx.ws.internal.ext.frame.Pong;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
 import org.kaazing.netx.ws.internal.io.WsMessageReader;
 import org.kaazing.netx.ws.internal.io.WsMessageWriter;
@@ -75,6 +77,7 @@ import org.kaazing.netx.ws.internal.util.FrameUtil;
 public final class WsURLConnectionImpl extends WsURLConnection {
     private static final String MSG_END_OF_STREAM = "End of stream";
     private static final String MSG_UNRECOGNIZED_OPCODE = "Protocol Violation: Unrecognized opcode %d";
+    private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
@@ -87,6 +90,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private static final String HEADER_UPGRADE = "Upgrade";
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final Random random;
     private final WebSocketExtensionFactory extensionFactory;
@@ -462,7 +466,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return outputState;
     }
 
-    public void processReadBinaryFrame(final Data dataFrame) throws IOException {
+    public void processReadBinaryFrame(final Data dataFrame, final WebSocketFrameConsumer terminalConsumer) throws IOException {
         if (dataFrame == null) {
             throw new NullPointerException("Null frame passed in");
         }
@@ -487,10 +491,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             bytesRemaining -= bytesRead;
         }
 
-        inputStateMachine.processBinary(this, dataFrame);
+        inputStateMachine.processBinary(this, dataFrame, terminalConsumer);
     }
 
-    public void processReadControlFrame(final Control controlFrame) throws IOException {
+    public void processReadControlFrame(final Frame controlFrame,
+                                        final WebSocketFrameConsumer terminalConsumer) throws IOException {
         if (controlFrame == null) {
             throw new NullPointerException("Null buffer passed in");
         }
@@ -502,15 +507,15 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         OpCode opCode = controlFrame.getOpCode();
         switch (opCode) {
         case CLOSE:
-            inputStateMachine.processClose(this, (Close) controlFrame);
+            inputStateMachine.processClose(this, (Close) controlFrame, terminalConsumer);
             break;
 
         case PING:
-            inputStateMachine.processPing(this, (Ping) controlFrame);
+            inputStateMachine.processPing(this, (Ping) controlFrame, terminalConsumer);
             break;
 
         case PONG:
-            inputStateMachine.processPong(this, (Pong) controlFrame);
+            inputStateMachine.processPong(this, (Pong) controlFrame, terminalConsumer);
             break;
 
         default:
@@ -518,14 +523,14 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    public void processReadTextFrame(final Data dataFrame) throws IOException {
+    public void processReadTextFrame(final Data dataFrame, final WebSocketFrameConsumer terminalConsumer) throws IOException {
         if (dataFrame == null) {
             throw new NullPointerException("Null buffer passed in");
         }
 
         int payloadLength = dataFrame.getLength();
         if (payloadLength == 0) {
-            inputStateMachine.processText(this, dataFrame);
+            inputStateMachine.processText(this, dataFrame, terminalConsumer);
             return;
         }
 
@@ -603,7 +608,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         byte[] bytes = String.valueOf(cbuf, 0, offset).getBytes(UTF_8);
         FrameUtil.encode(dataFrame.buffer(), dataFrame.offset(), dataFrame.getOpCode(), dataFrame.isFin(), false, null, bytes);
 
-        inputStateMachine.processText(this, dataFrame);
+        inputStateMachine.processText(this, dataFrame, terminalConsumer);
     }
 
     public void sendClose(int code, byte[] reason) throws IOException {
@@ -618,6 +623,53 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         disconnect();
         inputState = CLOSED;
         outputState = CLOSED;
+    }
+
+    public void sendClose(Close closeFrame) throws IOException {
+        int closePayloadLength = closeFrame.getLength();
+        int code = 0;
+        int closeCodeRO = 0;
+        int reasonOffset = 0;
+        int reasonLength = 0;
+
+        if (closePayloadLength >= 2) {
+            code = closeFrame.getStatusCode();
+            Payload reasonPayload = closeFrame.getReason();
+            closeCodeRO = code;
+
+            switch (code) {
+            case WS_MISSING_STATUS_CODE:
+            case WS_ABNORMAL_CLOSE:
+            case WS_UNSUCCESSFUL_TLS_HANDSHAKE:
+                code = WS_PROTOCOL_ERROR;
+                break;
+            default:
+                break;
+            }
+
+            if (reasonPayload != null) {
+                reasonOffset = reasonPayload.offset();
+                reasonLength = closePayloadLength - 2;
+
+                if (closePayloadLength > 2) {
+                    if ((closePayloadLength > MAX_COMMAND_FRAME_PAYLOAD) ||
+                        !validBytesUTF8(reasonPayload.buffer(), reasonOffset, reasonLength)) {
+                        code = WS_PROTOCOL_ERROR;
+                    }
+
+                    if (code != WS_NORMAL_CLOSE) {
+                        reasonLength = 0;
+                    }
+                }
+            }
+        }
+
+        // Use the output state machine to send CLOSE.
+        sendClose(code, closeFrame.buffer().array(), reasonOffset, reasonLength);
+
+        if (code == WS_PROTOCOL_ERROR) {
+            throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, reasonLength));
+        }
     }
 
     public void sendPong(byte[] buffer, int offset, int length) throws IOException {
@@ -709,7 +761,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    private void readControlFramePayload(Control controlFrame, long payloadLength) throws IOException {
+    private void readControlFramePayload(Frame controlFrame, long payloadLength) throws IOException {
         InputStream in = connection.getInputStream();
         int offset = controlFrame.getDataOffset();
         int length = (int) payloadLength;
