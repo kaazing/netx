@@ -23,12 +23,6 @@ public class Data extends Frame {
     }
 
     @Override
-    public Payload getPayload() {
-        Payload payload = super.getPayload();
-        return payload;
-    }
-
-    @Override
     public Data wrap(ByteBuffer buffer, int offset) {
         super.wrap(buffer, offset);
         return this;
