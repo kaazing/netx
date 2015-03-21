@@ -20,15 +20,17 @@ import java.nio.charset.Charset;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.frame.Data;
-import org.kaazing.netx.ws.internal.ext.frame.Frame;
-import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
-import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
-import org.kaazing.netx.ws.internal.ext.frame.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
     private static final Charset UTF_8 = Charset.forName("UTF-8");
+
+    private final FrameFactory factory = FrameFactory.newInstance(8192);
 
     {
         onTextFrameReceived = new WebSocketFrameConsumer() {
@@ -39,10 +41,10 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
                 int payloadLength = frame.getLength();
                 Payload payload = frame.getPayload();
 
-                String msg = "Hello, " + new String(payload.buffer().array(), payload.offset(), payloadLength);
+                String msg = "nuqneH, " + new String(payload.buffer().array(), payload.offset(), payloadLength);
                 byte[] bytes = msg.getBytes(UTF_8);
-                FrameFactory factory = FrameFactory.newInstance(8192);
                 Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
+
                 context.onTextReceived((Data) transformedFrame);
             }
         };
@@ -57,7 +59,6 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
 
                 String msg = new String(payload.buffer().array(), payload.offset(), payloadLength).substring("Hello, ".length());
                 byte[] bytes = msg.getBytes(UTF_8);
-                FrameFactory factory = FrameFactory.newInstance(8192);
                 Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
 
                 context.onTextSent((Data) transformedFrame);

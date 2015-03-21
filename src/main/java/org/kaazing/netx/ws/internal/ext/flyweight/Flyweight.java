@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.frame;
+package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import java.nio.ByteBuffer;
 

@@ -23,12 +23,11 @@ import org.kaazing.netx.ws.WebSocketExtension;
 /**
  * {@link WebSocketExtensionFactorySpi} is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
  * <p>
- * Developing an extension involves the following:
+ * Developing an extension involves implementing:
  * <UL>
  *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
  *   <LI> a sub-class of {@link WebSocketExtensionSpi}
- *   <LI> a sub-class of {@link WebSocketExtension} with {@link Parameter}s defined as constants
- *   <LI> a sub-class of {@link WebSocketExtensionHooks}
+ *   <LI> a sub-class of {@link WebSocketExtension}
  * </UL>
  * <p>
  */

@@ -24,12 +24,12 @@ import java.io.IOException;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.frame.Close;
-import org.kaazing.netx.ws.internal.ext.frame.Data;
-import org.kaazing.netx.ws.internal.ext.frame.Frame;
-import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
-import org.kaazing.netx.ws.internal.ext.frame.OpCode;
-import org.kaazing.netx.ws.internal.ext.frame.Pong;
+import org.kaazing.netx.ws.internal.ext.flyweight.Close;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 
 public final class WsOutputStream extends FilterOutputStream {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";

@@ -19,22 +19,22 @@ package org.kaazing.netx.ws.internal.ext;
 import java.io.IOException;
 
 import org.kaazing.netx.ws.WebSocketExtension;
-import org.kaazing.netx.ws.internal.ext.frame.Close;
-import org.kaazing.netx.ws.internal.ext.frame.Data;
-import org.kaazing.netx.ws.internal.ext.frame.Frame;
-import org.kaazing.netx.ws.internal.ext.frame.Ping;
-import org.kaazing.netx.ws.internal.ext.frame.Pong;
-import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
+import org.kaazing.netx.ws.internal.ext.flyweight.Close;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
+import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketConsumer;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 /**
- * WebSocketExtensionSpi is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
+ * {@link WebSocketExtensionSpi} is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
  * <p>
- * Developing an extension involves the following:
+ * Developing an extension involves implementing:
  * <UL>
  *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
  *   <LI> a sub-class of {@link WebSocketExtensionSpi}
- *   <LI> a sub-class of {@link WebSocketExtension} with {@link Parameter}s defined as constants
+ *   <LI> a sub-class of {@link WebSocketExtension}
  * </UL>
  * <p>
  * When an enabled extension is successfully negotiated, an instance of this class is created using the corresponding

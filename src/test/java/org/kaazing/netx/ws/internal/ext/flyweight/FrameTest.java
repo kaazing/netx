@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.frame;
+package org.kaazing.netx.ws.internal.ext.flyweight;
 
-import static org.kaazing.netx.ws.internal.ext.frame.FrameTestUtil.fromHex;
+import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
 
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -24,7 +24,7 @@ import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
-import org.kaazing.netx.ws.internal.ext.frame.DataTest.Fin;
+import org.kaazing.netx.ws.internal.ext.flyweight.DataTest.Fin;
 
 @RunWith(Theories.class)
 public class FrameTest {

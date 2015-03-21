@@ -120,14 +120,11 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     }
 
     /**
-     * Adds the specified extension to the list of enabled extensions. The extension's toString() method should return RFC-3864
-     * formatted string so that it can be sent as part of <i>Sec-Websocket-Extensions</i> header during the opening handshake.
-     * The <i>toString()</i> method of the extension should return a RFC-3864 formatted string that looks as shown below:
-     * {@code}
-     *         extension_name[;param1=value1;param2=value2]
-     * {@code}
+     * Adds the specified {@link WebSocketExtension} object to the list of enabled extensions. The extension's
+     * <code>toString()</code> method must return RFC-3864 formatted string so that it can be negotiated using the
+     * <i>Sec-Websocket-Extensions</i> header during the opening handshake.
      *
-     * @param extension WebSocketExtension with toString() method that returns RFC-3864 formatted string
+     * @param extension {@link WebSocketExtension} with <code>toString()</code> method that returns RFC-3864 formatted string
      */
     public abstract void addEnabledExtension(WebSocketExtension extension);
 

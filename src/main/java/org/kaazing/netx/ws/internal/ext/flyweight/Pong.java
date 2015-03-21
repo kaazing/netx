@@ -13,13 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.function;
+package org.kaazing.netx.ws.internal.ext.flyweight;
 
-import java.io.IOException;
+import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.internal.ext.WebSocketContext;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+public class Pong extends Frame {
 
-public interface WebSocketFrameConsumer {
-    void accept(WebSocketContext context, Frame frame) throws IOException ;
+    Pong() {
+
+    }
+
+    @Override
+    public Pong wrap(ByteBuffer buffer, int offset) {
+        super.wrap(buffer, offset);
+        return this;
+    }
 }

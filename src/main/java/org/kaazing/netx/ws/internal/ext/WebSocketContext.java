@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.frame.Close;
-import org.kaazing.netx.ws.internal.ext.frame.Data;
-import org.kaazing.netx.ws.internal.ext.frame.Ping;
-import org.kaazing.netx.ws.internal.ext.frame.Pong;
+import org.kaazing.netx.ws.internal.ext.flyweight.Close;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
+import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 
 public class WebSocketContext {
     protected final WsURLConnectionImpl connection;

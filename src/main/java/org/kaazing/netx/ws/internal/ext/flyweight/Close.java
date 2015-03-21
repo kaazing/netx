@@ -13,19 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.frame;
+package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import java.nio.ByteBuffer;
 
-public class Pong extends Frame {
+public class Close extends Frame {
+    private final Payload reason = new Payload();
 
-    Pong() {
+    Close() {
 
     }
 
     @Override
-    public Pong wrap(ByteBuffer buffer, int offset) {
+    public Close wrap(ByteBuffer buffer, int offset) {
         super.wrap(buffer, offset);
+        reason.wrap(null, offset, 0);
         return this;
+    }
+
+    public int getStatusCode() {
+        int status = uint16Get(getPayload().buffer(), getPayload().offset());
+        return status;
+    }
+
+    public Payload getReason() {
+        Payload payload = getPayload();
+        if (getLength() < 2) {
+            return reason.wrap(payload.buffer(), payload.offset(), payload.offset());
+        }
+        reason.wrap(payload.buffer(), payload.offset() + 2, payload.limit());
+        return reason;
     }
 }

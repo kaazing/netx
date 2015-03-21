@@ -32,11 +32,11 @@ import java.io.IOException;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.frame.Close;
-import org.kaazing.netx.ws.internal.ext.frame.Data;
-import org.kaazing.netx.ws.internal.ext.frame.FrameFactory;
-import org.kaazing.netx.ws.internal.ext.frame.Ping;
-import org.kaazing.netx.ws.internal.ext.frame.Pong;
+import org.kaazing.netx.ws.internal.ext.flyweight.Close;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
+import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class WebSocketInputStateMachine {

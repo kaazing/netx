@@ -61,10 +61,11 @@ public class ExtensionsIT {
         Writer writer = conn.getWriter();
         Reader reader = conn.getReader();
 
-        String writeString = "Hello, " + new RandomString(125).nextString();
+        String randomString = new RandomString(125).nextString();
+        String writeString = "Hello, " + randomString;
         writer.write(writeString.toCharArray());
 
-        char[] cbuf = new char[writeString.toCharArray().length];
+        char[] cbuf = new char[140];
         int offset = 0;
         int length = cbuf.length;
         int charsRead = 0;
@@ -77,9 +78,10 @@ public class ExtensionsIT {
             }
         }
 
-        String readString = String.valueOf(cbuf);
+        String expectedString = "nuqneH, " + randomString;   // Klingon translated.
+        String readString = String.valueOf(cbuf, 0, offset);
         k3po.join();
-        assertEquals(writeString, readString);
+        assertEquals(expectedString, readString);
     }
 
     private static class RandomString {

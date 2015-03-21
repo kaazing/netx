@@ -16,10 +16,19 @@
 
 package org.kaazing.netx.ws;
 
-
 /**
- * Extension developers must extend {@link WebSocketExtension} class to define {@link Parameter}s constants specific to their
- * extension.
+ * {@link WebSocketExtension} is the application facing class that an extension developer must provide along with other SPIs
+ * such as WebSocketExtensionSpi and WebSocketExtensionFactorySpi so that it can be enabled. An extension is enabled
+ * using @{link WebSocketFactory#addDefaultEnabledExtension}, {@link WebSocket#addEnabledExtension(WebSocketExtension)}
+ * or {@link WsURLConnection#addEnabledExtension(WebSocketExtension)} APIs. The extension developer <em>MUST</em> override
+ * the <code>toString()</code> method in their sub-class to return a RFC-3864 formatted string that looks as shown below:
+ *
+ * {@code}
+ *      extension-name[;param1=value1;param2=value2;param3;param4=value4;...]
+ * {@code}
+ *
+ * The return value of the <code>toString()</code> method is sent as part of <i>Sec-WebSocket-Extensions</i> header during the
+ * opening handshake to negotiate the extension with the server.
  */
 public abstract class WebSocketExtension {
     /**
@@ -30,11 +39,22 @@ public abstract class WebSocketExtension {
     protected WebSocketExtension() {
     }
 
-
     /**
      * Returns the name of this {@link WebSocketExtension}.
      *
      * @return the name of the extension
      */
     public abstract String name() ;
+
+    /**
+     * Returns RFC-3864 formatted string representation of the extension. The formatted string looks as shown below:
+     *
+     * {@code}
+     *      extension-name[;param1=value1;param2=value2;param3;param4=value4;...]
+     * {@code}
+     *
+     * @return RFC-3864 formatted string representation of this extension
+     */
+    @Override
+    public abstract String toString();
 }

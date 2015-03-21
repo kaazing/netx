@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.frame;
+package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import java.nio.ByteBuffer;
-
 
 public abstract class Frame extends Flyweight {
     private static final byte FIN_MASK = (byte) 0x80;
@@ -97,17 +96,13 @@ public abstract class Frame extends Flyweight {
     }
 
     public Payload getPayload() {
-        return getPayload(false);
-    }
-
-    public Payload getPayload(boolean mutable) {
         if (!isMasked()) {
             payload.wrap(buffer(), getDataOffset(), limit());
         }
         else {
             int len = getLength();
             if (len == 0) {
-                payload.wrap(buffer(),  getDataOffset(),  getDataOffset());
+                payload.wrap(buffer(), getDataOffset(),  getDataOffset());
             }
             else {
                 int maskOff = getMaskOffset();

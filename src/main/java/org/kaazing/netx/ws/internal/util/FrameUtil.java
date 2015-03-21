@@ -20,12 +20,12 @@ import static java.lang.String.format;
 
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.internal.ext.frame.Close;
-import org.kaazing.netx.ws.internal.ext.frame.Data;
-import org.kaazing.netx.ws.internal.ext.frame.Frame;
-import org.kaazing.netx.ws.internal.ext.frame.OpCode;
-import org.kaazing.netx.ws.internal.ext.frame.Ping;
-import org.kaazing.netx.ws.internal.ext.frame.Pong;
+import org.kaazing.netx.ws.internal.ext.flyweight.Close;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
+import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 
 public final class FrameUtil {
     public static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};

@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kaazing.netx.ws.internal.ext.frame;
+package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.kaazing.netx.ws.internal.ext.frame.FrameTestUtil.fromHex;
+import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
 
 import org.junit.Ignore;
 import org.junit.experimental.theories.Theory;
-import org.kaazing.netx.ws.internal.ext.frame.Frame.Payload;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class PingTest extends FrameTest {
