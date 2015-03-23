@@ -16,9 +16,6 @@
 
 package org.kaazing.netx.ws.internal.ext;
 
-import java.util.Map;
-
-import org.kaazing.netx.ws.WebSocketExtension;
 
 /**
  * {@link WebSocketExtensionFactorySpi} is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
@@ -27,7 +24,6 @@ import org.kaazing.netx.ws.WebSocketExtension;
  * <UL>
  *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
  *   <LI> a sub-class of {@link WebSocketExtensionSpi}
- *   <LI> a sub-class of {@link WebSocketExtension}
  * </UL>
  * <p>
  */
@@ -42,10 +38,10 @@ public abstract class WebSocketExtensionFactorySpi {
 
     /**
      * Creates and returns a {@link WebSocketExtensionSpi} instance corresponding to the extension that this factory is
-     * responsible for. If there are no parameters, then a null is passed in.
+     * responsible for.
      *
-     * @param extension  String representation of the parameters as per RFC-3864
+     * @param forattedString  String representation of the negotiated extension as per RFC-3864
      * @return WebSocketExtensionSpi  instance
      */
-    public abstract WebSocketExtensionSpi createExtension(Map<String, String> parameters);
+    public abstract WebSocketExtensionSpi createExtension(String formattedStr);
 }

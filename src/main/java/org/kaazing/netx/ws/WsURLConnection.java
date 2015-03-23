@@ -120,13 +120,18 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     }
 
     /**
-     * Adds the specified {@link WebSocketExtension} object to the list of enabled extensions. The extension's
-     * <code>toString()</code> method must return RFC-3864 formatted string so that it can be negotiated using the
-     * <i>Sec-Websocket-Extensions</i> header during the opening handshake.
+     * Uses the specified comma(,) separated string as a list of enabled extensions that would be negotiated with the server
+     * during the opening handshake. The string representation for each for each of the comma(,) delimited section
+     * must be as per RFC-3864. The format of specified string is shown below:
      *
-     * @param extension {@link WebSocketExtension} with <code>toString()</code> method that returns RFC-3864 formatted string
+     * {@code}
+     *      extension-name1[;param11=value11;param12;param13=value13, extension-name2;param21=value21;..]
+     * {@code}
+     *
+     *
+     * @param extensions comma(,) separated string containing RFC-3864 formatted extension representation
      */
-    public abstract void addEnabledExtension(WebSocketExtension extension);
+    public abstract void addEnabledExtensions(String... extensions);
 
     /**
      * Disconnects with the server. This is a blocking call that returns only when the shutdown is complete.
@@ -175,14 +180,14 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract ChallengeHandler getChallengeHandler();
 
     /**
-     * Gets the names of all the extensions that have been enabled for this connection. The enabled extensions are negotiated
+     * Gets the extensions that have been enabled for this connection. The enabled extensions are negotiated
      * between the client and the server during the handshake. The names of the negotiated extensions can be obtained using
      * {@link #getNegotiatedExtensions()} API. An empty Collection is returned if no extensions have been enabled for
      * this connection. The enabled extensions will be a subset of the supported extensions.
      *
-     * @return Collection<WebSocketExtension>     names of the enabled extensions for this connection
+     * @return Collection<String>     enabled extensions for this connection
      */
-    public abstract Collection<WebSocketExtension> getEnabledExtensions();
+    public abstract Collection<String> getEnabledExtensions();
 
     /**
      * Gets the names of all the protocols that are enabled for this connection. Returns an empty Collection if protocols are

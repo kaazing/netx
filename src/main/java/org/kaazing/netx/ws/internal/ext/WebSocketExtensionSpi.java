@@ -18,7 +18,6 @@ package org.kaazing.netx.ws.internal.ext;
 
 import java.io.IOException;
 
-import org.kaazing.netx.ws.WebSocketExtension;
 import org.kaazing.netx.ws.internal.ext.flyweight.Close;
 import org.kaazing.netx.ws.internal.ext.flyweight.Data;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
@@ -34,7 +33,6 @@ import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
  * <UL>
  *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
  *   <LI> a sub-class of {@link WebSocketExtensionSpi}
- *   <LI> a sub-class of {@link WebSocketExtension}
  * </UL>
  * <p>
  * When an enabled extension is successfully negotiated, an instance of this class is created using the corresponding

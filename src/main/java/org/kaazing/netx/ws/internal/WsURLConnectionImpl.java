@@ -43,27 +43,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.WebSocketExtension;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Close;
 import org.kaazing.netx.ws.internal.ext.flyweight.Data;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
 import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
 import org.kaazing.netx.ws.internal.io.WsMessageReader;
@@ -93,12 +90,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
 
     private final Random random;
-    private final WebSocketExtensionFactory extensionFactory;
     private final HttpURLConnection connection;
     private final Collection<String> enabledProtocols;
     private final Collection<String> enabledProtocolsRO;
-    private final List<WebSocketExtension> enabledExtensions;
-    private final List<WebSocketExtension> enabledExtensionsRO;
+    private final List<String> enabledExtensions;
+    private final List<String> enabledExtensionsRO;
     private final List<String> negotiatedExtensions;
     private final List<String> negotiatedExtensionsRO;
     private final List<WebSocketExtensionSpi> negotiatedExtensionSpis;
@@ -117,6 +113,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private int remainingBytes;
     private WebSocketInputStateMachine inputStateMachine;
     private WebSocketOutputStateMachine outputStateMachine;
+    private WebSocketExtensionFactory extensionFactory;
 
     public WsURLConnectionImpl(
             URLConnectionHelper helper,
@@ -133,7 +130,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
         this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
-        this.enabledExtensions = new ArrayList<WebSocketExtension>();
+        this.enabledExtensions = new ArrayList<String>();
         this.enabledExtensionsRO = unmodifiableList(enabledExtensions);
         this.negotiatedExtensions = new ArrayList<String>();
         this.negotiatedExtensionsRO = unmodifiableList(negotiatedExtensions);
@@ -155,7 +152,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.extensionFactory = extensionFactory;
         this.enabledProtocols = new LinkedList<String>();
         this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
-        this.enabledExtensions = new ArrayList<WebSocketExtension>();
+        this.enabledExtensions = new ArrayList<String>();
         this.enabledExtensionsRO = unmodifiableList(enabledExtensions);
         this.negotiatedExtensions = new ArrayList<String>();
         this.negotiatedExtensionsRO = unmodifiableList(negotiatedExtensions);
@@ -165,12 +162,21 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     // -------------------------- WsURLConnection Methods -------------------
     @Override
-    public void addEnabledExtension(WebSocketExtension extension) {
-        if (extension == null) {
+    public void addEnabledExtensions(String... extensions) {
+        if (extensions == null) {
             throw new NullPointerException("Null extension passed in");
         }
 
-        this.enabledExtensions.add(extension);
+        if (extensions.length == 0) {
+            throw new IllegalArgumentException("No extensions specified to be enabled");
+        }
+
+        this.enabledExtensions.clear();
+
+        for (String extension : extensions) {
+            // ### TODO: Validate using SPI.
+            this.enabledExtensions.add(extension);
+        }
     }
 
     @Override
@@ -229,7 +235,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public Collection<WebSocketExtension> getEnabledExtensions() {
+    public Collection<String> getEnabledExtensions() {
         return enabledExtensionsRO;
     }
 
@@ -436,6 +442,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
         extensions.add(sentinel);
         return new WebSocketContext(this, unmodifiableList(extensions));
+    }
+
+    public WebSocketExtensionFactory getExtensionFactory() {
+        return extensionFactory;
     }
 
     public Random getRandom() {
@@ -676,6 +686,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         getOutputStream().writePong(buffer, offset, length);
     }
 
+    public void setExtensionFactory(WebSocketExtensionFactory extensionFactory) {
+        this.extensionFactory = extensionFactory;
+    }
+
     public void setInputState(WebSocketState state) {
         this.inputState = state;
     }
@@ -791,7 +805,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedProtocol = negotiatedProtocol;
     }
 
-    private void negotiateExtensions(List<WebSocketExtension> enabledExtensions, String formattedExtensions) throws IOException {
+    private void negotiateExtensions(List<String> enabledExtensions, String formattedExtensions) throws IOException {
 
         if ((formattedExtensions == null) || (formattedExtensions.trim().length() == 0)) {
             inputStateMachine = new WebSocketInputStateMachine();
@@ -815,20 +829,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
             this.negotiatedExtensions.add(extnName);
 
-            Map<String, String> paramValues = new LinkedHashMap<String, String>();
-            for (int i = 1; i < properties.length; i++) {
-                String property = properties[0];
-                String[] propertyTokens = property.split("=");
-
-                if (propertyTokens.length == 1) {
-                    paramValues.put(propertyTokens[0], "");
-                }
-                else {
-                    paramValues.put(propertyTokens[0], propertyTokens[1]);
-                }
-            }
-
-            WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extnName, paramValues);
+            WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extnName, extension);
             if (extensionSpi != null) {
                 this.negotiatedExtensionSpis.add(extensionSpi);
             }
@@ -858,12 +859,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return sb.toString();
     }
 
-    private static String formatExtensionsAsRFC3864(Collection<WebSocketExtension> extensions) {
+    private static String formatExtensionsAsRFC3864(Collection<String> extensions) {
         assert extensions != null;
 
         StringBuilder sb = new StringBuilder();
 
-        for (WebSocketExtension extension : extensions) {
+        for (String extension : extensions) {
             if (sb.length() > 0) {
                 sb.append(", ");
             }
@@ -874,14 +875,17 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return sb.toString();
     }
 
-    private static List<String> getEnabledExtensionNames(Collection<WebSocketExtension> extensions) {
+    private static List<String> getEnabledExtensionNames(Collection<String> extensions) {
         if ((extensions == null) || extensions.isEmpty()) {
             return Collections.<String>emptyList();
         }
 
         List<String> names = new ArrayList<String>();
-        for (WebSocketExtension extension : extensions) {
-            names.add(extension.name());
+        for (String extension : extensions) {
+            String[] tokens = extension.split(";");
+            String extnName = tokens[0].trim();
+
+            names.add(extnName);
         }
 
         return names;

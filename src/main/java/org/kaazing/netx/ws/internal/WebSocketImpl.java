@@ -33,21 +33,12 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WebSocket;
-import org.kaazing.netx.ws.WebSocketExtension;
 
 public class WebSocketImpl extends WebSocket {
 
     private final WsURLConnectionImpl connection;
 
-    /**
-     * Creates a WebSocket that opens up a full-duplex connection to the target
-     * location on a supported WebSocket provider. Call connect() to establish
-     * the location after adding event listeners.
-     *
-     * @param location        URI of the WebSocket service for the connection
-     * @throws Exception      if connection could not be established
-     */
-    public WebSocketImpl(URI location) throws URISyntaxException {
+    public WebSocketImpl(URI location, WebSocketExtensionFactory extensionFactory) throws URISyntaxException {
         try {
             URLConnectionHelper helper = URLConnectionHelper.newInstance();
             URL locationURL = helper.toURL(location);
@@ -63,8 +54,8 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public void addEnabledExtension(WebSocketExtension extension) {
-        connection.addEnabledExtension(extension);
+    public void addEnabledExtensions(String... extensions) {
+        connection.addEnabledExtensions(extensions);
     }
 
     @Override
@@ -98,7 +89,7 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public Collection<WebSocketExtension> getEnabledExtensions() {
+    public Collection<String> getEnabledExtensions() {
         return connection.getEnabledExtensions();
     }
 

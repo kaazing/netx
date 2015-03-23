@@ -21,6 +21,7 @@ import static java.util.EnumSet.allOf;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
 import static org.kaazing.netx.ws.internal.WebSocketState.START;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.ERROR;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_BINARY_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_CLOSE_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PING_FRAME;
@@ -51,6 +52,8 @@ public class WebSocketInputStateMachine {
             for (WebSocketTransition transition : allOf(WebSocketTransition.class)) {
                 stateMachine[state.ordinal()][transition.ordinal()] = CLOSED;
             }
+
+            stateMachine[state.ordinal()][ERROR.ordinal()] = CLOSED;
         }
 
         stateMachine[START.ordinal()][RECEIVED_UPGRADE_RESPONSE.ordinal()] = OPEN;
@@ -60,6 +63,7 @@ public class WebSocketInputStateMachine {
         stateMachine[OPEN.ordinal()][RECEIVED_CLOSE_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVED_BINARY_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVED_TEXT_FRAME.ordinal()] = OPEN;
+
 
         STATE_MACHINE = stateMachine;
     }
@@ -92,7 +96,8 @@ public class WebSocketInputStateMachine {
             context.onBinaryReceived(dataFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be receiving a BINARY frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be receiving a BINARY frame", state));
         }
     }
 
@@ -114,7 +119,8 @@ public class WebSocketInputStateMachine {
             context.onCloseReceived(closeFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be receiving a CLOSE frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be receiving a CLOSE frame", state));
         }
     }
 
@@ -135,7 +141,8 @@ public class WebSocketInputStateMachine {
             context.onPingReceived(pingFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be receiving a PING frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be receiving a PING frame", state));
         }
     }
 
@@ -157,7 +164,8 @@ public class WebSocketInputStateMachine {
             context.onPongReceived(pongFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be receiving a PONG frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be receiving a PONG frame", state));
         }
     }
 
@@ -178,7 +186,8 @@ public class WebSocketInputStateMachine {
             context.onTextReceived(dataFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be receiving a TEXT frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be receiving a TEXT frame", state));
         }
     }
 

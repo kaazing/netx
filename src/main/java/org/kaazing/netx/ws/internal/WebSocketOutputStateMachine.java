@@ -46,9 +46,9 @@ import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Close;
 import org.kaazing.netx.ws.internal.ext.flyweight.Data;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
 import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class WebSocketOutputStateMachine {
@@ -111,7 +111,8 @@ public class WebSocketOutputStateMachine {
             context.onBinarySent(dataFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be sending a BINARY frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be sending a BINARY frame", state));
         }
 
         Data transformedFrame = reference.get();
@@ -159,7 +160,8 @@ public class WebSocketOutputStateMachine {
             context.onCloseSent(closeFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be sending a CLOSE frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be sending a CLOSE frame", state));
         }
 
         Close transformedFrame = reference.get();
@@ -291,7 +293,8 @@ public class WebSocketOutputStateMachine {
             context.onPongSent(pongFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be sending a PONG frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be sending a PONG frame", state));
         }
 
         Pong transformedFrame = reference.get();
@@ -345,7 +348,8 @@ public class WebSocketOutputStateMachine {
             context.onTextSent(dataFrame);
             break;
         default:
-            throw new IllegalStateException(format("Invalid state %s to be sending a TEXT frame", state));
+            transition(connection, WebSocketTransition.ERROR);
+            context.onError(format("Invalid state %s to be sending a TEXT frame", state));
         }
 
         Data transformedFrame = reference.get();

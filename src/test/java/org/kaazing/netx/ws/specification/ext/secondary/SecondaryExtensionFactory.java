@@ -16,10 +16,6 @@
 
 package org.kaazing.netx.ws.specification.ext.secondary;
 
-import static org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension.SECONDARY_EXTENSION;
-
-import java.util.Map;
-
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 
@@ -27,11 +23,11 @@ public class SecondaryExtensionFactory extends WebSocketExtensionFactorySpi {
 
     @Override
     public String getExtensionName() {
-        return SECONDARY_EXTENSION.name();
+        return "secondary";
     }
 
     @Override
-    public WebSocketExtensionSpi createExtension(Map<String, String> parameters) {
+    public WebSocketExtensionSpi createExtension(String formattedStr) {
         return new SecondaryExtensionSpi();
     }
 }

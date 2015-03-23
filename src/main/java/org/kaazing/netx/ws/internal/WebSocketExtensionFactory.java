@@ -39,17 +39,17 @@ public final class WebSocketExtensionFactory {
      * Creates and returns {@link WebSocketExtensionSpi} instance representing the extension using the registered
      * {@link WebSocketExtensionFactorySpi}.
      *
-     * @param name          the extension name
-     * @param parameters    the extension parameters and the corresponding values
+     * @param name            the extension name
+     * @param formattedStr    RFC-3864 formatted string negotiated with the server including the extension name
      *
      * @return WebSocketExtension   the parameterized extension
      */
-    public WebSocketExtensionSpi createExtension(String name, Map<String, String> parameters) {
+    public WebSocketExtensionSpi createExtension(String name, String formattedStr) {
         WebSocketExtensionFactorySpi factory = factoriesRO.get(name);
         if (factory == null) {
             throw new IllegalArgumentException("Unsupported extension: " + name);
         }
-        return factory.createExtension(parameters);
+        return factory.createExtension(formattedStr);
     }
 
     /**

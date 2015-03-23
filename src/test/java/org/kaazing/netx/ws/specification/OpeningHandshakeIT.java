@@ -35,8 +35,6 @@ import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension;
-import org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension;
 
 /**
  * RFC-6455, section 4.1 "Client-Side Requirements"
@@ -133,11 +131,10 @@ public class OpeningHandshakeIT {
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
-        conn.addEnabledExtension(new PrimaryExtension());
-        conn.addEnabledExtension(new SecondaryExtension());
+        conn.addEnabledExtensions("primary", "secondary");
         conn.connect();
         k3po.join();
-        assertEquals(PrimaryExtension.PRIMARY_EXTENSION.name(), conn.getNegotiatedExtensions().iterator().next());
+        assertEquals("primary", conn.getNegotiatedExtensions().iterator().next());
         return;
     }
 

@@ -28,6 +28,7 @@ import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 public class WebSocketContext {
     protected final WsURLConnectionImpl connection;
     private final ListIterator<WebSocketExtensionSpi> iterator;
+    private String errorMessage;
 
     public WebSocketContext(WsURLConnectionImpl connection, List<WebSocketExtensionSpi> extensions) {
         this.connection = connection;
@@ -40,6 +41,15 @@ public class WebSocketContext {
         }
 
         return null;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void onError(String message) throws IOException {
+        this.errorMessage = message;
+        nextExtension().onError.accept(this);
     }
 
     public void onBinaryReceived(Data frame) throws IOException {

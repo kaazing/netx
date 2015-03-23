@@ -34,8 +34,6 @@ import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.specification.ext.primary.PrimaryExtension;
-import org.kaazing.netx.ws.specification.ext.secondary.SecondaryExtension;
 
 public class ExtensionsIT {
     private final K3poRule k3po = new K3poRule().setScriptRoot("org/kaazing/netx/ws/ext");
@@ -53,8 +51,7 @@ public class ExtensionsIT {
         URI location = URI.create("ws://localhost:8080/path");
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
-        conn.addEnabledExtension(new PrimaryExtension());
-        conn.addEnabledExtension(new SecondaryExtension());
+        conn.addEnabledExtensions("primary", "secondary");
 
         conn.connect();
 
