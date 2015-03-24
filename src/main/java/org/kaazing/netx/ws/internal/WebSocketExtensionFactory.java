@@ -16,7 +16,6 @@
 
 package org.kaazing.netx.ws.internal;
 
-import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.ServiceLoader.load;
 
@@ -32,8 +31,8 @@ import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 public final class WebSocketExtensionFactory {
     private final Map<String, WebSocketExtensionFactorySpi> factoriesRO;
 
-    private WebSocketExtensionFactory(Map<String, WebSocketExtensionFactorySpi> factories) {
-        this.factoriesRO = factories;
+    private WebSocketExtensionFactory(Map<String, WebSocketExtensionFactorySpi> factoriesRO) {
+        this.factoriesRO = factoriesRO;
     }
 
     /**
@@ -59,7 +58,7 @@ public final class WebSocketExtensionFactory {
      * @return Collection of extension names
      */
     public Collection<String> getExtensionNames() {
-        return unmodifiableCollection(factoriesRO.keySet());
+        return factoriesRO.keySet();
     }
 
     /**
