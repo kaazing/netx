@@ -16,6 +16,7 @@
 
 package org.kaazing.netx.ws.internal;
 
+import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.ServiceLoader.load;
 
@@ -58,7 +59,7 @@ public final class WebSocketExtensionFactory {
      * @return Collection of extension names
      */
     public Collection<String> getExtensionNames() {
-        return factoriesRO.keySet();
+        return unmodifiableCollection(factoriesRO.keySet());
     }
 
     /**

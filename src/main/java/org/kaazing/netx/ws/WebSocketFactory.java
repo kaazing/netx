@@ -16,15 +16,12 @@
 
 package org.kaazing.netx.ws;
 
-import static java.util.Collections.unmodifiableCollection;
 import static java.util.Collections.unmodifiableList;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 
 import org.kaazing.netx.http.HttpRedirectPolicy;
@@ -42,12 +39,8 @@ import org.kaazing.netx.ws.internal.WebSocketImpl;
  * developers can override these characteristics at the individual {@link WebSocket} level, if needed.
  */
 public final class WebSocketFactory {
-    private static final Collection<String> EMPTY_EXTENSIONS = Collections.<String>emptySet();
-
     private final List<String> defaultEnabledExtensions;
     private final List<String> defaultEnabledExtensionsRO;
-    private final Collection<String> supportedExtensions;
-    private final Collection<String> supportedExtensionsRO;
     private final WebSocketExtensionFactory extensionFactory;
 
     private HttpRedirectPolicy defaultRedirectPolicy;
@@ -57,13 +50,7 @@ public final class WebSocketFactory {
     private WebSocketFactory(WebSocketExtensionFactory extensionFactory) {
         this.defaultEnabledExtensions = new ArrayList<String>();
         this.defaultEnabledExtensionsRO = unmodifiableList(defaultEnabledExtensions);
-
         this.extensionFactory = extensionFactory;
-
-        this.supportedExtensions = new HashSet<String>();
-        this.supportedExtensions.addAll(extensionFactory.getExtensionNames());
-
-        this.supportedExtensionsRO = unmodifiableCollection(supportedExtensions);
         this.defaultRedirectPolicy = HttpRedirectPolicy.ORIGIN;
     }
 
@@ -209,7 +196,7 @@ public final class WebSocketFactory {
      * @return Collection<String>    extension names discovered for this factory
      */
     public Collection<String> getSupportedExtensions() {
-        return (supportedExtensions == null) ? EMPTY_EXTENSIONS : supportedExtensionsRO;
+        return extensionFactory.getExtensionNames();
     }
 
     /**
