@@ -33,8 +33,8 @@ import javax.annotation.Resource;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.URLConnectionHelperSpi;
+import org.kaazing.netx.ws.internal.WebSocketExtensionFactory;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactory;
 
 public final class WsURLConnectionHelper extends URLConnectionHelperSpi {
 

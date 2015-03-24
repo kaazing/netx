@@ -19,134 +19,106 @@ package org.kaazing.netx.ws;
 import java.io.IOException;
 
 /**
- * {@link MessageReader} is used to receive complete binary and text messages
- * that may span over multiple frames. It is the application developer's
- * responsibility to pass in appropriately sized byte array for binary messages
- * and char array for text messages.
+ * {@link MessageReader} is used to receive complete binary and text messages that may span over multiple frames. It is the
+ * application developer's responsibility to pass in appropriately sized byte array for binary messages and char array for text
+ * messages that can hold the entire message.
  * <p>
- * A {@link MessageReader} allows looking at the {@link MessageType} so
- * that the application developer can invoke the appropriate read() method to
- * either retrieve a text message or a binary message.
- * <p>
- * Once the connection is closed, a new {@link MessageReader} should
- * be obtained using the aforementioned methods after the connection has been
- * established. Using the old reader will result in IOException.
+ * A {@link MessageReader} allows looking at the {@link MessageType} so that the application developer can invoke the
+ * appropriate read() method to either retrieve a text message or a binary message.
  */
 public abstract class MessageReader {
     /**
-     * Invoking this method will cause the thread to block until a message is
-     * received. When the message is received, this method returns the type of
-     * the newly received message. Based on the returned
-     * {@link MessageType}, appropriate getter methods can be used to
-     * retrieve the binary or text message. When the connection is closed, this
-     * method returns {@link MessageType#EOS}.
+     * Invoking this method will cause the thread to block until a message is received. When the message is received, this
+     * method returns the type of the newly received message. Based on the returned {@link MessageType}, appropriate getter
+     * methods can be used to retrieve the binary or text message. When the connection is closed, this method returns
+     * {@link MessageType#EOS}.
      * <p>
-     * If this method is invoked while a message is being read into a buffer,
-     * it will just return the type associated with the current message.
+     * If this method is invoked while a message is being read into a buffer, it will just return the type associated with the
+     * current message.
      * <p>
-     * @return WebSocketMessageType     WebSocketMessageType.TEXT for a text
-     *                         message; WebSocketMessageType.BINARY
-     *                         for a binary message; WebSocketMessageType.EOS
-     *                         if the connection is closed
+     * @return WebSocketMessageType     WebSocketMessageType.TEXT for a text message;
+     *                                  WebSocketMessageType.BINARY for a binary message;
+     *                                  WebSocketMessageType.EOS if the connection is closed
      * @throws IOException  if an I/O error occurs while advancing to the next message type
      */
     public abstract MessageType next() throws IOException;
 
     /**
-     * Returns the {@link MessageType} of the already received message.
-     * This method returns a null until the first message is received.  Note
-     * that this is not a blocking call. When connected, if this method is
-     * invoked immediately after {@link #next()}, then they will return the same
-     * value.
+     * Returns the {@link MessageType} of the already received message. This method returns a null until the first message is
+     * received.  Note that this is not a blocking call. When connected, if this method is invoked immediately after
+     * {@link #next()}, then they will return the same value.
      * <p>
-     * Based on the returned {@link MessageType}, appropriate read
-     * methods can be used to receive the message. This method will continue to
-     * return the same {@link MessageType} till the next message
-     * arrives. When the next message arrives, this method will return the
-     * the {@link MessageType} associated with that message.
+     * Based on the returned {@link MessageType}, appropriate read methods can be used to receive the message. This method will
+     * continue to return the same {@link MessageType} till the next message arrives. When the next message arrives, this method
+     * will return the the {@link MessageType} associated with that message.
      * <p>
 
-     * @return WebSocketMessageType    WebSocketMessageType.TEXT for a text
-     *                                 message; WebSocketMessageType.BINARY
-     *                                 for a binary message; WebSocketMessageType.EOS
-     *                                 if the connection is closed; null before
-     *                                 the first message
+     * @return WebSocketMessageType    WebSocketMessageType.TEXT for a text message;
+     *                                 WebSocketMessageType.BINARY for a binary message;
+     *                                 WebSocketMessageType.EOS if the connection is closed;
+     *                                 null before the first message
      */
     public abstract MessageType peek();
 
     /**
-     * Returns the payload of the entire binary message. If the message is being
-     * received in multiple CONTINUATION frames, then this method will read all
-     * the frames into the specified buffer. For each frame, the method will try
-     * to read the same number of bytes as specified by the len parameter. It is
-     * the responsibility of the application developer to not only pass in a
-     * buffer that can hold the entire message but also ensure that the payload
-     * of all the CONTINUATION frames is within the bounds of the len parameter.
+     * Returns the payload of the entire binary message. If the message is being received in multiple CONTINUATION frames, then
+     * this method will read all the frames into the specified buffer. It is the responsibility of the application developer to
+     * not only pass in a buffer that can hold the entire message but also ensure that the payload of all the CONTINUATION frames
+     * is within the bounds of the length parameter.
      * <p>
-     * Ideally, this method should be invoked after {@link #next()} only if the
-     * return value is {@link MessageType#BINARY}. An IOException is thrown if
-     * this method is used to read a text message.
+     * An IOException is thrown if this method is used to read a text message. An IndexOutOfBoundsException is thrown if the
+     * buffer is not large enough to hold the the entire message.
      * <p>
      * @param buf      buffer into which data is read
-     * @param offset   the start offset in array b at which the data is written
-     * @param length      the maximum number of bytes to read.
-     * @return the number of bytes read
-     * @throws IOException  if the type of the is not {@link MessageType#BINARY};
-     *                      if the buffer cannot accommodate the entire message
+     * @param offset   the start offset in array buf at which the data is written
+     * @param length   total number of bytes to be read; if the payload is fragmented, then this value should be greater than
+     *                 or equal to the sum of the payloads of the individual frames that make up a message.
+     * @return total number of bytes read
+     * @throws IOException  if the type of the message is not {@link MessageType#BINARY}
      */
     public abstract int read(byte[] buf, int offset, int length) throws IOException;
 
     /**
-     * Returns the payload of the bianry message. This method should be used if
-     * the entire text message fits in a single WebSocket frame. It is
-     * the responsibility of the application developer to pass in a buffer that
-     * can hold the entire message. If the buffer cannot hold the entire message,
-     * an IOException is thrown.
+     * Returns the payload of the entire binary message. It is the responsibility of the application developer to pass in a
+     * buffer that can hold the entire message that may span across multiple CONTINUATION frames.
      * <p>
-     * Ideally, this method should be invoked after {@link #next()} only if the
-     * return value is {@link MessageType#BINARY}. An IOException is thrown if
-     * this method is used to read a text message.
+     * An IOException is thrown if this method is used to read a text message. An IndexOutOfBoundsException is thrown if the
+     * buffer is not large enough to hold the the entire message.
      * <p>
      * @param buf      buffer into which data is read
-     * @return the number of bytes read
-     * @throws IOException  if the type of the is not {@link MessageType#BINARY};
-     *                      if the buffer cannot accommodate the entire message
+     * @return total number of bytes read
+     * @throws IOException  if the type of the message is not {@link MessageType#BINARY}
      */
     public abstract int read(byte[] buf) throws IOException;
 
     /**
-     * Returns the payload of the entire text message. If the message is being
-     * received in multiple CONTINUATION frames, then this method will read all
-     * the frames into the specified buffer. For each frame, the method will try
-     * to read the same number of bytes as specified by the len parameter. It is
-     * the responsibility of the application developer to not only pass in a
-     * buffer that can hold the entire message but also ensure that the payload
-     * of all the CONTINUATION frames is within the bounds of the len parameter.
+     * Returns the payload of the entire text message. If the message is being received in multiple CONTINUATION frames, then
+     * this method will read all the frames into the specified buffer. It is the responsibility of the application developer to
+     * not only pass in a buffer that can hold the entire message but also ensure that the payload of all the CONTINUATION frames
+     * is within the bounds of the length parameter.
      * <p>
-     * Ideally, this method should be invoked after {@link #next()} only if the
-     * return value is {@link MessageType#TEXT}. An IOException is thrown if
-     * this method is used to read a binary message.
+     * An IOException is thrown if this method is used to read a binary message. An IndexOutOfBoundsException is thrown if the
+     * buffer is not large enough to hold the the entire message.
      * <p>
      * @param buf      buffer into which data is read
-     * @param offset   the start offset in array b at which the data is written
-     * @param length      the maximum number of bytes to read for each frame
-     * @return the number of chars read
-     * @throws IOException  if the type of the is not {@link MessageType#TEXT};
-     *                      if the buffer cannot accommodate the entire message
+     * @param offset   the start offset in array buf at which the data is written
+     * @param length   total number of chars to be read; if the payload is fragmented, then this value should be greater than
+     *                 or equal to the sum of the number of chars in each of the individual frames that make up a message.
+     * @return total number of chars read
+     * @throws IOException  if the type of the message is not {@link MessageType#TEXT}
      */
     public abstract int read(char[] buf, int offset, int length) throws IOException;
 
     /**
-     * Returns the payload of the text message. This method should be used if
-     * the entire text message fits in a single WebSocket frame. It is
-     * the responsibility of the application developer to pass in a buffer that
-     * can hold the entire message. If the buffer cannot hold the entire message,
-     * an IOException is thrown.
+     * Returns the payload of the entire text message. It is the responsibility of the application developer to pass in a buffer
+     * that can hold the entire message that may span across multiple CONTINUATION frames.
+     * <p>
+     * An IOException is thrown if this method is used to read a text message. An IndexOutOfBoundsException is thrown if the
+     * buffer is not large enough to hold the entire message..
      * <p>
      * @param buf      buffer into which data is read
-     * @return the number of chars read
-     * @throws IOException  if the type of the is not {@link MessageType#TEXT};
-     *                      if the buffer cannot accommodate the entire message
+     * @return total number of chars read
+     * @throws IOException  if the type of the message is not {@link MessageType#BINARY}
      */
     public abstract int read(char[] buf) throws IOException;
 }

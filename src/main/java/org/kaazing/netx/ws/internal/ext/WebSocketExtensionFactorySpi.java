@@ -16,28 +16,16 @@
 
 package org.kaazing.netx.ws.internal.ext;
 
-import org.kaazing.netx.ws.internal.WebSocket;
-
 
 /**
- * {@link WebSocketExtensionFactorySpi} is part of <i>Service Provider Interface</i>
- * <em>(SPI)</em> for admins/implementors.
+ * {@link WebSocketExtensionFactorySpi} is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
  * <p>
- * As part of implementing an extension, the admins/implementors should
- * implement the following:
+ * Developing an extension involves implementing:
  * <UL>
  *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
  *   <LI> a sub-class of {@link WebSocketExtensionSpi}
- *   <LI> a public class with {@link Parameter}s defined as
- *        constants
  * </UL>
  * <p>
- * In {@link WebSocket#connect()} and {@WsURLConnection#connect()} methods, for
- * each of the enabled extensions, the corresponding {@link WebSocketExtensionFactorySpi}
- * instance will be used to create a {@link WebSocketExtensionSpi} instance.
- * <p>
- * The extensions that are successfully negotiated between the client and the
- * server become part of the WebSocket message processing pipeline.
  */
 public abstract class WebSocketExtensionFactorySpi {
 
@@ -49,13 +37,11 @@ public abstract class WebSocketExtensionFactorySpi {
     public abstract String getExtensionName();
 
     /**
-     * Creates and returns the singleton{@link WebSocketExtensionSpi} instance for the
-     * extension that this factory is responsible for. The parameters for the
-     * extension are specified so that the formatted string that can be put on
-     * the wire can be supplied by the extension implementor.
+     * Creates and returns a {@link WebSocketExtensionSpi} instance corresponding to the extension that this factory is
+     * responsible for.
      *
-     * @param parameters    name-value pairs
-     * @return WebSocketExtensionSpi   singleton instance for the extension
+     * @param forattedString  String representation of the negotiated extension as per RFC-3864
+     * @return WebSocketExtensionSpi  instance
      */
-    public abstract WebSocketExtensionSpi createExtension(WebSocketExtensionParameterValues parameters);
+    public abstract WebSocketExtensionSpi createExtension(String formattedStr);
 }

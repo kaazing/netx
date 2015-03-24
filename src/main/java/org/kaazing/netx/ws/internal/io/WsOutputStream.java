@@ -16,25 +16,35 @@
 
 package org.kaazing.netx.ws.internal.io;
 
-import static java.lang.Integer.highestOneBit;
 import static java.lang.String.format;
+import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
 
+import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState;
+import org.kaazing.netx.ws.internal.ext.flyweight.Close;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 
 public final class WsOutputStream extends FilterOutputStream {
-    private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
+    private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
 
-    private final byte[] mask;
     private final WsURLConnectionImpl connection;
+
+    private final byte[] controlFramePayload;
+    private Close closeFrame;
+    private Pong pongFrame;
+    private Data dataFrame;
 
     public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
         super(connection.getTcpOutputStream());
         this.connection = connection;
-        this.mask = new byte[4];
+        this.controlFramePayload = new byte[150]; // To handle negative tests. Have some extra bytes.
     }
 
     @Override
@@ -48,182 +58,58 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
-        out.write(0x82);
-
-        encodePayloadLength(len);
-
-        connection.getRandom().nextBytes(mask);
-        out.write(mask);
-
-        byte[] masked = new byte[len];
-        for (int i = 0; i < len; i++) {
-            int ioff = off + i;
-            masked[i] = (byte) (b[ioff] ^ mask[i % mask.length]);
+    public void write(byte[] buf, int offset, int length) throws IOException {
+        if (buf == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
+        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
         }
 
-        out.write(masked);
+
+        dataFrame = (Data) getFrame(OpCode.BINARY, true, true, buf, offset, length);
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
+        outputStateMachine.processBinary(connection, dataFrame);
     }
 
-    public void writeClose(int code, byte[] reason) throws IOException {
-        if (connection.getReadyState() == ReadyState.CLOSED) {
+    public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
+        if (connection.getOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 
-        int len = 0;
-
-        if (code != 0) {
-            switch (code) {
-            case 1000:
-            case 1001:
-            case 1002:
-            case 1003:
-            case 1007:
-            case 1008:
-            case 1009:
-            case 1010:
-            case 1011:
-            case 1005:
-                len += 2;
-                break;
-            default:
-                if ((code >= 3000) && (code <= 4999)) {
-                    len += 2;
-                }
-
-                throw new IOException(format("Invalid CLOSE code %d", code));
+        if (reason != null) {
+            if ((offset < 0) || (length < 0) || (offset + length > reason.length)) {
+                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, reason.length));
             }
+        }
 
+        int payloadLen = 0;
+
+        if (code > 0) {
+            payloadLen += 2;
+            payloadLen += length;
+
+            controlFramePayload[0] = (byte) ((code >> 8) & 0xFF);
+            controlFramePayload[1] = (byte) (code & 0xFF);
             if (reason != null) {
-                // By this time, the reson.length being smaller than 123 must be validated. So, no need to repeat the check.
-                len += reason.length;
+                System.arraycopy(reason, offset, controlFramePayload, 2, length);
             }
         }
 
-        out.write(0x88);
-
-        encodePayloadLength(len);
-
-        if (len == 0) {
-            out.write(EMPTY_MASK);
-        }
-        else {
-            assert len >= 2;
-
-            connection.getRandom().nextBytes(mask);
-            out.write(mask);
-
-            byte[] masked = new byte[len];
-            for (int i = 0; i < len; i++) {
-                switch (i) {
-                case 0:
-                    masked[i] = (byte) (((code >> 8) & 0xFF) ^ mask[i % mask.length]);
-                    break;
-                case 1:
-                    masked[i] = (byte) (((code >> 0) & 0xFF) ^ mask[i % mask.length]);
-                    break;
-                default:
-                    masked[i] = (byte) (reason[i - 2] ^ mask[i % mask.length]);
-                    break;
-                }
-            }
-
-            out.write(masked);
-            out.flush();
-            out.close();
-        }
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
+        closeFrame = (Close) getFrame(OpCode.CLOSE, true, true, controlFramePayload, 0, payloadLen);
+        outputStateMachine.processClose(connection, closeFrame);
     }
 
-    public void writePing(byte[] payload) throws IOException {
-        out.write(0x89);
-
-        int len = payload == null ? 0 : payload.length;
-        encodePayloadLength(len);
-
-        encodePayload(payload);
+    public void writePong(byte[] buf, int offset, int length) throws IOException {
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
+        pongFrame = (Pong) getFrame(OpCode.PONG, true, true, buf, offset, length);
+        outputStateMachine.processPong(connection, pongFrame);
     }
 
-    public void writePong(byte[] payload) throws IOException {
-        out.write(0x8A);
-
-        int len = payload == null ? 0 : payload.length;
-        encodePayloadLength(len);
-
-        encodePayload(payload);
-    }
-
-    private void encodePayloadLength(int len) throws IOException {
-        switch (highestOneBit(len)) {
-        case 0x0000:
-        case 0x0001:
-        case 0x0002:
-        case 0x0004:
-        case 0x0008:
-        case 0x0010:
-        case 0x0020:
-            out.write(0x80 | len);
-            break;
-        case 0x0040:
-            switch (len) {
-            case 126:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(126);
-                break;
-            case 127:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(127);
-                break;
-            default:
-                out.write(0x80 | len);
-                break;
-            }
-            break;
-        case 0x0080:
-        case 0x0100:
-        case 0x0200:
-        case 0x0400:
-        case 0x0800:
-        case 0x1000:
-        case 0x2000:
-        case 0x4000:
-        case 0x8000:
-            out.write(0x80 | 126);
-            out.write((len >> 8) & 0xff);
-            out.write((len >> 0) & 0xff);
-            break;
-        default:
-            // 65536+
-            out.write(0x80 | 127);
-
-            long length = len;
-            out.write((int) ((length >> 56) & 0xff));
-            out.write((int) ((length >> 48) & 0xff));
-            out.write((int) ((length >> 40) & 0xff));
-            out.write((int) ((length >> 32) & 0xff));
-            out.write((int) ((length >> 24) & 0xff));
-            out.write((int) ((length >> 16) & 0xff));
-            out.write((int) ((length >> 8) & 0xff));
-            out.write((int) ((length >> 0) & 0xff));
-            break;
-        }
-    }
-
-    private void encodePayload(byte[] payload) throws IOException {
-        if (payload == null) {
-            out.write(EMPTY_MASK);
-            return;
-        }
-
-        connection.getRandom().nextBytes(mask);
-        out.write(mask);
-
-        byte[] masked = new byte[payload.length];
-        for (int i = 0; i < payload.length; i++) {
-            masked[i] = (byte) (payload[i] ^ mask[i % mask.length]);
-        }
-
-        out.write(masked);
+    private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
+            throws IOException {
+        FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
+        return factory.getFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
     }
 }

@@ -17,9 +17,8 @@
 package org.kaazing.netx.ws;
 
 /**
- * {@link MessageType} represents the types of the messages that are
- * received by the {@link MessageReader}. WebSocketMessageType.EOS
- * represents end-of-stream.
+ * {@link MessageType} represents the types of the messages that are received by the {@link MessageReader}.
+ * {@link MessageType#EOS} represents end-of-stream.
  */
 public enum MessageType {
 

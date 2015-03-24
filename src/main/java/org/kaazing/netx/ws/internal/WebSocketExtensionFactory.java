@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.internal.ext;
+package org.kaazing.netx.ws.internal;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.ServiceLoader.load;
@@ -24,47 +24,65 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
 
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
+import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
+
 
 public final class WebSocketExtensionFactory {
-
     private final Map<String, WebSocketExtensionFactorySpi> factoriesRO;
 
+    private WebSocketExtensionFactory(Map<String, WebSocketExtensionFactorySpi> factoriesRO) {
+        this.factoriesRO = factoriesRO;
+    }
+
     /**
-     * Creates and returns the singleton{@link WebSocketExtensionSpi} instance for the
-     * extension that this factory is responsible for. The parameters for the
-     * extension are specified so that the formatted string that can be put on
-     * the wire can be supplied by the extension implementor.
+     * Creates and returns {@link WebSocketExtensionSpi} instance representing the extension using the registered
+     * {@link WebSocketExtensionFactorySpi}.
      *
-     * @param name          the extension name
-     * @param parameters    the extension parameters
+     * @param name            the extension name
+     * @param formattedStr    RFC-3864 formatted string negotiated with the server including the extension name
      *
      * @return WebSocketExtension   the parameterized extension
      */
-    public WebSocketExtensionSpi createExtension(String name, WebSocketExtensionParameterValues parameters) {
+    public WebSocketExtensionSpi createExtension(String name, String formattedStr) {
         WebSocketExtensionFactorySpi factory = factoriesRO.get(name);
         if (factory == null) {
             throw new IllegalArgumentException("Unsupported extension: " + name);
         }
-        return factory.createExtension(parameters);
+        return factory.createExtension(formattedStr);
     }
 
+    /**
+     * Returns the names of all the supported/discovered extensions.
+     *
+     * @return Collection of extension names
+     */
     public Collection<String> getExtensionNames() {
         return factoriesRO.keySet();
     }
 
+    /**
+     * Creates a new instance of WebSocketExtensionFactory. It uses the default {@link ClassLoader} to load
+     * {@link WebSocketExtensionFactorySpi} objects that are registered using META-INF/services.
+     *
+     * @return WebSocketExtensionFactory
+     */
     public static WebSocketExtensionFactory newInstance() {
         ServiceLoader<WebSocketExtensionFactorySpi> services = load(WebSocketExtensionFactorySpi.class);
         return newInstance(services);
     }
 
+    /**
+     * Creates a new instance of WebSocketExtensionFactory. It uses the specified {@link ClassLoader} to load
+     * {@link WebSocketExtensionFactorySpi} objects that are registered using META-INF/services.
+     *
+     * @return WebSocketExtensionFactory
+     */
     public static WebSocketExtensionFactory newInstance(ClassLoader cl) {
         ServiceLoader<WebSocketExtensionFactorySpi> services = load(WebSocketExtensionFactorySpi.class, cl);
         return newInstance(services);
     }
 
-    private WebSocketExtensionFactory(Map<String, WebSocketExtensionFactorySpi> factories) {
-        this.factoriesRO = factories;
-    }
 
     private static WebSocketExtensionFactory newInstance(ServiceLoader<WebSocketExtensionFactorySpi> services) {
         Map<String, WebSocketExtensionFactorySpi> factories = new HashMap<String, WebSocketExtensionFactorySpi>();

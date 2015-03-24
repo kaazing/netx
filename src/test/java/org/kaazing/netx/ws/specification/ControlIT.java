@@ -58,6 +58,7 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.connect();
         connection.close();
         k3po.join();
     }
@@ -72,6 +73,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         String reason = new RandomString(123).nextString();
 
+        connection.connect();
         connection.close(1000, reason);
         k3po.join();
     }
@@ -87,6 +89,7 @@ public class ControlIT {
         String reason = new RandomString(124).nextString();
 
         try {
+            connection.connect();
             connection.close(1000, reason);
         }
         finally {

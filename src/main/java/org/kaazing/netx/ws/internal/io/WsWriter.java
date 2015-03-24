@@ -16,109 +16,54 @@
 
 package org.kaazing.netx.ws.internal.io;
 
-import static java.lang.Integer.highestOneBit;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.byteCountUTF8;
+import static java.lang.String.format;
+import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
 
+import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.WsURLConnectionImpl.ReadyState;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 
 public class WsWriter extends Writer {
+    private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
+
     private final WsURLConnectionImpl connection;
     private final OutputStream out;
-    private final byte[] mask;
+
+    private Data dataFrame;
 
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
         this.out = connection.getTcpOutputStream();
-        this.mask = new byte[4];
     }
 
     @Override
     public void write(char[] cbuf, int offset, int length) throws IOException {
-        if (connection.getReadyState() == ReadyState.CLOSED) {
+        if (connection.getOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
 
-        int byteCount = byteCountUTF8(cbuf, offset, length);
-
-        out.write(0x81);
-
-        switch (highestOneBit(byteCount)) {
-        case 0x0000:
-        case 0x0001:
-        case 0x0002:
-        case 0x0004:
-        case 0x0008:
-        case 0x0010:
-        case 0x0020:
-            out.write(0x80 | byteCount);
-            break;
-        case 0x0040:
-            switch (length) {
-            case 126:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(126);
-                break;
-            case 127:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(127);
-                break;
-            default:
-                out.write(0x80 | byteCount);
-                break;
-            }
-            break;
-        case 0x0080:
-        case 0x0100:
-        case 0x0200:
-        case 0x0400:
-        case 0x0800:
-        case 0x1000:
-        case 0x2000:
-        case 0x4000:
-        case 0x8000:
-            out.write(0x80 | 126);
-            out.write((length >> 8) & 0xff);
-            out.write((length >> 0) & 0xff);
-            break;
-        default:
-            // 65536+
-            out.write(0x80 | 127);
-
-            long lengthL = byteCount;
-            out.write((int) ((lengthL >> 56) & 0xff));
-            out.write((int) ((lengthL >> 48) & 0xff));
-            out.write((int) ((lengthL >> 40) & 0xff));
-            out.write((int) ((lengthL >> 32) & 0xff));
-            out.write((int) ((lengthL >> 24) & 0xff));
-            out.write((int) ((lengthL >> 16) & 0xff));
-            out.write((int) ((lengthL >> 8) & 0xff));
-            out.write((int) ((lengthL >> 0) & 0xff));
-            break;
+        if (cbuf == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
+        else if ((offset < 0) || (length < 0) || (offset + length > cbuf.length)) {
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
         }
 
-        // Create the masking key.
-        connection.getRandom().nextBytes(mask);
-        out.write(mask);
 
-        // ### TODO: Convert the char[] to UTF-8 byte[] payload instead of creating a String.
-        byte[] bytes = String.valueOf(cbuf, offset, length).getBytes("UTF-8");
+        byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8);
+        dataFrame = (Data) getFrame(OpCode.TEXT, true, true, bytesPayload, 0, bytesPayload.length);
 
-        // Mask the payload.
-        byte[] masked = new byte[bytes.length];
-        for (int i = 0; i < bytes.length; i++) {
-            int ioff = offset + i;
-            masked[i] = (byte) (bytes[ioff] ^ mask[i % mask.length]);
-        }
-
-        out.write(masked);
-        out.flush();
+        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
+        outputStateMachine.processText(connection, dataFrame);
     }
 
     @Override
@@ -129,5 +74,11 @@ public class WsWriter extends Writer {
     @Override
     public void close() throws IOException {
         out.close();
+    }
+
+    private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
+            throws IOException {
+        FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
+        return factory.getFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
     }
 }

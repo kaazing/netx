@@ -16,33 +16,117 @@
 
 package org.kaazing.netx.ws.internal.ext;
 
+import java.io.IOException;
 
+import org.kaazing.netx.ws.internal.ext.flyweight.Close;
+import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
+import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketConsumer;
+import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 /**
- * WebSocketExtensionSpi is part of <i>Service Provider Interface</i> <em>(SPI)</em>
- * for admins/implementors.
+ * {@link WebSocketExtensionSpi} is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
  * <p>
- * A WebSocket Extension implementation consists of the following:
+ * Developing an extension involves implementing:
  * <UL>
- *   <LI> a sub-class of WebSocketExtensionFactorySpi
- *   <LI> a sub-class of WebSocketExtensionSpi
- *   <LI> a sub-class of WebSocketExtension with
- *        {@link Parameter}s defined as constants
+ *   <LI> a sub-class of {@link WebSocketExtensionFactorySpi}
+ *   <LI> a sub-class of {@link WebSocketExtensionSpi}
  * </UL>
  * <p>
- * Every supported extension will require implementing the aforementioned
- * classes. A subset of the supported extensions will be enabled by the
- * application developer.
- * <p>
- * The enabled extensions are included on the wire during the handshake for
- * the client and the server to negotiate.
- * <p>
- * The successfully negotiated extensions are then added to the WebSocket
- * message processing pipeline.
- *
- * @see RevalidateExtension
+ * When an enabled extension is successfully negotiated, an instance of this class is created using the corresponding
+ * {@link WebSocketExtensionFactorySpi} that is registered through META-INF/services. This class is used to instantiate the
+ * hooks that can be exercised as the state machine transitions from one state to another while
+ * handling the WebSocket traffic. Based on the functionality of the extension, the developer can decide which hooks to code.
  */
 public abstract class WebSocketExtensionSpi {
 
-    public abstract WebSocketExtensionHandler createHandler();
+    public WebSocketConsumer onInitialized = new WebSocketConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context) {
+            return;
+        }
+    };
+
+    public WebSocketConsumer onError = new WebSocketConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context) {
+            return;
+        }
+    };
+
+    public WebSocketFrameConsumer onBinaryFrameReceived = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onBinaryReceived((Data) frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onBinaryFrameSent = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onBinarySent((Data) frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onCloseFrameReceived = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onCloseReceived((Close) frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onCloseFrameSent = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onCloseSent((Close) frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onPingFrameReceived = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onPingReceived((Ping) frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onPongFrameReceived = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onPongReceived((Pong) frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onPongFrameSent = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onPongSent((Pong) frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onTextFrameReceived = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onTextReceived((Data) frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onTextFrameSent = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onTextSent((Data) frame);
+        }
+    };
 }

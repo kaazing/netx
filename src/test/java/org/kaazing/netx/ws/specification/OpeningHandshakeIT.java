@@ -17,15 +17,14 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.rules.RuleChain.outerRule;
 
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.URI;
 import java.net.URL;
-import java.util.Arrays;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -119,13 +118,12 @@ public class OpeningHandshakeIT {
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
-        conn.setEnabledProtocols(Arrays.asList("primary", "secondary"));
+        conn.setEnabledProtocols("primary", "secondary");
         conn.connect();
         k3po.join();
     }
 
     @Test
-    @Ignore
     @Specification("request.header.sec.websocket.extensions/handshake.response")
     public void shouldEstablishConnectionWithRequestHeaderSecWebSocketExtensions() throws Exception {
         URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -133,10 +131,11 @@ public class OpeningHandshakeIT {
         URL locationURL = helper.toURL(location);
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
-//      conn.setEnabledExtensions(unmodifiableList(asList("primary", "secondary")));
-
+        conn.addEnabledExtensions("primary", "secondary");
         conn.connect();
         k3po.join();
+        assertEquals("primary", conn.getNegotiatedExtensions().iterator().next());
+        return;
     }
 
     @Test
