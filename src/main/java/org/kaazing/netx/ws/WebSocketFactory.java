@@ -42,10 +42,10 @@ import org.kaazing.netx.ws.internal.WebSocketImpl;
  * developers can override these characteristics at the individual {@link WebSocket} level, if needed.
  */
 public final class WebSocketFactory {
-    private static final Collection<String> EMPTY_SET = Collections.<String>emptySet();
+    private static final Collection<String> EMPTY_EXTENSIONS = Collections.<String>emptySet();
 
-    private final List<String> enabledExtensions;
-    private final List<String> enabledExtensionsRO;
+    private final List<String> defaultEnabledExtensions;
+    private final List<String> defaultEnabledExtensionsRO;
     private final Collection<String> supportedExtensions;
     private final Collection<String> supportedExtensionsRO;
     private final WebSocketExtensionFactory extensionFactory;
@@ -55,8 +55,8 @@ public final class WebSocketFactory {
     private int defaultConnectTimeout; // milliseconds
 
     private WebSocketFactory(WebSocketExtensionFactory extensionFactory) {
-        this.enabledExtensions = new ArrayList<String>();
-        this.enabledExtensionsRO = unmodifiableList(enabledExtensions);
+        this.defaultEnabledExtensions = new ArrayList<String>();
+        this.defaultEnabledExtensionsRO = unmodifiableList(defaultEnabledExtensions);
 
         this.extensionFactory = extensionFactory;
 
@@ -108,10 +108,10 @@ public final class WebSocketFactory {
             throw new IllegalArgumentException("No extensions specified to be enabled");
         }
 
-        this.enabledExtensions.clear();
+        defaultEnabledExtensions.clear();
 
         for (String extension : extensions) {
-            this.enabledExtensions.add(extension);
+            defaultEnabledExtensions.add(extension);
         }
     }
 
@@ -155,7 +155,7 @@ public final class WebSocketFactory {
         ws.setEnabledProtocols(protocols);
         ws.setChallengeHandler(defaultChallengeHandler);
         ws.setConnectTimeout(defaultConnectTimeout);
-        ws.addEnabledExtensions(enabledExtensions.toArray(new String[enabledExtensions.size()]));
+        ws.addEnabledExtensions(defaultEnabledExtensions.toArray(new String[defaultEnabledExtensions.size()]));
 
         return ws;
     }
@@ -167,7 +167,7 @@ public final class WebSocketFactory {
      * @return the default ChallengeHandler
      */
     public ChallengeHandler getDefaultChallengeHandler() {
-        return this.defaultChallengeHandler;
+        return defaultChallengeHandler;
     }
 
     /**
@@ -177,7 +177,7 @@ public final class WebSocketFactory {
      * @return connect timeout value in milliseconds
      */
     public int getDefaultConnectTimeout() {
-        return this.defaultConnectTimeout;
+        return defaultConnectTimeout;
      }
 
     /**
@@ -189,7 +189,7 @@ public final class WebSocketFactory {
      * @return Collection<String>     list of enabled extensions
      */
     public Collection<String> getDefaultEnabledExtensions() {
-        return this.enabledExtensionsRO;
+        return defaultEnabledExtensionsRO;
     }
 
     /**
@@ -209,7 +209,7 @@ public final class WebSocketFactory {
      * @return Collection<String>    extension names discovered for this factory
      */
     public Collection<String> getSupportedExtensions() {
-        return (this.supportedExtensions == null) ? EMPTY_SET : supportedExtensionsRO;
+        return (supportedExtensions == null) ? EMPTY_EXTENSIONS : supportedExtensionsRO;
     }
 
     /**
@@ -232,7 +232,7 @@ public final class WebSocketFactory {
      * @param connectTimeout    timeout value in milliseconds
      */
     public void setDefaultConnectTimeout(int connectTimeout) {
-        this.defaultConnectTimeout = connectTimeout;
+        defaultConnectTimeout = connectTimeout;
      }
 
     /**
@@ -242,6 +242,6 @@ public final class WebSocketFactory {
      * @param redirectPolicy     HttpRedirectPolicy to be enforced during redirects
      */
     public void setDefaultRedirectPolicy(HttpRedirectPolicy redirectPolicy) {
-        this.defaultRedirectPolicy = redirectPolicy;
+        defaultRedirectPolicy = redirectPolicy;
     }
 }
