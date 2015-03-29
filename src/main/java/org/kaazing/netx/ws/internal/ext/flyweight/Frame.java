@@ -21,6 +21,34 @@ public abstract class Frame extends Flyweight {
     Frame() {
     }
 
+    public abstract boolean fin();
+
+    public abstract int flags();
+
+    public abstract OpCode opCode();
+
+    public abstract int length();   // Only handing frames of size < Integer.MAX_VALUE
+
+    public abstract int mask();
+
+    public abstract boolean masked();
+
+    public abstract int maskOffset();
+
+    public abstract int payloadLength();  // Only handling payloads of size < Integer.MAX_VALUE - 10
+
+    /**
+     * Populates the passed in buffer with unmasked payload.
+     *
+     * @param buf
+     * @param offset
+     * @param length
+     * @return number of payload bytes in the buf
+     */
+    public abstract int payloadGet(byte[] buf, int offset, int length);
+
+    public abstract int payloadOffset();
+
     @Override
     protected Flyweight wrap(final ByteBuffer buffer, final int offset) {
         super.wrap(buffer, offset);

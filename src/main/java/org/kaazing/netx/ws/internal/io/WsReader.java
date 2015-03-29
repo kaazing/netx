@@ -36,8 +36,7 @@ import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Header;
-import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
@@ -60,7 +59,7 @@ public class WsReader extends Reader {
     private int applicationBufferWriteOffset;
     private int codePoint;
     private int remainingBytes;
-    private final HeaderRW incomingFrame;
+    private final FrameRW incomingFrame;
 
     public WsReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -69,7 +68,7 @@ public class WsReader extends Reader {
 
         this.connection = connection;
         this.in = connection.getTcpInputStream();
-        this.incomingFrame = new HeaderRW();
+        this.incomingFrame = new FrameRW();
 
         this.codePoint = 0;
         this.remainingBytes = 0;
@@ -110,7 +109,7 @@ public class WsReader extends Reader {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                Header transformedFrame = (Header) frame;
+                Frame transformedFrame = frame;
                 OpCode opCode = transformedFrame.opCode();
                 long xformedPayloadLength = transformedFrame.payloadLength();
                 int xformedPayloadOffset = transformedFrame.payloadOffset();

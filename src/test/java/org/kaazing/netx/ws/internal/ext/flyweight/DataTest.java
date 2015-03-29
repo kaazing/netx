@@ -26,7 +26,6 @@ import java.nio.ByteBuffer;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theory;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class DataTest extends FrameTest {
     enum Fin {
@@ -41,7 +40,7 @@ public class DataTest extends FrameTest {
 
     @Theory
     public void shouldDecodeTextWithEmptyPayload(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW textFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW textFrame = new FrameRW().wrap(buffer, offset);
         byte[] payloadBytes = new byte[10];
 
         textFrame.opCodeAndFin(OpCode.TEXT, fin == Fin.SET ? true : false);
@@ -64,7 +63,7 @@ public class DataTest extends FrameTest {
 
     @Theory
     public void shouldDecodeTextWithValidPayload(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW textFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW textFrame = new FrameRW().wrap(buffer, offset);
         ByteBuffer bytes = ByteBuffer.allocate(1000);
         bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
         bytes.put((byte) 0xC3).put((byte) 0xA9);
@@ -99,7 +98,7 @@ public class DataTest extends FrameTest {
 
     @Theory
     public void shouldDecodeTextWithIncompleteUTF8(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW textFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW textFrame = new FrameRW().wrap(buffer, offset);
         ByteBuffer bytes = ByteBuffer.allocate(1000);
         bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
         bytes.put((byte) 0xC3).put((byte) 0xA9);
@@ -134,7 +133,7 @@ public class DataTest extends FrameTest {
 
     @Theory
     public void shouldDecodeBinaryWithEmptyPayload(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW binaryFrame = new FrameRW().wrap(buffer, offset);
         byte[] payloadBytes = new byte[10];
 
         binaryFrame.opCodeAndFin(OpCode.BINARY, fin == Fin.SET ? true : false);
@@ -157,12 +156,12 @@ public class DataTest extends FrameTest {
 
     @Test
     public void shouldUnmask0Remaining() throws Exception {
-        FrameUtil.putBytes(buffer, 0, fromHex("82")); // fin, binary
-        FrameUtil.putBytes(buffer, 1, fromHex("84")); // masked, length=4
-        FrameUtil.putBytes(buffer, 2, fromHex("01020384")); // mask
-        FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00")); // masked payload
+        putBytes(buffer, 0, fromHex("82")); // fin, binary
+        putBytes(buffer, 1, fromHex("84")); // masked, length=4
+        putBytes(buffer, 2, fromHex("01020384")); // mask
+        putBytes(buffer, 6, fromHex("FF00FF00")); // masked payload
 
-        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, 0);
+        FrameRW binaryFrame = new FrameRW().wrap(buffer, 0);
         byte[] payloadBytes = new byte[10];
         int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
         byte[] bytes = new byte[numBytes];
@@ -179,12 +178,12 @@ public class DataTest extends FrameTest {
 
     @Test
     public void shouldUnmask1Remaining() throws Exception {
-        FrameUtil.putBytes(buffer, 0, fromHex("82")); // fin, binary
-        FrameUtil.putBytes(buffer, 1, fromHex("85")); // masked, length=5
-        FrameUtil.putBytes(buffer, 2, fromHex("01020384")); // mask
-        FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00FE")); // masked payload
+        putBytes(buffer, 0, fromHex("82")); // fin, binary
+        putBytes(buffer, 1, fromHex("85")); // masked, length=5
+        putBytes(buffer, 2, fromHex("01020384")); // mask
+        putBytes(buffer, 6, fromHex("FF00FF00FE")); // masked payload
 
-        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, 0);
+        FrameRW binaryFrame = new FrameRW().wrap(buffer, 0);
         byte[] payloadBytes = new byte[10];
         int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
         byte[] bytes = new byte[numBytes];
@@ -201,12 +200,12 @@ public class DataTest extends FrameTest {
 
     @Test
     public void shouldUnmask2Remaining() throws Exception {
-        FrameUtil.putBytes(buffer, 0, fromHex("82")); // fin, binary
-        FrameUtil.putBytes(buffer, 1, fromHex("86")); // masked, length=6
-        FrameUtil.putBytes(buffer, 2, fromHex("01020384")); // mask
-        FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00FE65")); // masked payload
+        putBytes(buffer, 0, fromHex("82")); // fin, binary
+        putBytes(buffer, 1, fromHex("86")); // masked, length=6
+        putBytes(buffer, 2, fromHex("01020384")); // mask
+        putBytes(buffer, 6, fromHex("FF00FF00FE65")); // masked payload
 
-        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, 0);
+        FrameRW binaryFrame = new FrameRW().wrap(buffer, 0);
         byte[] payloadBytes = new byte[10];
         int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
         byte[] bytes = new byte[numBytes];
@@ -223,12 +222,12 @@ public class DataTest extends FrameTest {
 
     @Test
     public void shouldUnmask3Remaining() throws Exception {
-        FrameUtil.putBytes(buffer, 0, fromHex("82")); // fin, binary
-        FrameUtil.putBytes(buffer, 1, fromHex("87")); // masked, length=6
-        FrameUtil.putBytes(buffer, 2, fromHex("01020384")); // mask
-        FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00FE6596")); // masked payload
+        putBytes(buffer, 0, fromHex("82")); // fin, binary
+        putBytes(buffer, 1, fromHex("87")); // masked, length=6
+        putBytes(buffer, 2, fromHex("01020384")); // mask
+        putBytes(buffer, 6, fromHex("FF00FF00FE6596")); // masked payload
 
-        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, 0);
+        FrameRW binaryFrame = new FrameRW().wrap(buffer, 0);
         byte[] payloadBytes = new byte[10];
         int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
         byte[] bytes = new byte[numBytes];
@@ -245,7 +244,7 @@ public class DataTest extends FrameTest {
 
     @Theory
     public void shouldDecodeBinaryWithPayload(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW binaryFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputPayload = new byte[5000];
         byte[] payloadBytes = new byte[inputPayload.length];
 
@@ -268,5 +267,11 @@ public class DataTest extends FrameTest {
         assertEquals(fin == Fin.SET, binaryFrame.fin());
         assertEquals(masked, binaryFrame.masked());
         assertEquals(inputPayload.length, numBytes);
+    }
+
+    private static void putBytes(ByteBuffer buffer, int offset, byte[] bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+            buffer.put(offset + i, bytes[i]);
+        }
     }
 }

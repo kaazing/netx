@@ -19,7 +19,7 @@ import static java.lang.String.format;
 
 import java.nio.ByteBuffer;
 
-public class HeaderRO extends Header {
+public class FrameRO extends Frame {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
 
     private static final byte FIN_MASK = (byte) 0x80;
@@ -40,7 +40,7 @@ public class HeaderRO extends Header {
     public int flags() {
         checkBuffer(buffer());
         byte leadByte = (byte) uint8Get(buffer(), offset());
-        return (leadByte & 0xF0) >> 4;
+        return (leadByte & 0x70) >> 4;
     }
 
     @Override
@@ -166,7 +166,7 @@ public class HeaderRO extends Header {
     }
 
     @Override
-    public HeaderRO wrap(ByteBuffer buffer, int offset) {
+    public FrameRO wrap(ByteBuffer buffer, int offset) {
         super.wrap(buffer, offset);
         return this;
     }

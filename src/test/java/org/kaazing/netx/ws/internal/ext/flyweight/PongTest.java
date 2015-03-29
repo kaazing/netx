@@ -27,7 +27,7 @@ public class PongTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
-        HeaderRW pongFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW pongFrame = new FrameRW().wrap(buffer, offset);
 
         pongFrame.opCodeAndFin(OpCode.PONG, true);
 
@@ -46,7 +46,7 @@ public class PongTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithPayload(int offset, boolean masked) throws Exception {
-        HeaderRW pongFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW pongFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputBytes = fromHex("03e8ff01");
         byte[] payload = new byte[inputBytes.length];
 

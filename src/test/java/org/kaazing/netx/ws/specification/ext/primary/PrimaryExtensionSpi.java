@@ -22,26 +22,24 @@ import java.nio.charset.Charset;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Header;
-import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    private final HeaderRW outgoingFrame = new HeaderRW().wrap(ByteBuffer.allocate(1024), 0);
-    private final HeaderRW incomingFrame = new HeaderRW().wrap(ByteBuffer.allocate(1024), 0);
+    private final FrameRW outgoingFrame = new FrameRW().wrap(ByteBuffer.allocate(1024), 0);
+    private final FrameRW incomingFrame = new FrameRW().wrap(ByteBuffer.allocate(1024), 0);
     {
         onTextReceived = new WebSocketFrameConsumer() {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                Header srcFrame = (Header) frame;
-                OpCode opcode = srcFrame.opCode();
-                int payloadLength = srcFrame.payloadLength();
+                OpCode opcode = frame.opCode();
+                int payloadLength = frame.payloadLength();
                 byte[] payload = new byte[payloadLength];
-                int numBytes = srcFrame.payloadGet(payload, 0, payload.length);
+                int numBytes = frame.payloadGet(payload, 0, payload.length);
 
                 assert numBytes == payloadLength;
 
@@ -59,11 +57,10 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                Header srcFrame = (Header) frame;
-                OpCode opcode = srcFrame.opCode();
-                int payloadLength = srcFrame.payloadLength();
+                OpCode opcode = frame.opCode();
+                int payloadLength = frame.payloadLength();
                 byte[] payload = new byte[payloadLength];
-                int numBytes = srcFrame.payloadGet(payload, 0, payload.length);
+                int numBytes = frame.payloadGet(payload, 0, payload.length);
 
                 assert numBytes == payloadLength;
 

@@ -20,7 +20,7 @@ import static java.lang.String.format;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 
-public class HeaderRW extends Header {
+public class FrameRW extends Frame {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
     public static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
 
@@ -35,7 +35,7 @@ public class HeaderRW extends Header {
     private final byte[] mask;
     private final SecureRandom random;
 
-    public HeaderRW() {
+    public FrameRW() {
         this.mask = new byte[4];
         this.random = new SecureRandom();
     }
@@ -51,7 +51,7 @@ public class HeaderRW extends Header {
         checkBuffer(buffer());
 
         byte leadByte = (byte) uint8Get(buffer(), offset());
-        return (leadByte & 0xF0) >> 4;
+        return (leadByte & 0x70) >> 4;
     }
 
     @Override
@@ -174,7 +174,7 @@ public class HeaderRW extends Header {
     }
 
     @Override
-    public HeaderRW wrap(ByteBuffer buffer, int offset) {
+    public FrameRW wrap(ByteBuffer buffer, int offset) {
         super.wrap(buffer, offset);
         return this;
     }

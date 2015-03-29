@@ -38,7 +38,7 @@ public class ContinuationTest extends FrameTest {
 
     @Theory
     public void shouldDecodeContinuationWithEmptyPayload(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW continuationFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
 
         continuationFrame.opCodeAndFin(OpCode.CONTINUATION, (fin == Fin.SET) ? true : false);
 
@@ -58,7 +58,7 @@ public class ContinuationTest extends FrameTest {
 
     @Theory
     public void shouldDecodeContinuationWithUTF8Payload(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW continuationFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
         ByteBuffer bytes = ByteBuffer.allocate(1000);
         bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
         bytes.put((byte) 0xC3).put((byte) 0xA9);
@@ -92,7 +92,7 @@ public class ContinuationTest extends FrameTest {
 
     @Theory
     public void shouldDecodeContinuationWithIncompleteUTF8(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW continuationFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
         ByteBuffer bytes = ByteBuffer.allocate(1000);
         bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
         bytes.put((byte) 0xC3).put((byte) 0xA9);
@@ -126,7 +126,7 @@ public class ContinuationTest extends FrameTest {
 
     @Theory
     public void shouldDecodeContinuationWithBinaryPayload(int offset, boolean masked, Fin fin) throws Exception {
-        HeaderRW continuationFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputPayload = new byte[5000];
         byte[] payloadBytes = new byte[inputPayload.length];
 

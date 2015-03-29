@@ -22,12 +22,12 @@ import java.nio.ByteBuffer;
 public class ClosePayloadRW extends ClosePayload {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
 
-    private final HeaderRW delegate;
+    private final FrameRW delegate;
     private final byte[] closePayload;
 
     public ClosePayloadRW() {
         this.closePayload = new byte[150];
-        this.delegate = new HeaderRW();
+        this.delegate = new FrameRW();
     }
 
     @Override

@@ -52,7 +52,6 @@ import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.ClosePayloadRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Header;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class WebSocketOutputStateMachine {
@@ -93,24 +92,23 @@ public class WebSocketOutputStateMachine {
         connection.setOutputState(WebSocketState.START);
     }
 
-    public void processBinary(final WsURLConnectionImpl connection, final Header dataFrame)
+    public void processBinary(final WsURLConnectionImpl connection, final Frame dataFrame)
             throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
                 onBinarySent = new WebSocketFrameConsumer() {
                     @Override
                     public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        Header transformedFrame = (Header) frame;
                         OutputStream out = connection.getTcpOutputStream();
 
-                        assert transformedFrame.opCode() == BINARY;
-                        assert transformedFrame.masked();
+                        assert frame.opCode() == BINARY;
+                        assert frame.masked();
                         // If we want to support sending fragmented frames, then we should delete the next line.
-                        assert transformedFrame.fin();
+                        assert frame.fin();
 
-                        int length = transformedFrame.length();
-                        ByteBuffer buf = transformedFrame.buffer();
-                        int offset = transformedFrame.offset();
+                        int length = frame.length();
+                        ByteBuffer buf = frame.buffer();
+                        int offset = frame.offset();
 
                         for (int i = 0; i < length; i++) {
                             out.write(buf.get(offset++));
@@ -134,23 +132,22 @@ public class WebSocketOutputStateMachine {
         }
     }
 
-    public void processContinuation(final WsURLConnectionImpl connection, final Header dataFrame)
+    public void processContinuation(final WsURLConnectionImpl connection, final Frame dataFrame)
             throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
                 onBinarySent = new WebSocketFrameConsumer() {
                     @Override
                     public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        Header transformedFrame = (Header) frame;
                         OutputStream out = connection.getTcpOutputStream();
 
-                        assert transformedFrame.opCode() == CONTINUATION;
-                        assert transformedFrame.masked();
-                        assert !transformedFrame.fin();
+                        assert frame.opCode() == CONTINUATION;
+                        assert frame.masked();
+                        assert !frame.fin();
 
-                        int length = transformedFrame.length();
-                        ByteBuffer buf = transformedFrame.buffer();
-                        int offset = transformedFrame.offset();
+                        int length = frame.length();
+                        ByteBuffer buf = frame.buffer();
+                        int offset = frame.offset();
 
                         for (int i = 0; i < length; i++) {
                             out.write(buf.get(offset++));
@@ -174,22 +171,21 @@ public class WebSocketOutputStateMachine {
         }
     }
 
-    public void processClose(final WsURLConnectionImpl connection, final Header closeFrame)
+    public void processClose(final WsURLConnectionImpl connection, final Frame closeFrame)
             throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
                 onCloseSent = new WebSocketFrameConsumer() {
                     @Override
                     public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        Header transformedFrame = (Header) frame;
                         OutputStream out = connection.getTcpOutputStream();
                         int len = 0;
                         int code = 0;
                         int closeCode = 0;
-                        int closePayloadLen = transformedFrame.payloadLength();
+                        int closePayloadLen = frame.payloadLength();
                         IOException exception = null;
 
-                        closePayload.wrap(transformedFrame.buffer(), transformedFrame.offset());
+                        closePayload.wrap(frame.buffer(), frame.offset());
 
                         if (closePayloadLen >= 2) {
                             closeCode = closePayload.statusCode();
@@ -304,23 +300,22 @@ public class WebSocketOutputStateMachine {
 
     }
 
-    public void processPong(final WsURLConnectionImpl connection, final Header pongFrame)
+    public void processPong(final WsURLConnectionImpl connection, final Frame pongFrame)
             throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
                 onPongSent = new WebSocketFrameConsumer() {
                     @Override
                     public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        Header transformedFrame = (Header) frame;
                         OutputStream out = connection.getTcpOutputStream();
 
-                        assert transformedFrame.opCode() == PONG;
-                        assert transformedFrame.masked();
-                        assert transformedFrame.fin();
+                        assert frame.opCode() == PONG;
+                        assert frame.masked();
+                        assert frame.fin();
 
-                        int length = transformedFrame.length();
-                        ByteBuffer buf = transformedFrame.buffer();
-                        int offset = transformedFrame.offset();
+                        int length = frame.length();
+                        ByteBuffer buf = frame.buffer();
+                        int offset = frame.offset();
 
                         for (int i = 0; i < length; i++) {
                             out.write(buf.get(offset++));
@@ -344,25 +339,23 @@ public class WebSocketOutputStateMachine {
         }
     }
 
-    public void processText(final WsURLConnectionImpl connection, final Header dataFrame)
+    public void processText(final WsURLConnectionImpl connection, final Frame dataFrame)
             throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
                 onTextSent = new WebSocketFrameConsumer() {
                     @Override
                     public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        Header transformedFrame = (Header) frame;
-
                         OutputStream out = connection.getTcpOutputStream();
 
-                        assert transformedFrame.opCode() == TEXT;
-                        assert transformedFrame.masked();
+                        assert frame.opCode() == TEXT;
+                        assert frame.masked();
                         // If we want to support sending fragmented frames, then we should delete the next line.
-                        assert transformedFrame.fin();
+                        assert frame.fin();
 
-                        int length = transformedFrame.length();
-                        ByteBuffer buf = transformedFrame.buffer();
-                        int offset = transformedFrame.offset();
+                        int length = frame.length();
+                        ByteBuffer buf = frame.buffer();
+                        int offset = frame.offset();
 
                         for (int i = 0; i < length; i++) {
                             out.write(buf.get(offset++));

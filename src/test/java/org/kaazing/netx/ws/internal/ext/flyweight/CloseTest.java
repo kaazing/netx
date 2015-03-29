@@ -28,7 +28,7 @@ public class CloseTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
-        HeaderRW closeFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
         byte[] payloadBytes = new byte[10];
 
         closeFrame.opCodeAndFin(OpCode.CLOSE, true);
@@ -51,7 +51,7 @@ public class CloseTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithStatusCode1000(int offset, boolean masked) throws Exception {
-        HeaderRW closeFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputPayload = new byte[] { 0x03, (byte) 0xe8 };
         byte[] payloadBytes = new byte[inputPayload.length];
 
@@ -81,7 +81,7 @@ public class CloseTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithStatusCodeAndReason(int offset, boolean masked) throws Exception {
-        HeaderRW closeFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
         int statusCode = 1001;
         byte[] reason = "Something bad happened".getBytes(UTF_8);
         ClosePayloadRW closePayload = new ClosePayloadRW();

@@ -25,7 +25,7 @@ public class PingTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
-        HeaderRW pingFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW pingFrame = new FrameRW().wrap(buffer, offset);
 
         pingFrame.opCodeAndFin(OpCode.PING, true);
 
@@ -44,7 +44,7 @@ public class PingTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithPayload(int offset, boolean masked) throws Exception {
-        HeaderRW pingFrame = new HeaderRW().wrap(buffer, offset);
+        FrameRW pingFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputBytes = fromHex("03e8ff01");
         byte[] payload = new byte[inputBytes.length];
 

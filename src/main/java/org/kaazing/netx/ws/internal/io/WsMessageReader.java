@@ -38,8 +38,7 @@ import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Header;
-import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
@@ -70,7 +69,7 @@ public final class WsMessageReader extends MessageReader {
     private int remainingBytes;
     private MessageType type;
     private State state;
-    private final HeaderRW incomingFrame;
+    private final FrameRW incomingFrame;
 
     private enum State {
         INITIAL, PROCESS_MESSAGE_TYPE, PROCESS_FRAME;
@@ -84,7 +83,7 @@ public final class WsMessageReader extends MessageReader {
         this.connection = connection;
         this.in = connection.getTcpInputStream();
         this.state = State.INITIAL;
-        this.incomingFrame = new HeaderRW();
+        this.incomingFrame = new FrameRW();
 
         this.networkBufferReadOffset = 0;
         this.networkBufferWriteOffset = 0;
@@ -95,12 +94,12 @@ public final class WsMessageReader extends MessageReader {
     }
 
     @Override
-    public synchronized int read(byte[] buf) throws IOException {
+    public int read(byte[] buf) throws IOException {
         return this.read(buf, 0, buf.length);
     }
 
     @Override
-    public synchronized int read(final byte[] buf, final int offset, final int length) throws IOException {
+    public int read(final byte[] buf, final int offset, final int length) throws IOException {
         if (buf == null) {
             throw new NullPointerException("Null buf passed in");
         }
@@ -126,21 +125,20 @@ public final class WsMessageReader extends MessageReader {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                Header transformedFrame = (Header) frame;
-                OpCode opCode = transformedFrame.opCode();
-                long xformedPayloadLength = transformedFrame.payloadLength();
-                int xformedPayloadOffset = transformedFrame.payloadOffset();
+                OpCode opCode = frame.opCode();
+                long xformedPayloadLength = frame.payloadLength();
+                int xformedPayloadOffset = frame.payloadOffset();
 
                 switch (opCode) {
                 case BINARY:
                 case CONTINUATION:
                     if ((opCode == BINARY) && fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                         connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
                     if ((opCode == CONTINUATION) && !fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                         connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
@@ -153,15 +151,15 @@ public final class WsMessageReader extends MessageReader {
                     // Using System.arraycopy() to copy the contents of transformed.buffer().array() to the applicationBuffer
                     // results in java.nio.ReadOnlyBufferException as we will be getting a RO flyweight in the terminal consumer.
                     for (int i = 0; i < xformedPayloadLength; i++) {
-                        buf[applicationBufferWriteOffset++] = transformedFrame.buffer().get(xformedPayloadOffset + i);
+                        buf[applicationBufferWriteOffset++] = frame.buffer().get(xformedPayloadOffset + i);
                     }
-                    fragmented = !transformedFrame.fin();
+                    fragmented = !frame.fin();
                     break;
                 case CLOSE:
-                    connection.sendClose(transformedFrame);
+                    connection.sendClose(frame);
                     break;
                 case PING:
-                    connection.sendPong(transformedFrame);
+                    connection.sendPong(frame);
                     break;
                 case TEXT:
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, OpCode.toInt(TEXT)));
@@ -216,12 +214,12 @@ public final class WsMessageReader extends MessageReader {
     }
 
     @Override
-    public synchronized int read(char[] buf) throws IOException {
+    public int read(char[] buf) throws IOException {
         return this.read(buf, 0, buf.length);
     }
 
     @Override
-    public synchronized int read(final char[] buf, int offset, int length) throws IOException {
+    public int read(final char[] buf, int offset, int length) throws IOException {
         if (buf == null) {
             throw new NullPointerException("Null buf passed in");
         }
@@ -248,25 +246,24 @@ public final class WsMessageReader extends MessageReader {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                Header transformedFrame = (Header) frame;
-                OpCode opCode = transformedFrame.opCode();
-                long xformedPayloadLength = transformedFrame.payloadLength();
-                int xformedPayloadOffset = transformedFrame.payloadOffset();
+                OpCode opCode = frame.opCode();
+                long xformedPayloadLength = frame.payloadLength();
+                int xformedPayloadOffset = frame.payloadOffset();
 
                 switch (opCode) {
                 case TEXT:
                 case CONTINUATION:
                     if ((opCode == TEXT) && fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                         connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
                     if ((opCode == CONTINUATION) && !fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                         connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
-                    int charsConverted = convertBytesToChars(transformedFrame.buffer(),
+                    int charsConverted = convertBytesToChars(frame.buffer(),
                                                              xformedPayloadOffset,
                                                              xformedPayloadLength,
                                                              buf,
@@ -274,13 +271,13 @@ public final class WsMessageReader extends MessageReader {
                                                              applicationBufferLength);
                     applicationBufferWriteOffset += charsConverted;
                     applicationBufferLength -= charsConverted;
-                    fragmented = !transformedFrame.fin();
+                    fragmented = !frame.fin();
                     break;
                 case CLOSE:
-                    connection.sendClose(transformedFrame);
+                    connection.sendClose(frame);
                     break;
                 case PING:
-                    connection.sendPong(transformedFrame);
+                    connection.sendPong(frame);
                     break;
                 case BINARY:
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, OpCode.toInt(BINARY)));
@@ -336,12 +333,12 @@ public final class WsMessageReader extends MessageReader {
     }
 
     @Override
-    public synchronized MessageType peek() {
+    public MessageType peek() {
         return type;
     }
 
     @Override
-    public synchronized MessageType next() throws IOException {
+    public MessageType next() throws IOException {
         switch (state) {
         case INITIAL:
         case PROCESS_MESSAGE_TYPE:
@@ -425,7 +422,6 @@ public final class WsMessageReader extends MessageReader {
 
         switch (flags) {
         case 0:
-        case 8:
             break;
         default:
             connection.doFail(WS_PROTOCOL_ERROR, format(MSG_RESERVED_BITS_SET, flags));
@@ -474,7 +470,7 @@ public final class WsMessageReader extends MessageReader {
             final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
                 @Override
                 public void accept(WebSocketContext context, Frame frame) throws IOException {
-                    Header transformedFrame = (Header) frame;
+                    Frame transformedFrame = frame;
                     OpCode opCode = transformedFrame.opCode();
 
                     switch (opCode) {

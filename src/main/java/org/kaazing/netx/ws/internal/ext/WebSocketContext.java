@@ -21,7 +21,6 @@ import java.util.ListIterator;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Header;
 
 public class WebSocketContext {
     protected final WsURLConnectionImpl connection;
@@ -94,19 +93,23 @@ public class WebSocketContext {
         nextExtension().onTextSent.accept(this, frame);
     }
 
-    public void doSendBinary(Header dataFrame) throws IOException {
+    public void doSendBinary(Frame dataFrame) throws IOException {
         connection.getOutputStateMachine().processBinary(connection, dataFrame);
     }
 
-    public void doSendClose(Header closeFrame) throws IOException {
+    public void doSendClose(Frame closeFrame) throws IOException {
         connection.getOutputStateMachine().processClose(connection, closeFrame);
     }
 
-    public void doSendPong(Header pongFrame) throws IOException {
+    public void doSendContinuation(Frame dataFrame) throws IOException {
+        connection.getOutputStateMachine().processContinuation(connection, dataFrame);
+    }
+
+    public void doSendPong(Frame pongFrame) throws IOException {
         connection.getOutputStateMachine().processPong(connection, pongFrame);
     }
 
-    public void doSendText(Header dataFrame) throws IOException {
+    public void doSendText(Frame dataFrame) throws IOException {
         connection.getOutputStateMachine().processText(connection, dataFrame);
     }
 }

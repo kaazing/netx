@@ -23,7 +23,6 @@ import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Flyweight.uint16Get;
-import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,8 +50,8 @@ import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
-import org.kaazing.netx.ws.internal.ext.flyweight.Header;
-import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRO;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
@@ -94,7 +93,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final List<String> negotiatedExtensionsRO;
     private final List<WebSocketExtensionSpi> negotiatedExtensionSpis;
     private final byte[] commandFramePayload;
-    private final HeaderRO incomingFrameRO;
+    private final FrameRO incomingFrameRO;
 
     private String negotiatedProtocol;
     private WsInputStream inputStream;
@@ -131,7 +130,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionsRO = unmodifiableList(negotiatedExtensions);
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
-        this.incomingFrameRO = new HeaderRO();
+        this.incomingFrameRO = new FrameRO();
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -155,7 +154,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionsRO = unmodifiableList(negotiatedExtensions);
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
-        this.incomingFrameRO = new HeaderRO();
+        this.incomingFrameRO = new FrameRO();
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -204,11 +203,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             }
         }
 
-        sendClose(code, reasonBytes);
-
-        if ((reasonBytes != null) && (reasonBytes.length > 123)) {
-            throw new IOException("Protocol Violation: Reason is longer than 123 bytes");
-        }
+        sendClose(code, reasonBytes, 0, reasonBytes == null ? 0 : reasonBytes.length);
     }
 
     @Override
@@ -475,7 +470,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return outputState;
     }
 
-    public void processFrame(final Header frame, final WebSocketFrameConsumer terminalConsumer)
+    public void processFrame(final Frame frame, final WebSocketFrameConsumer terminalConsumer)
             throws IOException {
         if (frame == null) {
             throw new NullPointerException("Null frame passed in");
@@ -491,7 +486,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         switch (flags) {
         case 0:
-        case 8:
             break;
         default:
           doFail(WS_PROTOCOL_ERROR, format(MSG_RESERVED_BITS_SET, flags));
@@ -547,53 +541,18 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    public void sendClose(int code, byte[] reason) throws IOException {
-        getOutputStream().writeClose(code, reason, 0, reason == null ? 0 : reason.length);
-        disconnect();
-        inputState = CLOSED;
-        outputState = CLOSED;
-    }
-
-    private void sendClose(int code, byte[] reason, int offset, int length) throws IOException {
-        getOutputStream().writeClose(code, reason, offset, length);
-        disconnect();
-        inputState = CLOSED;
-        outputState = CLOSED;
-    }
-
-    public void sendClose(Header closeFrame) throws IOException {
+    public void sendClose(Frame closeFrame) throws IOException {
         int closePayloadLength = closeFrame.payloadLength();
         int code = 0;
-        int closeCodeRO = 0;
         int reasonOffset = 0;
         int reasonLength = 0;
 
         if (closePayloadLength >= 2) {
             code = uint16Get(closeFrame.buffer(), closeFrame.payloadOffset());
-            closeCodeRO = code;
-
-            switch (code) {
-            case WS_MISSING_STATUS_CODE:
-            case WS_ABNORMAL_CLOSE:
-            case WS_UNSUCCESSFUL_TLS_HANDSHAKE:
-                code = WS_PROTOCOL_ERROR;
-                break;
-            default:
-                break;
-            }
 
             if (closePayloadLength > 2) {
                 reasonOffset = closeFrame.payloadOffset() + 2;
                 reasonLength = closePayloadLength - 2;
-
-                if ((closePayloadLength > MAX_COMMAND_FRAME_PAYLOAD) ||
-                    !validBytesUTF8(closeFrame.buffer(), reasonOffset, reasonLength)) {
-                    code = WS_PROTOCOL_ERROR;
-                }
-
-                if (code != WS_NORMAL_CLOSE) {
-                    reasonLength = 0;
-                }
             }
         }
 
@@ -604,17 +563,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         sendClose(code, commandFramePayload, 0, reasonLength);
-
-        if (code == WS_PROTOCOL_ERROR) {
-            throw new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCodeRO, reasonLength));
-        }
     }
 
-    public void sendPong(byte[] buffer, int offset, int length) throws IOException {
-        getOutputStream().writePong(buffer, offset, length);
-    }
-
-    public void sendPong(Header frame) throws IOException {
+    public void sendPong(Frame frame) throws IOException {
         long payloadLength = frame.payloadLength();
         int  payloadOffset = frame.payloadOffset();
 
@@ -622,7 +573,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             commandFramePayload[i] = frame.buffer().get(payloadOffset + i);
         }
 
-        sendPong(commandFramePayload, 0, (int) payloadLength);
+        getOutputStream().writePong(commandFramePayload, 0, (int) payloadLength);
     }
 
     public void setExtensionFactory(WebSocketExtensionFactory extensionFactory) {
@@ -718,6 +669,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         byte[] bytes = new byte[size];
         random.nextBytes(bytes);
         return bytes;
+    }
+
+    private void sendClose(int code, byte[] reason, int offset, int length) throws IOException {
+        getOutputStream().writeClose(code, reason, offset, length);
+        disconnect();
+        inputState = CLOSED;
+        outputState = CLOSED;
     }
 
     private void negotiateProtocol(Collection<String> enabledProtocols, String negotiatedProtocol) throws IOException {

@@ -16,16 +16,13 @@
 
 package org.kaazing.netx.ws.internal.util;
 
-import java.nio.ByteBuffer;
 
 public final class FrameUtil {
-    public static final byte[] EMPTY_MASK = new byte[] { 0x00, 0x00, 0x00, 0x00 };
-
     private FrameUtil() {
 
     }
 
-    public static int calculateNeed(boolean masked, long payloadLength) {
+    public static int calculateCapacity(boolean masked, long payloadLength) {
         int capacity = 1; // opcode
 
         if (payloadLength < 126) {
@@ -42,11 +39,5 @@ public final class FrameUtil {
 
         capacity += payloadLength;
         return capacity;
-    }
-
-    public static void putBytes(ByteBuffer buffer, int offset, byte[] bytes) {
-        for (int i = 0; i < bytes.length; i++) {
-            buffer.put(offset + i, bytes[i]);
-        }
     }
 }

@@ -27,7 +27,8 @@ import java.nio.charset.Charset;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
 
@@ -38,12 +39,14 @@ public class WsWriter extends Writer {
     private final WsURLConnectionImpl connection;
     private final OutputStream out;
 
-    private final HeaderRW outgoingFrame;
+    private final FrameRW outgoingFrame;
+    private final FrameRO outgoingFrameRO;
 
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
         this.out = connection.getTcpOutputStream();
-        this.outgoingFrame = new HeaderRW();
+        this.outgoingFrame = new FrameRW();
+        this.outgoingFrameRO = new FrameRO();
     }
 
     @Override
@@ -61,7 +64,7 @@ public class WsWriter extends Writer {
 
 
         byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8); // ### TODO: charsToBytes()
-        int capacity = FrameUtil.calculateNeed(true, bytesPayload.length);
+        int capacity = FrameUtil.calculateCapacity(true, bytesPayload.length);
 
         if ((outgoingFrame.buffer() == null) || (outgoingFrame.buffer().capacity() < capacity)) {
             outgoingFrame.wrap(ByteBuffer.allocate(capacity),  0);
@@ -70,7 +73,8 @@ public class WsWriter extends Writer {
         outgoingFrame.opCodeAndFin(OpCode.TEXT, true);
         outgoingFrame.maskedPayloadPut(bytesPayload, 0, bytesPayload.length);
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        outputStateMachine.processText(connection, outgoingFrame);
+        outgoingFrameRO.wrap(outgoingFrame.buffer().asReadOnlyBuffer(), outgoingFrame.offset());
+        outputStateMachine.processText(connection, outgoingFrameRO);
     }
 
     @Override

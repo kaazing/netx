@@ -30,8 +30,7 @@ import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Header;
-import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
@@ -52,7 +51,7 @@ public final class WsInputStream extends InputStream {
     private byte[] applicationBuffer;
     private int applicationBufferReadOffset;
     private int applicationBufferWriteOffset;
-    private final HeaderRW incomingFrame;
+    private final FrameRW incomingFrame;
 
     public WsInputStream(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -61,7 +60,7 @@ public final class WsInputStream extends InputStream {
 
         this.connection = connection;
         this.in = connection.getTcpInputStream();
-        this.incomingFrame = new HeaderRW();
+        this.incomingFrame = new FrameRW();
 
         this.applicationBufferReadOffset = 0;
         this.applicationBufferWriteOffset = 0;
@@ -105,21 +104,20 @@ public final class WsInputStream extends InputStream {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                Header transformedFrame = (Header) frame;
-                OpCode opCode = transformedFrame.opCode();
-                long xformedPayloadLength = transformedFrame.payloadLength();
-                int xformedPayloadOffset = transformedFrame.payloadOffset();
+                OpCode opCode = frame.opCode();
+                long xformedPayloadLength = frame.payloadLength();
+                int xformedPayloadOffset = frame.payloadOffset();
 
                 switch (opCode) {
                 case BINARY:
                 case CONTINUATION:
                     if ((opCode == BINARY) && fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                         connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
                     if ((opCode == CONTINUATION) && !fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                         connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
@@ -135,16 +133,15 @@ public final class WsInputStream extends InputStream {
                     // Using System.arraycopy() to copy the contents of transformed.buffer().array() to the applicationBuffer
                     // results in java.nio.ReadOnlyBufferException as we will be getting a RO flyweight in the terminal consumer.
                     for (int i = 0; i < xformedPayloadLength; i++) {
-                        applicationBuffer[applicationBufferWriteOffset++] =
-                                                          transformedFrame.buffer().get(xformedPayloadOffset + i);
+                        applicationBuffer[applicationBufferWriteOffset++] = frame.buffer().get(xformedPayloadOffset + i);
                     }
-                    fragmented = !transformedFrame.fin();
+                    fragmented = !frame.fin();
                     break;
                 case CLOSE:
-                    connection.sendClose(transformedFrame);
+                    connection.sendClose(frame);
                     break;
                 case PING:
-                    connection.sendPong(transformedFrame);
+                    connection.sendPong(frame);
                     break;
                 case TEXT:
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, OpCode.toInt(TEXT)));

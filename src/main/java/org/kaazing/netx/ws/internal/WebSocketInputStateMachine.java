@@ -34,7 +34,7 @@ import java.io.IOException;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.flyweight.Header;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class WebSocketInputStateMachine {
@@ -74,7 +74,7 @@ public class WebSocketInputStateMachine {
     }
 
     public void processBinary(final WsURLConnectionImpl connection,
-                              final Header frame,
+                              final Frame frame,
                               final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
@@ -96,7 +96,7 @@ public class WebSocketInputStateMachine {
     }
 
     public void processClose(final WsURLConnectionImpl connection,
-                             final Header frame,
+                             final Frame frame,
                              final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
@@ -119,7 +119,7 @@ public class WebSocketInputStateMachine {
     }
 
     public void processContinuation(final WsURLConnectionImpl connection,
-                             final Header frame,
+                             final Frame frame,
                              final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
@@ -142,7 +142,7 @@ public class WebSocketInputStateMachine {
     }
 
     public void processPing(final WsURLConnectionImpl connection,
-                            final Header frame,
+                            final Frame frame,
                             final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
@@ -164,7 +164,7 @@ public class WebSocketInputStateMachine {
     }
 
     public void processPong(final WsURLConnectionImpl connection,
-                            final Header frame,
+                            final Frame frame,
                             final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
@@ -187,7 +187,7 @@ public class WebSocketInputStateMachine {
     }
 
     public void processText(final WsURLConnectionImpl connection,
-                            final Header frame,
+                            final Frame frame,
                             final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
