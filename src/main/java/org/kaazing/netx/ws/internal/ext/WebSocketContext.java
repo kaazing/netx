@@ -20,10 +20,8 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.flyweight.Close;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
-import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
-import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.Header;
 
 public class WebSocketContext {
     protected final WsURLConnectionImpl connection;
@@ -52,55 +50,63 @@ public class WebSocketContext {
         nextExtension().onError.accept(this);
     }
 
-    public void onBinaryReceived(Data frame) throws IOException {
-        nextExtension().onBinaryFrameReceived.accept(this, frame);
+    public void onBinaryReceived(Frame frame) throws IOException {
+        nextExtension().onBinaryReceived.accept(this, frame);
     }
 
-    public void onCloseReceived(Close frame) throws IOException {
-        nextExtension().onCloseFrameReceived.accept(this, frame);
+    public void onCloseReceived(Frame frame) throws IOException {
+        nextExtension().onCloseReceived.accept(this, frame);
     }
 
-    public void onPingReceived(Ping frame) throws IOException {
-        nextExtension().onPingFrameReceived.accept(this, frame);
+    public void onContinuationReceived(Frame frame) throws IOException {
+        nextExtension().onContinuationReceived.accept(this, frame);
     }
 
-    public void onPongReceived(Pong frame) throws IOException {
-        nextExtension().onPongFrameReceived.accept(this, frame);
+    public void onPingReceived(Frame frame) throws IOException {
+        nextExtension().onPingReceived.accept(this, frame);
     }
 
-    public void onTextReceived(Data frame) throws IOException {
-        nextExtension().onTextFrameReceived.accept(this, frame);
+    public void onPongReceived(Frame frame) throws IOException {
+        nextExtension().onPongReceived.accept(this, frame);
     }
 
-    public void onBinarySent(Data frame) throws IOException {
-        nextExtension().onBinaryFrameSent.accept(this, frame);
+    public void onTextReceived(Frame frame) throws IOException {
+        nextExtension().onTextReceived.accept(this, frame);
     }
 
-    public void onCloseSent(Close frame) throws IOException {
-        nextExtension().onCloseFrameSent.accept(this, frame);
+    public void onBinarySent(Frame frame) throws IOException {
+        nextExtension().onBinarySent.accept(this, frame);
     }
 
-    public void onPongSent(Pong frame) throws IOException {
-        nextExtension().onPongFrameSent.accept(this, frame);
+    public void onCloseSent(Frame frame) throws IOException {
+        nextExtension().onCloseSent.accept(this, frame);
     }
 
-    public void onTextSent(Data frame) throws IOException {
-        nextExtension().onTextFrameSent.accept(this, frame);
+    public void onContinuationSent(Frame frame) throws IOException {
+        nextExtension().onContinuationSent.accept(this, frame);
     }
 
-    public void doSendBinary(Data dataFrame) throws IOException {
+    public void onPongSent(Frame frame) throws IOException {
+        nextExtension().onPongSent.accept(this, frame);
+    }
+
+    public void onTextSent(Frame frame) throws IOException {
+        nextExtension().onTextSent.accept(this, frame);
+    }
+
+    public void doSendBinary(Header dataFrame) throws IOException {
         connection.getOutputStateMachine().processBinary(connection, dataFrame);
     }
 
-    public void doSendClose(Close closeFrame) throws IOException {
+    public void doSendClose(Header closeFrame) throws IOException {
         connection.getOutputStateMachine().processClose(connection, closeFrame);
     }
 
-    public void doSendPong(Pong pongFrame) throws IOException {
+    public void doSendPong(Header pongFrame) throws IOException {
         connection.getOutputStateMachine().processPong(connection, pongFrame);
     }
 
-    public void doSendText(Data dataFrame) throws IOException {
+    public void doSendText(Header dataFrame) throws IOException {
         connection.getOutputStateMachine().processText(connection, dataFrame);
     }
 }

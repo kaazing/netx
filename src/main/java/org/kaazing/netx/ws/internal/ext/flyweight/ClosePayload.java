@@ -15,16 +15,10 @@
  */
 package org.kaazing.netx.ws.internal.ext.flyweight;
 
-import java.nio.ByteBuffer;
+public abstract class ClosePayload extends Flyweight {
+    public abstract int statusCode();
 
-public class Ping extends Frame {
-    Ping() {
+    public abstract int reasonLength();
 
-    }
-
-    @Override
-    public Ping wrap(ByteBuffer buffer, int offset) {
-        super.wrap(buffer, offset);
-        return this;
-    }
+    public abstract int reasonGet(byte[] buf, int offset, int length);
 }

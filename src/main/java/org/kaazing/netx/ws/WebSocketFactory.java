@@ -207,7 +207,7 @@ public final class WebSocketFactory {
      * @param challengeHandler   default ChallengeHandler
      */
     public void setDefaultChallengeHandler(ChallengeHandler challengeHandler) {
-        this.defaultChallengeHandler = challengeHandler;
+        defaultChallengeHandler = challengeHandler;
     }
 
     /**

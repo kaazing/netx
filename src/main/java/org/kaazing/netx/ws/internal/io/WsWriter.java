@@ -22,14 +22,14 @@ import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class WsWriter extends Writer {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
@@ -38,11 +38,12 @@ public class WsWriter extends Writer {
     private final WsURLConnectionImpl connection;
     private final OutputStream out;
 
-    private Data dataFrame;
+    private final HeaderRW outgoingFrame;
 
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
         this.out = connection.getTcpOutputStream();
+        this.outgoingFrame = new HeaderRW();
     }
 
     @Override
@@ -59,11 +60,17 @@ public class WsWriter extends Writer {
         }
 
 
-        byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8);
-        dataFrame = (Data) getFrame(OpCode.TEXT, true, true, bytesPayload, 0, bytesPayload.length);
+        byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8); // ### TODO: charsToBytes()
+        int capacity = FrameUtil.calculateNeed(true, bytesPayload.length);
 
+        if ((outgoingFrame.buffer() == null) || (outgoingFrame.buffer().capacity() < capacity)) {
+            outgoingFrame.wrap(ByteBuffer.allocate(capacity),  0);
+        }
+
+        outgoingFrame.opCodeAndFin(OpCode.TEXT, true);
+        outgoingFrame.maskedPayloadPut(bytesPayload, 0, bytesPayload.length);
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        outputStateMachine.processText(connection, dataFrame);
+        outputStateMachine.processText(connection, outgoingFrame);
     }
 
     @Override
@@ -74,11 +81,5 @@ public class WsWriter extends Writer {
     @Override
     public void close() throws IOException {
         out.close();
-    }
-
-    private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
-            throws IOException {
-        FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
-        return factory.getFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
     }
 }

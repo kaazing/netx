@@ -17,6 +17,8 @@ package org.kaazing.netx.ws.internal;
 
 public enum WebSocketTransition {
     RECEIVED_UPGRADE_RESPONSE,
+    RECEIVED_CONTINUATION_FRAME,
+    SEND_CONTINUATION_FRAME,
     RECEIVED_CLOSE_FRAME,
     SEND_CLOSE_FRAME,
     RECEIVED_PING_FRAME,

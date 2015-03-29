@@ -19,16 +19,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
 
 import java.nio.ByteBuffer;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theory;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class DataTest extends FrameTest {
@@ -44,20 +41,30 @@ public class DataTest extends FrameTest {
 
     @Theory
     public void shouldDecodeTextWithEmptyPayload(int offset, boolean masked, Fin fin) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "81" : "01"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.TEXT, frame.getOpCode());
-        Data data = (Data) frame;
-        Payload payload = frame.getPayload();
-        assertEquals(payload.offset(), payload.limit());
-        assertEquals(0, data.getLength());
-        assertEquals(fin == Fin.SET, data.isFin());
+        HeaderRW textFrame = new HeaderRW().wrap(buffer, offset);
+        byte[] payloadBytes = new byte[10];
+
+        textFrame.opCodeAndFin(OpCode.TEXT, fin == Fin.SET ? true : false);
+
+        if (masked) {
+            textFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
+        }
+        else {
+            textFrame.payloadPut((ByteBuffer) null, offset, 0);
+        }
+
+        int bytes = textFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+
+        assertEquals(OpCode.TEXT, textFrame.opCode());
+        assertEquals(0, textFrame.payloadLength());
+        assertEquals(fin == Fin.SET, textFrame.fin());
+        assertEquals(masked, textFrame.masked());
+        assertEquals(0, bytes);
     }
 
     @Theory
     public void shouldDecodeTextWithValidPayload(int offset, boolean masked, Fin fin) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "81" : "01"));
+        HeaderRW textFrame = new HeaderRW().wrap(buffer, offset);
         ByteBuffer bytes = ByteBuffer.allocate(1000);
         bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
         bytes.put((byte) 0xC3).put((byte) 0xA9);
@@ -69,21 +76,30 @@ public class DataTest extends FrameTest {
         bytes.position(0);
         byte[] inputPayload = new byte[bytes.remaining()];
         bytes.get(inputPayload);
-        putLengthMaskAndPayload(buffer, offset + 1, inputPayload, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.TEXT, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
+        byte[] payloadBytes = new byte[inputPayload.length];
+
+        textFrame.opCodeAndFin(OpCode.TEXT, fin == Fin.SET ? true : false);
+
+        if (masked) {
+            textFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
+        }
+        else {
+            textFrame.payloadPut(inputPayload, 0, inputPayload.length);
+        }
+
+        int numBytes = textFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+
+        assertEquals(OpCode.TEXT, textFrame.opCode());
+        assertEquals(inputPayload.length, textFrame.payloadLength());
+        assertEquals(fin == Fin.SET, textFrame.fin());
         assertArrayEquals(inputPayload, payloadBytes);
-        Data data = (Data) frame;
-        assertEquals(inputPayload.length, data.getLength());
-        assertEquals(fin == Fin.SET, data.isFin());
+        assertEquals(masked, textFrame.masked());
+        assertEquals(inputPayload.length, numBytes);
     }
 
     @Theory
     public void shouldDecodeTextWithIncompleteUTF8(int offset, boolean masked, Fin fin) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "81" : "01"));
+        HeaderRW textFrame = new HeaderRW().wrap(buffer, offset);
         ByteBuffer bytes = ByteBuffer.allocate(1000);
         bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
         bytes.put((byte) 0xC3).put((byte) 0xA9);
@@ -95,54 +111,48 @@ public class DataTest extends FrameTest {
         bytes.position(0);
         byte[] inputPayload = new byte[bytes.remaining()];
         bytes.get(inputPayload);
-        putLengthMaskAndPayload(buffer, offset + 1, inputPayload, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.TEXT, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(inputPayload, payloadBytes);
-        Data data = (Data) frame;
-        assertEquals(inputPayload.length, data.getLength());
-        assertEquals(fin == Fin.SET, data.isFin());
-    }
+        byte[] payloadBytes = new byte[inputPayload.length];
 
-    @Theory
-    @Ignore
-    public void shouldRejectTextExceedingMaximumLength(int offset, boolean masked, Fin fin) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "81" : "01"));
-        ByteBuffer bytes = ByteBuffer.allocate(1000);
-        bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
-        bytes.put((byte) 0xC31).put((byte) 0xA9);
-        bytes.put(", invalid: ".getBytes(UTF_8));
-        bytes.put(fromHex("ff"));
-        bytes.put(", Euro sign: ".getBytes(UTF_8));
-        bytes.put(fromHex("e282ac"));
-        bytes.limit(bytes.position());
-        bytes.position(0);
-        byte[] inputPayload = "abcdefghijklmnopqrstuvwxyz1234567890".getBytes(UTF_8);
-        bytes.get(inputPayload);
-        putLengthMaskAndPayload(buffer, offset + 1, inputPayload, masked);
-        int wsMaxMessageSize = 30;
-        try {
-            FrameFactory.newInstance(wsMaxMessageSize).wrap(buffer, offset);
-        } catch (Exception e) {
-            return;
+        textFrame.opCodeAndFin(OpCode.TEXT, fin == Fin.SET ? true : false);
+
+        if (masked) {
+            textFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
         }
-        fail("Exception was not thrown");
+        else {
+            textFrame.payloadPut(inputPayload, 0, inputPayload.length);
+        }
+
+        int numBytes = textFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+
+        assertEquals(OpCode.TEXT, textFrame.opCode());
+        assertEquals(inputPayload.length, textFrame.payloadLength());
+        assertEquals(fin == Fin.SET, textFrame.fin());
+        assertArrayEquals(inputPayload, payloadBytes);
+        assertEquals(masked, textFrame.masked());
+        assertEquals(inputPayload.length, numBytes);
     }
 
     @Theory
     public void shouldDecodeBinaryWithEmptyPayload(int offset, boolean masked, Fin fin) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "82" : "02"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.BINARY, frame.getOpCode());
-        Data data = (Data) frame;
-        Payload payload = frame.getPayload();
-        assertEquals(payload.offset(), payload.limit());
-        assertEquals(0, data.getLength());
-        assertEquals(fin == Fin.SET, data.isFin());
+        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, offset);
+        byte[] payloadBytes = new byte[10];
+
+        binaryFrame.opCodeAndFin(OpCode.BINARY, fin == Fin.SET ? true : false);
+
+        if (masked) {
+            binaryFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
+        }
+        else {
+            binaryFrame.payloadPut((ByteBuffer) null, offset, 0);
+        }
+
+        int bytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+
+        assertEquals(OpCode.BINARY, binaryFrame.opCode());
+        assertEquals(0, binaryFrame.payloadLength());
+        assertEquals(fin == Fin.SET, binaryFrame.fin());
+        assertEquals(masked, binaryFrame.masked());
+        assertEquals(0, bytes);
     }
 
     @Test
@@ -151,15 +161,20 @@ public class DataTest extends FrameTest {
         FrameUtil.putBytes(buffer, 1, fromHex("84")); // masked, length=4
         FrameUtil.putBytes(buffer, 2, fromHex("01020384")); // mask
         FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00")); // masked payload
-        Frame frame = frameFactory.wrap(buffer, 0);
-        assertEquals(OpCode.BINARY, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(fromHex("FE02FC84"), payloadBytes);
-        Data data = (Data) frame;
-        assertEquals(4, data.getLength());
-        assertTrue(data.isFin());
+
+        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, 0);
+        byte[] payloadBytes = new byte[10];
+        int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        byte[] bytes = new byte[numBytes];
+
+        System.arraycopy(payloadBytes, 0, bytes, 0, numBytes);
+
+        assertEquals(OpCode.BINARY, binaryFrame.opCode());
+        assertEquals(4, binaryFrame.payloadLength());
+        assertTrue(binaryFrame.fin());
+        assertTrue(binaryFrame.masked());
+        assertArrayEquals(fromHex("FE02FC84"), bytes);
+        assertEquals(4, numBytes);
     }
 
     @Test
@@ -168,15 +183,20 @@ public class DataTest extends FrameTest {
         FrameUtil.putBytes(buffer, 1, fromHex("85")); // masked, length=5
         FrameUtil.putBytes(buffer, 2, fromHex("01020384")); // mask
         FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00FE")); // masked payload
-        Frame frame = frameFactory.wrap(buffer, 0);
-        assertEquals(OpCode.BINARY, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(fromHex("FE02FC84FF"), payloadBytes);
-        Data data = (Data) frame;
-        assertEquals(5, data.getLength());
-        assertTrue(data.isFin());
+
+        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, 0);
+        byte[] payloadBytes = new byte[10];
+        int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        byte[] bytes = new byte[numBytes];
+
+        System.arraycopy(payloadBytes, 0, bytes, 0, numBytes);
+
+        assertEquals(OpCode.BINARY, binaryFrame.opCode());
+        assertEquals(5, binaryFrame.payloadLength());
+        assertTrue(binaryFrame.fin());
+        assertTrue(binaryFrame.masked());
+        assertArrayEquals(fromHex("FE02FC84FF"), bytes);
+        assertEquals(5, numBytes);
     }
 
     @Test
@@ -184,17 +204,21 @@ public class DataTest extends FrameTest {
         FrameUtil.putBytes(buffer, 0, fromHex("82")); // fin, binary
         FrameUtil.putBytes(buffer, 1, fromHex("86")); // masked, length=6
         FrameUtil.putBytes(buffer, 2, fromHex("01020384")); // mask
-        FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00FE65")); // masked
-                                                                // payload
-        Frame frame = frameFactory.wrap(buffer, 0);
-        assertEquals(OpCode.BINARY, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(fromHex("FE02FC84FF67"), payloadBytes);
-        Data data = (Data) frame;
-        assertEquals(6, data.getLength());
-        assertTrue(data.isFin());
+        FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00FE65")); // masked payload
+
+        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, 0);
+        byte[] payloadBytes = new byte[10];
+        int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        byte[] bytes = new byte[numBytes];
+
+        System.arraycopy(payloadBytes, 0, bytes, 0, numBytes);
+
+        assertEquals(OpCode.BINARY, binaryFrame.opCode());
+        assertEquals(6, binaryFrame.payloadLength());
+        assertTrue(binaryFrame.fin());
+        assertTrue(binaryFrame.masked());
+        assertArrayEquals(fromHex("FE02FC84FF67"), bytes);
+        assertEquals(6, numBytes);
     }
 
     @Test
@@ -202,50 +226,47 @@ public class DataTest extends FrameTest {
         FrameUtil.putBytes(buffer, 0, fromHex("82")); // fin, binary
         FrameUtil.putBytes(buffer, 1, fromHex("87")); // masked, length=6
         FrameUtil.putBytes(buffer, 2, fromHex("01020384")); // mask
-        FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00FE6596")); // masked
-                                                                  // payload
-        Frame frame = frameFactory.wrap(buffer, 0);
-        assertEquals(OpCode.BINARY, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(fromHex("FE02FC84FF6795"), payloadBytes);
-        Data data = (Data) frame;
-        assertEquals(7, data.getLength());
-        assertTrue(data.isFin());
+        FrameUtil.putBytes(buffer, 6, fromHex("FF00FF00FE6596")); // masked payload
+
+        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, 0);
+        byte[] payloadBytes = new byte[10];
+        int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        byte[] bytes = new byte[numBytes];
+
+        System.arraycopy(payloadBytes, 0, bytes, 0, numBytes);
+
+        assertEquals(OpCode.BINARY, binaryFrame.opCode());
+        assertEquals(7, binaryFrame.payloadLength());
+        assertTrue(binaryFrame.fin());
+        assertTrue(binaryFrame.masked());
+        assertArrayEquals(fromHex("FE02FC84FF6795"), bytes);
+        assertEquals(7, numBytes);
     }
 
     @Theory
     public void shouldDecodeBinaryWithPayload(int offset, boolean masked, Fin fin) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "82" : "02"));
+        HeaderRW binaryFrame = new HeaderRW().wrap(buffer, offset);
         byte[] inputPayload = new byte[5000];
-        inputPayload[12] = (byte) 0xff;
-        putLengthMaskAndPayload(buffer, offset + 1, inputPayload, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.BINARY, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        byte[] payloadBytes = new byte[payload.limit() - payload.offset()];
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(inputPayload, payloadBytes);
-        Data data = (Data) frame;
-        assertEquals(inputPayload.length, data.getLength());
-        assertEquals(fin == Fin.SET, data.isFin());
-    }
+        byte[] payloadBytes = new byte[inputPayload.length];
 
-    @Theory
-    @Ignore
-    public void shouldRejectBinaryExceedingMaximumLength(int offset, boolean masked, Fin fin) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex(fin == Fin.SET ? "82" : "02"));
-        byte[] inputPayload = new byte[5001];
         inputPayload[12] = (byte) 0xff;
-        putLengthMaskAndPayload(buffer, offset + 1, inputPayload, masked);
-        int wsMaxMessageSize = 5000;
-        try {
-            FrameFactory.newInstance(wsMaxMessageSize).wrap(buffer, offset);
-        } catch (Exception e) {
-            return;
+
+        binaryFrame.opCodeAndFin(OpCode.CONTINUATION, (fin == Fin.SET) ? true : false);
+
+        if (masked) {
+            binaryFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
         }
-        fail("Exception was not thrown");
-    }
+        else {
+            binaryFrame.payloadPut(inputPayload, 0, inputPayload.length);
+        }
 
+        int numBytes = binaryFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+
+        assertEquals(OpCode.CONTINUATION, binaryFrame.opCode());
+        assertEquals(inputPayload.length, binaryFrame.payloadLength());
+        assertArrayEquals(inputPayload, payloadBytes);
+        assertEquals(fin == Fin.SET, binaryFrame.fin());
+        assertEquals(masked, binaryFrame.masked());
+        assertEquals(inputPayload.length, numBytes);
+    }
 }

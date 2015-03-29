@@ -16,52 +16,63 @@
 package org.kaazing.netx.ws.specification.ext.primary;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
-import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.Header;
+import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    private final FrameFactory factory = FrameFactory.newInstance(8192);
-
+    private final HeaderRW outgoingFrame = new HeaderRW().wrap(ByteBuffer.allocate(1024), 0);
+    private final HeaderRW incomingFrame = new HeaderRW().wrap(ByteBuffer.allocate(1024), 0);
     {
-        onTextFrameReceived = new WebSocketFrameConsumer() {
+        onTextReceived = new WebSocketFrameConsumer() {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                OpCode opcode = frame.getOpCode();
-                int payloadLength = frame.getLength();
-                Payload payload = frame.getPayload();
+                Header srcFrame = (Header) frame;
+                OpCode opcode = srcFrame.opCode();
+                int payloadLength = srcFrame.payloadLength();
+                byte[] payload = new byte[payloadLength];
+                int numBytes = srcFrame.payloadGet(payload, 0, payload.length);
 
-                String msg = "nuqneH, " + new String(payload.buffer().array(), payload.offset(), payloadLength);
-                byte[] bytes = msg.getBytes(UTF_8);
-                Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
+                assert numBytes == payloadLength;
 
-                context.onTextReceived((Data) transformedFrame);
+                String msg = "nuqneH, " + new String(payload, 0, payloadLength);
+                byte[] xformedPayload = msg.getBytes(UTF_8);
+
+                incomingFrame.opCodeAndFin(opcode, true);
+                incomingFrame.payloadPut(xformedPayload, 0, xformedPayload.length);
+
+                context.onTextReceived(incomingFrame);
             }
         };
 
-        onTextFrameSent = new WebSocketFrameConsumer() {
+        onTextSent = new WebSocketFrameConsumer() {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                OpCode opcode = frame.getOpCode();
-                int payloadLength = frame.getLength();
-                Payload payload = frame.getPayload();
+                Header srcFrame = (Header) frame;
+                OpCode opcode = srcFrame.opCode();
+                int payloadLength = srcFrame.payloadLength();
+                byte[] payload = new byte[payloadLength];
+                int numBytes = srcFrame.payloadGet(payload, 0, payload.length);
 
-                String msg = new String(payload.buffer().array(), payload.offset(), payloadLength).substring("Hello, ".length());
+                assert numBytes == payloadLength;
+
+                String msg = new String(payload, 0, payloadLength).substring("Hello, ".length());
                 byte[] bytes = msg.getBytes(UTF_8);
-                Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
 
-                context.onTextSent((Data) transformedFrame);
+                outgoingFrame.opCodeAndFin(opcode, true);
+                outgoingFrame.maskedPayloadPut(bytes, 0, bytes.length);
+                context.onTextSent(outgoingFrame);
             }
         };
     }

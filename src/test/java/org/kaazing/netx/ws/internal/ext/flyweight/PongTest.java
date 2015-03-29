@@ -17,70 +17,54 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
 
-import org.junit.Ignore;
+import java.nio.ByteBuffer;
+
 import org.junit.experimental.theories.Theory;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class PongTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("8a"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.PONG, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        assertEquals(payload.offset(), payload.limit());
-        Pong pong = (Pong) frame;
-        assertEquals(0, pong.getLength());
+        HeaderRW pongFrame = new HeaderRW().wrap(buffer, offset);
+
+        pongFrame.opCodeAndFin(OpCode.PONG, true);
+
+        if (masked) {
+            pongFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
+        }
+        else {
+            pongFrame.payloadPut((ByteBuffer) null, offset, 0);
+        }
+
+        assertEquals(OpCode.PONG, pongFrame.opCode());
+        assertEquals(0, pongFrame.payloadLength());
+        assertEquals(true, pongFrame.fin());
+        assertEquals(masked, pongFrame.masked());
     }
 
     @Theory
     public void shouldDecodeWithPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("8a"));
+        HeaderRW pongFrame = new HeaderRW().wrap(buffer, offset);
         byte[] inputBytes = fromHex("03e8ff01");
-        putLengthMaskAndPayload(buffer, offset + 1, inputBytes, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.PONG, frame.getOpCode());
-        byte[] payloadBytes = new byte[inputBytes.length];
-        Payload payload = frame.getPayload();
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(inputBytes, payloadBytes);
-        Pong pong = (Pong) frame;
-        assertEquals(payloadBytes.length, pong.getLength());
-        assertEquals(inputBytes.length, payload.limit() - payload.offset());
-    }
+        byte[] payload = new byte[inputBytes.length];
 
-    @Theory
-    @Ignore
-    public void shouldRejectPongFrameWithFinNotSet(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("0a"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
+        pongFrame.opCodeAndFin(OpCode.PONG, true);
+
+        if (masked) {
+            pongFrame.maskedPayloadPut(inputBytes, 0, inputBytes.length);
         }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectPongFrameWithLengthOver125(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("8a"));
-        putLengthAndMaskBit(buffer, offset + 1, 126, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
+        else {
+            pongFrame.payloadPut(inputBytes, 0, inputBytes.length);
         }
-        fail("Exception exception was not thrown");
-    }
 
+        pongFrame.payloadGet(payload, 0, payload.length);
+
+        assertEquals(OpCode.PONG, pongFrame.opCode());
+        assertEquals(inputBytes.length, pongFrame.payloadLength());
+        assertArrayEquals(inputBytes, payload);
+        assertEquals(true, pongFrame.fin());
+        assertEquals(masked, pongFrame.masked());
+    }
 }

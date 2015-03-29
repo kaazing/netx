@@ -24,6 +24,7 @@ import static org.kaazing.netx.ws.internal.WebSocketState.START;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.ERROR;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_BINARY_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_CLOSE_FRAME;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_CONTINUATION_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PING_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PONG_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_TEXT_FRAME;
@@ -33,11 +34,7 @@ import java.io.IOException;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.flyweight.Close;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
-import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
-import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
-import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
+import org.kaazing.netx.ws.internal.ext.flyweight.Header;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class WebSocketInputStateMachine {
@@ -60,6 +57,7 @@ public class WebSocketInputStateMachine {
 
         stateMachine[OPEN.ordinal()][RECEIVED_PING_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVED_PONG_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVED_CONTINUATION_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVED_CLOSE_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVED_BINARY_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVED_TEXT_FRAME.ordinal()] = OPEN;
@@ -68,23 +66,19 @@ public class WebSocketInputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
-    private final FrameFactory frameFactory;
-
     public WebSocketInputStateMachine() {
-        frameFactory = FrameFactory.newInstance(8192);
     }
 
     public void start(WsURLConnectionImpl connection) {
-        connection.setInputState(WebSocketState.START);
+        connection.setInputState(START);
     }
 
     public void processBinary(final WsURLConnectionImpl connection,
-                              final Data dataFrame,
-                              final WebSocketFrameConsumer terminalConsumer)
-            throws IOException {
+                              final Header frame,
+                              final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onBinaryFrameReceived = terminalConsumer;
+                onBinaryReceived = terminalConsumer;
             }
         };
         WebSocketContext context = connection.getContext(sentinel, false);
@@ -92,21 +86,21 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_BINARY_FRAME);
-            context.onBinaryReceived(dataFrame);
+            transition(connection, RECEIVED_BINARY_FRAME);
+            context.onBinaryReceived(frame);
             break;
         default:
-            transition(connection, WebSocketTransition.ERROR);
+            transition(connection, ERROR);
             context.onError(format("Invalid state %s to be receiving a BINARY frame", state));
         }
     }
 
     public void processClose(final WsURLConnectionImpl connection,
-                             final Close closeFrame,
+                             final Header frame,
                              final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onCloseFrameReceived = terminalConsumer;
+                onCloseReceived = terminalConsumer;
             }
         };
 
@@ -115,21 +109,44 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_CLOSE_FRAME);
-            context.onCloseReceived(closeFrame);
+            transition(connection, RECEIVED_CLOSE_FRAME);
+            context.onCloseReceived(frame);
             break;
         default:
-            transition(connection, WebSocketTransition.ERROR);
+            transition(connection, ERROR);
             context.onError(format("Invalid state %s to be receiving a CLOSE frame", state));
         }
     }
 
+    public void processContinuation(final WsURLConnectionImpl connection,
+                             final Header frame,
+                             final WebSocketFrameConsumer terminalConsumer) throws IOException {
+        WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
+            {
+                onContinuationReceived = terminalConsumer;
+            }
+        };
+
+        WebSocketContext context = connection.getContext(sentinel, false);
+        WebSocketState state = connection.getInputState();
+
+        switch (state) {
+        case OPEN:
+            transition(connection, RECEIVED_CONTINUATION_FRAME);
+            context.onContinuationReceived(frame);
+            break;
+        default:
+            transition(connection, ERROR);
+            context.onError(format("Invalid state %s to be receiving a CONTINUATION frame", state));
+        }
+    }
+
     public void processPing(final WsURLConnectionImpl connection,
-                            final Ping pingFrame,
+                            final Header frame,
                             final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onPingFrameReceived = terminalConsumer;
+                onPingReceived = terminalConsumer;
             }
         };
         WebSocketContext context = connection.getContext(sentinel, false);
@@ -137,21 +154,21 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_PING_FRAME);
-            context.onPingReceived(pingFrame);
+            transition(connection, RECEIVED_PING_FRAME);
+            context.onPingReceived(frame);
             break;
         default:
-            transition(connection, WebSocketTransition.ERROR);
+            transition(connection, ERROR);
             context.onError(format("Invalid state %s to be receiving a PING frame", state));
         }
     }
 
     public void processPong(final WsURLConnectionImpl connection,
-                            final Pong pongFrame,
+                            final Header frame,
                             final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onPongFrameReceived = terminalConsumer;
+                onPongReceived = terminalConsumer;
             }
         };
 
@@ -160,21 +177,21 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_PONG_FRAME);
-            context.onPongReceived(pongFrame);
+            transition(connection, RECEIVED_PONG_FRAME);
+            context.onPongReceived(frame);
             break;
         default:
-            transition(connection, WebSocketTransition.ERROR);
+            transition(connection, ERROR);
             context.onError(format("Invalid state %s to be receiving a PONG frame", state));
         }
     }
 
     public void processText(final WsURLConnectionImpl connection,
-                            final Data dataFrame,
+                            final Header frame,
                             final WebSocketFrameConsumer terminalConsumer) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onTextFrameReceived = terminalConsumer;
+                onTextReceived = terminalConsumer;
             }
         };
         WebSocketContext context = connection.getContext(sentinel, false);
@@ -182,17 +199,13 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, WebSocketTransition.RECEIVED_TEXT_FRAME);
-            context.onTextReceived(dataFrame);
+            transition(connection, RECEIVED_TEXT_FRAME);
+            context.onTextReceived(frame);
             break;
         default:
-            transition(connection, WebSocketTransition.ERROR);
+            transition(connection, ERROR);
             context.onError(format("Invalid state %s to be receiving a TEXT frame", state));
         }
-    }
-
-    public FrameFactory getFrameFactory() {
-        return frameFactory;
     }
 
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {

@@ -21,15 +21,13 @@ import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.flyweight.Close;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
-import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public final class WsOutputStream extends FilterOutputStream {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
@@ -37,14 +35,16 @@ public final class WsOutputStream extends FilterOutputStream {
     private final WsURLConnectionImpl connection;
 
     private final byte[] controlFramePayload;
-    private Close closeFrame;
-    private Pong pongFrame;
-    private Data dataFrame;
+    private final HeaderRW outgoingDataFrame;
+    private final HeaderRW outgoingControlFrame;
 
     public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
         super(connection.getTcpOutputStream());
         this.connection = connection;
+        this.outgoingDataFrame = new HeaderRW();
+        this.outgoingControlFrame = new HeaderRW();
         this.controlFramePayload = new byte[150]; // To handle negative tests. Have some extra bytes.
+        this.outgoingControlFrame.wrap(ByteBuffer.allocate(150), 0);
     }
 
     @Override
@@ -66,10 +66,15 @@ public final class WsOutputStream extends FilterOutputStream {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
         }
 
+        int capacity = FrameUtil.calculateNeed(true, length);
 
-        dataFrame = (Data) getFrame(OpCode.BINARY, true, true, buf, offset, length);
+        if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
+            outgoingDataFrame.wrap(ByteBuffer.allocate(capacity),  0);
+        }
+        outgoingDataFrame.opCodeAndFin(OpCode.BINARY, true);
+        outgoingDataFrame.maskedPayloadPut(buf, offset, length);
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        outputStateMachine.processBinary(connection, dataFrame);
+        outputStateMachine.processBinary(connection, outgoingDataFrame);
     }
 
     public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
@@ -97,19 +102,16 @@ public final class WsOutputStream extends FilterOutputStream {
         }
 
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        closeFrame = (Close) getFrame(OpCode.CLOSE, true, true, controlFramePayload, 0, payloadLen);
-        outputStateMachine.processClose(connection, closeFrame);
+        outgoingControlFrame.opCodeAndFin(OpCode.CLOSE, true);
+        outgoingControlFrame.maskedPayloadPut(controlFramePayload, 0, payloadLen);
+        outputStateMachine.processClose(connection, outgoingControlFrame);
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        pongFrame = (Pong) getFrame(OpCode.PONG, true, true, buf, offset, length);
-        outputStateMachine.processPong(connection, pongFrame);
-    }
 
-    private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
-            throws IOException {
-        FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
-        return factory.getFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
+        outgoingControlFrame.opCodeAndFin(OpCode.PONG, true);
+        outgoingControlFrame.maskedPayloadPut(buf, offset, length);
+        outputStateMachine.processPong(connection, outgoingControlFrame);
     }
 }

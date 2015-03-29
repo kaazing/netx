@@ -17,70 +17,52 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
 
-import org.junit.Ignore;
 import org.junit.experimental.theories.Theory;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class PingTest extends FrameTest {
 
     @Theory
     public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("89"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.PING, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        assertEquals(payload.offset(), payload.limit());
-        Ping ping = (Ping) frame;
-        assertEquals(0, ping.getLength());
+        HeaderRW pingFrame = new HeaderRW().wrap(buffer, offset);
+
+        pingFrame.opCodeAndFin(OpCode.PING, true);
+
+        if (masked) {
+            pingFrame.maskedPayloadPut((byte[]) null, offset, 0);
+        }
+        else {
+            pingFrame.payloadPut((byte[]) null, offset, 0);
+        }
+
+        assertEquals(OpCode.PING, pingFrame.opCode());
+        assertEquals(0, pingFrame.payloadLength());
+        assertEquals(true, pingFrame.fin());
+        assertEquals(masked, pingFrame.masked());
     }
 
     @Theory
     public void shouldDecodeWithPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("89"));
+        HeaderRW pingFrame = new HeaderRW().wrap(buffer, offset);
         byte[] inputBytes = fromHex("03e8ff01");
-        putLengthMaskAndPayload(buffer, offset + 1, inputBytes, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.PING, frame.getOpCode());
-        byte[] payloadBytes = new byte[inputBytes.length];
-        Payload payload = frame.getPayload();
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(inputBytes, payloadBytes);
-        Ping ping = (Ping) frame;
-        assertEquals(payloadBytes.length, ping.getLength());
-        assertEquals(inputBytes.length, payload.limit() - payload.offset());
-    }
+        byte[] payload = new byte[inputBytes.length];
 
-    @Theory
-    @Ignore
-    public void shouldRejectPingFrameWithFinNotSet(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("09"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
+        pingFrame.opCodeAndFin(OpCode.PING, true);
+
+        if (masked) {
+            pingFrame.maskedPayloadPut(inputBytes, 0, inputBytes.length);
         }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectPingFrameWithLengthOver125(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("89"));
-        putLengthAndMaskBit(buffer, offset + 1, 126, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
+        else {
+            pingFrame.payloadPut(inputBytes, 0, inputBytes.length);
         }
-        fail("Exception exception was not thrown");
-    }
 
+        pingFrame.payloadGet(payload, 0, payload.length);
+
+        assertEquals(OpCode.PING, pingFrame.opCode());
+        assertEquals(inputBytes.length, pingFrame.payloadLength());
+        assertArrayEquals(inputBytes, payload);
+        assertEquals(true, pingFrame.fin());
+        assertEquals(masked, pingFrame.masked());
+    }
 }

@@ -18,11 +18,7 @@ package org.kaazing.netx.ws.internal.ext;
 
 import java.io.IOException;
 
-import org.kaazing.netx.ws.internal.ext.flyweight.Close;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
-import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketConsumer;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
@@ -58,75 +54,91 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
-    public WebSocketFrameConsumer onBinaryFrameReceived = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onBinaryReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onBinaryReceived((Data) frame);
+            context.onBinaryReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onBinaryFrameSent = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onBinarySent = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onBinarySent((Data) frame);
+            context.onBinarySent(frame);
         }
     };
 
-    public WebSocketFrameConsumer onCloseFrameReceived = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onContinuationReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onCloseReceived((Close) frame);
+            context.onContinuationReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onCloseFrameSent = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onContinuationSent = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onCloseSent((Close) frame);
+            context.onContinuationSent(frame);
         }
     };
 
-    public WebSocketFrameConsumer onPingFrameReceived = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onCloseReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onPingReceived((Ping) frame);
+            context.onCloseReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onPongFrameReceived = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onCloseSent = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onPongReceived((Pong) frame);
+            context.onCloseSent(frame);
         }
     };
 
-    public WebSocketFrameConsumer onPongFrameSent = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onPingReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onPongSent((Pong) frame);
+            context.onPingReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onTextFrameReceived = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onPongReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onTextReceived((Data) frame);
+            context.onPongReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onTextFrameSent = new WebSocketFrameConsumer() {
+    public WebSocketFrameConsumer onPongSent = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onTextSent((Data) frame);
+            context.onPongSent(frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onTextReceived = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onTextReceived(frame);
+        }
+    };
+
+    public WebSocketFrameConsumer onTextSent = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onTextSent(frame);
         }
     };
 }

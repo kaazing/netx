@@ -18,61 +18,41 @@ package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CONTINUATION;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicReference;
+import java.nio.ByteBuffer;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
-import org.kaazing.netx.ws.internal.ext.flyweight.Close;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
+import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
+import org.kaazing.netx.ws.internal.ext.flyweight.Header;
+import org.kaazing.netx.ws.internal.ext.flyweight.HeaderRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public final class WsInputStream extends InputStream {
     private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
     private static final String MSG_NON_BINARY_FRAME = "Non-binary frame - opcode = 0x%02X";
-    private static final String MSG_MASKED_FRAME_FROM_SERVER = "Masked server-to-client frame";
-    private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
-    private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
-    private static final String MSG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: %s payload is more than 125 bytes";
 
-    private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
+    private static final int BUFFER_CHUNK_SIZE = 8192;
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
-    private final byte[] header;
 
-    private final AtomicReference<Data> dataReference = new AtomicReference<Data>();
-    private final WebSocketFrameConsumer terminalDataFrameConsumer = new WebSocketFrameConsumer() {
-
-        @Override
-        public void accept(WebSocketContext context, Frame frame) throws IOException {
-            dataReference.set((Data) frame);
-        }
-    };
-
-    private final AtomicReference<Frame> controlReference = new AtomicReference<Frame>();
-    private final WebSocketFrameConsumer terminalControlFrameConsumer = new WebSocketFrameConsumer() {
-
-        @Override
-        public void accept(WebSocketContext context, Frame frame) throws IOException {
-            controlReference.set(frame);
-        }
-    };
-
-    private int headerOffset;
-    private int payloadOffset;
-    private long payloadLength;
-    private int payloadMark;
-    private Data dataFrame;
-    private Data transformedDataFrame;
+    private byte[] networkBuffer;
+    private int networkBufferReadOffset;
+    private int networkBufferWriteOffset;
+    private byte[] applicationBuffer;
+    private int applicationBufferReadOffset;
+    private int applicationBufferWriteOffset;
+    private final HeaderRW incomingFrame;
 
     public WsInputStream(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -81,143 +61,170 @@ public final class WsInputStream extends InputStream {
 
         this.connection = connection;
         this.in = connection.getTcpInputStream();
-        this.header = new byte[10];
-        this.payloadOffset = -1;
+        this.incomingFrame = new HeaderRW();
+
+        this.applicationBufferReadOffset = 0;
+        this.applicationBufferWriteOffset = 0;
+        this.applicationBuffer = new byte[BUFFER_CHUNK_SIZE];
+        this.networkBufferReadOffset = 0;
+        this.networkBufferWriteOffset = 0;
+        this.networkBuffer = new byte[BUFFER_CHUNK_SIZE];
     }
 
     @Override
     public int available() throws IOException {
-        // TODO:
         return in.available();
     }
 
     @Override
     public int read() throws IOException {
-        while (payloadLength == 0) {
-            while (payloadOffset == -1) {
-                int headerByte = in.read();
-                if (headerByte == -1) {
-                    return -1;
-                }
-                header[headerOffset++] = (byte) headerByte;
-                switch (headerOffset) {
-                case 1:
-                    int flags = (header[0] & 0xF0) >> 4;
-                    switch (flags) {
-                    case 0:
-                    case 8:
-                        break;
-                    default:
-                        connection.doFail(WS_PROTOCOL_ERROR, format(MSG_RESERVED_BITS_SET, flags));
-                        break;
+        if (applicationBufferReadOffset < applicationBufferWriteOffset) {
+            return applicationBuffer[applicationBufferReadOffset++];
+        }
+
+        if (applicationBufferReadOffset == applicationBufferWriteOffset) {
+            applicationBufferReadOffset = 0;
+            applicationBufferWriteOffset = 0;
+            networkBufferReadOffset = 0;
+            networkBufferWriteOffset = 0;
+        }
+
+        assert networkBufferReadOffset == networkBufferWriteOffset;
+        assert networkBufferWriteOffset == 0;
+
+        int bytesRead = in.read(networkBuffer, 0, networkBuffer.length);
+        if (bytesRead == -1) {
+            return -1;
+        }
+
+        networkBufferReadOffset = 0;
+        networkBufferWriteOffset = bytesRead;
+
+        final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
+            private boolean fragmented;
+
+            @Override
+            public void accept(WebSocketContext context, Frame frame) throws IOException {
+                Header transformedFrame = (Header) frame;
+                OpCode opCode = transformedFrame.opCode();
+                long xformedPayloadLength = transformedFrame.payloadLength();
+                int xformedPayloadOffset = transformedFrame.payloadOffset();
+
+                switch (opCode) {
+                case BINARY:
+                case CONTINUATION:
+                    if ((opCode == BINARY) && fragmented) {
+                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
-                    int opcode = header[0] & 0x0F;
-                    switch (opcode) {
-                    case 0x08:
-                    case 0x09:
-                    case 0x0A:
-                        if ((headerByte & 0x80) == 0) {
-                            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_CONTROL_FRAME, headerByte));
-                        }
-                        break;
-                    case 0x00:
-                        connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, headerByte));
-                        break;
-                    case 0x02:
-                        if ((headerByte & 0x80) == 0) {
-                            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, headerByte));
-                        }
-                        break;
-                    default:
-                        connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, opcode));
-                        break;
+                    if ((opCode == CONTINUATION) && !fragmented) {
+                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
+
+                    int currentLength = applicationBuffer.length;
+
+                    if (applicationBufferWriteOffset + xformedPayloadLength > currentLength) {
+                        byte[] appBuffer = new byte[(int) (currentLength + xformedPayloadLength)];
+
+                        System.arraycopy(applicationBuffer, 0, appBuffer, 0, currentLength);
+                        applicationBuffer = appBuffer;
+                    }
+
+                    // Using System.arraycopy() to copy the contents of transformed.buffer().array() to the applicationBuffer
+                    // results in java.nio.ReadOnlyBufferException as we will be getting a RO flyweight in the terminal consumer.
+                    for (int i = 0; i < xformedPayloadLength; i++) {
+                        applicationBuffer[applicationBufferWriteOffset++] =
+                                                          transformedFrame.buffer().get(xformedPayloadOffset + i);
+                    }
+                    fragmented = !transformedFrame.fin();
                     break;
-                case 2:
-                    boolean masked = (header[1] & 0x80) != 0x00;
-                    if (masked) {
-                        connection.doFail(WS_PROTOCOL_ERROR, MSG_MASKED_FRAME_FROM_SERVER);
-                    }
-                    switch (header[1] & 0x7f) {
-                    case 126:
-                    case 127:
-                        break;
-                    default:
-                        payloadOffset = 0;
-                        payloadLength = payloadLength(header);
-                        break;
-                    }
+                case CLOSE:
+                    connection.sendClose(transformedFrame);
                     break;
-                case 4:
-                    switch (header[1] & 0x7f) {
-                    case 126:
-                        payloadOffset = 0;
-                        payloadLength = payloadLength(header);
-                        break;
-                    default:
-                        break;
-                    }
+                case PING:
+                    connection.sendPong(transformedFrame);
                     break;
-                case 10:
-                    switch (header[1] & 0x7f) {
-                    case 127:
-                        payloadOffset = 0;
-                        payloadLength = payloadLength(header);
-                        break;
-                    default:
-                        break;
-                    }
+                case TEXT:
+                    connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, OpCode.toInt(TEXT)));
+                    break;
+                case PONG:
                     break;
                 }
             }
+        };
 
-            // If the current frame is either CLOSE, PING, or PONG, then we just filter out it's bytes.
-            filterControlFrames();
-            if ((header[0] & 0x0F) == 0x08) {
+        while (true) {
+            if (networkBufferReadOffset == networkBufferWriteOffset) {
+                break;
+            }
+
+            // Before wrapping the networkBuffer in a flyweight, ensure that it has the metadata(opcode, payload-length)
+            // information.
+            int numBytes = ensureFrameMetadata();
+            if (numBytes == -1) {
                 return -1;
             }
 
-            // If the payload length is zero, then we should start reading the new frame.
-            if (payloadLength == 0) {
-                payloadOffset = -1;
-                headerOffset = 0;
-            }
-            else {
-                dataFrame = (Data) getFrame(header[0] & 0x0F, payloadLength);
-                dataReference.set(null);
-                connection.processReadBinaryFrame(dataFrame, terminalDataFrameConsumer);
-                transformedDataFrame = dataReference.get();
+            // At this point, we should have sufficient bytes to figure out whether the frame has been read completely.
+            // Ensure that we have at least one complete frame. We may have read only a partial frame the very first time.
+            // Figure out the payload length and see how much more we need to read to be frame-aligned.
+            incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
+                                               networkBufferReadOffset,
+                                               networkBufferWriteOffset), networkBufferReadOffset);
 
-                if (transformedDataFrame == null) {
-                    // One of the extensions may have decided to short-circuit and not let the BINARY frame propagate to the
-                    // sentinel/terminal hook. In such a case, we should set the payload length of the frame to zero.
-                    payloadLength = 0;
+            int payloadLength = incomingFrame.payloadLength();
+
+            if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
+                // We have an incomplete frame. Let's read it fully. Ensure that the buffer has adequate space.
+                if (payloadLength > networkBuffer.length) {
+                    // networkBuffer needs to be resized.
+                    int additionalBytes = Math.max(BUFFER_CHUNK_SIZE, payloadLength);
+                    byte[] netBuffer = new byte[networkBuffer.length + additionalBytes];
+                    int len = networkBufferWriteOffset - networkBufferReadOffset;
+
+                    System.arraycopy(networkBuffer, networkBufferReadOffset, netBuffer, 0, len);
+                    networkBuffer = netBuffer;
+                    networkBufferReadOffset = 0;
+                    networkBufferWriteOffset = len;
                 }
                 else {
-                    payloadLength = transformedDataFrame.getLength();
-                    payloadOffset = transformedDataFrame.getPayload().offset();
-                    payloadMark = payloadOffset;
+                    // Enough space. But may need shifting the frame to the beginning to be able to fit the payload.
+                    if (incomingFrame.offset() + payloadLength > networkBuffer.length) {
+                        int len = networkBufferWriteOffset - networkBufferReadOffset;
+                        System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, len);
+                        networkBufferReadOffset = 0;
+                        networkBufferWriteOffset = len;
+                    }
                 }
 
-                if (payloadLength == 0) {
-                    headerOffset = 0;
-                    payloadOffset = -1;
-                    payloadLength = 0;
+                int bufLength = networkBuffer.length - networkBufferWriteOffset;
+                bytesRead = in.read(networkBuffer, networkBufferWriteOffset, bufLength);
+                if (bytesRead == -1) {
+                    return -1;
                 }
+
+                networkBufferWriteOffset += bytesRead;
+                incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
+                                                   networkBufferReadOffset,
+                                                   networkBufferWriteOffset), networkBufferReadOffset);
             }
+
+            connection.processFrame(incomingFrame, terminalFrameConsumer);
+            networkBufferReadOffset += incomingFrame.length();
         }
 
-        Payload payload = transformedDataFrame.getPayload();
-        int b = payload.buffer().get(payloadOffset++);
+        assert networkBufferReadOffset == networkBufferWriteOffset;
 
-        if ((payloadOffset - payloadMark) == payloadLength) {
-            headerOffset = 0;
-            payloadOffset = -1;
-            payloadLength = 0;
+        networkBufferReadOffset = 0;
+        networkBufferWriteOffset = 0;
+
+        if (applicationBufferReadOffset < applicationBufferWriteOffset) {
+            return applicationBuffer[applicationBufferReadOffset++];
         }
 
-        return b;
+        return 0;
     }
 
     @Override
@@ -256,68 +263,82 @@ public final class WsInputStream extends InputStream {
         in.close();
     }
 
-    private void filterControlFrames() throws IOException {
-        int opcode = header[0] & 0x0F;
-
-        if ((opcode == 0x00) || (opcode == 0x02)) {
-            return;
+    private int ensureFrameMetadata() throws IOException {
+        int offsetDiff = networkBufferWriteOffset - networkBufferReadOffset;
+        if ((offsetDiff > 10) || (networkBuffer.length - networkBufferWriteOffset > 10)) {
+            // The payload length information is definitely available in the network buffer.
+            return 0;
         }
 
-        if (payloadLength > MAX_COMMAND_FRAME_PAYLOAD) {
-            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
-        }
+        int bytesRead = 0;
 
-        Frame frame = getFrame(opcode, payloadLength);
-        controlReference.set(null);
-        connection.processReadControlFrame(frame, terminalControlFrameConsumer);
+        // Ensure that the networkBuffer at the very least contains the payload length related bytes.
+        switch (offsetDiff) {
+        case 1:
+            System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, offsetDiff); // no break
+            networkBufferWriteOffset = offsetDiff;
+        case 0:
+            bytesRead = in.read(networkBuffer, offsetDiff, networkBuffer.length);
+            if (bytesRead == -1) {
+                return -1;
+            }
 
-        Frame controlFrame = controlReference.get();
-        if (controlFrame != null) {
-            switch (controlFrame.getOpCode()) {
-            case CLOSE:
-                 connection.sendClose((Close) controlFrame);
-                break;
-            case PING:
-                Payload pingPayload = controlFrame.getPayload();
-                connection.sendPong(pingPayload.buffer().array(),
-                                    pingPayload.offset(),
-                                    pingPayload.limit() - pingPayload.offset());
-                break;
-            default:
-                break;
+            networkBufferReadOffset = 0;
+            networkBufferWriteOffset += bytesRead;
+            break;
+
+        default:
+            int frameMetadataLength = 2;
+            int b1 = networkBuffer[networkBufferReadOffset];
+            int b2 = networkBuffer[networkBufferReadOffset + 1] & 0x7F;
+
+            try {
+                OpCode.fromInt(b1 & 0x0F);
+            }
+            catch (Exception ex) {
+                // We are reading garbage.
+                return -1;
+            }
+
+            if (b2 > 0) {
+                switch (b2) {
+                case 126:
+                    frameMetadataLength += 2;
+                    break;
+                case 127:
+                    frameMetadataLength += 8;
+                    break;
+                default:
+                    break;
+                }
+
+                int remainingCapacity = networkBuffer.length - networkBufferWriteOffset;
+                if (remainingCapacity > frameMetadataLength) {
+                    // networkBuffer has enough capacity for the payload length bytes.
+                    bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingCapacity) ;
+                    if (bytesRead == -1) {
+                        return -1;
+                    }
+
+                    networkBufferWriteOffset += bytesRead;
+                }
+                else {
+                    // Shift the frame to the beginning of the buffer and try to read more bytes to be able to figure out
+                    // the payload length.
+                    System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, offsetDiff);
+                    networkBufferReadOffset = 0;
+                    networkBufferWriteOffset = offsetDiff;
+
+                    bytesRead = in.read(networkBuffer, networkBufferWriteOffset, networkBuffer.length);
+                    if (bytesRead == -1) {
+                        return -1;
+                    }
+
+                    networkBufferWriteOffset += bytesRead;
+                }
             }
         }
 
-        // Get ready to read the next frame after CLOSE frame is sent out.
-        payloadLength = 0;
-        payloadOffset = -1;
-        headerOffset = 0;
+        return bytesRead;
     }
-
-    private Frame getFrame(int opcode, long payloadLen) throws IOException {
-        FrameFactory factory = connection.getInputStateMachine().getFrameFactory();
-        OpCode opCode = OpCode.fromInt(opcode);
-        return factory.getFrame(opCode, false, false, payloadLen);
-    }
-
-    private static long payloadLength(byte[] header) {
-        int length = header[1] & 0x7f;
-
-        switch (length) {
-        case 126:
-            return (header[2] & 0xff) << 8 | (header[3] & 0xff);
-        case 127:
-            return (header[2] & 0xff) << 56 |
-                   (header[3] & 0xff) << 48 |
-                   (header[4] & 0xff) << 40 |
-                   (header[5] & 0xff) << 32 |
-                   (header[6] & 0xff) << 24 |
-                   (header[7] & 0xff) << 16 |
-                   (header[8] & 0xff) << 8  |
-                   (header[9] & 0xff);
-        default:
-            return length;
-        }
-    }
-
 }
