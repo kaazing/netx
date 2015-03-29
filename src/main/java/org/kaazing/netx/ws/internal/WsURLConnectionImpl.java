@@ -63,7 +63,6 @@ import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
-    private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
     private static final String MSG_INVALID_OPCODE = "Protocol Violation: Invalid opcode = 0x%02X";
     private static final String MSG_MASKED_FRAME_FROM_SERVER = "Protocol Violation: Masked server-to-client frame";
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";

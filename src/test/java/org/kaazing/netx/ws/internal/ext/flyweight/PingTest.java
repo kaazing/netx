@@ -18,6 +18,7 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.PING;
 
 import org.junit.experimental.theories.Theory;
 
@@ -27,7 +28,8 @@ public class PingTest extends FrameTest {
     public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
         FrameRW pingFrame = new FrameRW().wrap(buffer, offset);
 
-        pingFrame.opCodeAndFin(OpCode.PING, true);
+        pingFrame.fin(true);
+        pingFrame.opCode(PING);
 
         if (masked) {
             pingFrame.maskedPayloadPut((byte[]) null, offset, 0);
@@ -48,7 +50,8 @@ public class PingTest extends FrameTest {
         byte[] inputBytes = fromHex("03e8ff01");
         byte[] payload = new byte[inputBytes.length];
 
-        pingFrame.opCodeAndFin(OpCode.PING, true);
+        pingFrame.fin(true);
+        pingFrame.opCode(PING);
 
         if (masked) {
             pingFrame.maskedPayloadPut(inputBytes, 0, inputBytes.length);

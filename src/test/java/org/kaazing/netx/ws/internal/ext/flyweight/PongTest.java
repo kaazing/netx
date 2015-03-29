@@ -18,6 +18,7 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.PONG;
 
 import java.nio.ByteBuffer;
 
@@ -29,7 +30,8 @@ public class PongTest extends FrameTest {
     public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
         FrameRW pongFrame = new FrameRW().wrap(buffer, offset);
 
-        pongFrame.opCodeAndFin(OpCode.PONG, true);
+        pongFrame.fin(true);
+        pongFrame.opCode(PONG);
 
         if (masked) {
             pongFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
@@ -50,7 +52,8 @@ public class PongTest extends FrameTest {
         byte[] inputBytes = fromHex("03e8ff01");
         byte[] payload = new byte[inputBytes.length];
 
-        pongFrame.opCodeAndFin(OpCode.PONG, true);
+        pongFrame.fin(true);
+        pongFrame.opCode(PONG);
 
         if (masked) {
             pongFrame.maskedPayloadPut(inputBytes, 0, inputBytes.length);

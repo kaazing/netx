@@ -20,6 +20,9 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CONTINUATION;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
 
 import java.nio.ByteBuffer;
 
@@ -43,7 +46,8 @@ public class DataTest extends FrameTest {
         FrameRW textFrame = new FrameRW().wrap(buffer, offset);
         byte[] payloadBytes = new byte[10];
 
-        textFrame.opCodeAndFin(OpCode.TEXT, fin == Fin.SET ? true : false);
+        textFrame.fin((fin == Fin.SET) ? true : false);
+        textFrame.opCode(TEXT);
 
         if (masked) {
             textFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
@@ -77,7 +81,8 @@ public class DataTest extends FrameTest {
         bytes.get(inputPayload);
         byte[] payloadBytes = new byte[inputPayload.length];
 
-        textFrame.opCodeAndFin(OpCode.TEXT, fin == Fin.SET ? true : false);
+        textFrame.fin((fin == Fin.SET) ? true : false);
+        textFrame.opCode(TEXT);
 
         if (masked) {
             textFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
@@ -112,7 +117,8 @@ public class DataTest extends FrameTest {
         bytes.get(inputPayload);
         byte[] payloadBytes = new byte[inputPayload.length];
 
-        textFrame.opCodeAndFin(OpCode.TEXT, fin == Fin.SET ? true : false);
+        textFrame.fin((fin == Fin.SET) ? true : false);
+        textFrame.opCode(TEXT);
 
         if (masked) {
             textFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
@@ -136,7 +142,8 @@ public class DataTest extends FrameTest {
         FrameRW binaryFrame = new FrameRW().wrap(buffer, offset);
         byte[] payloadBytes = new byte[10];
 
-        binaryFrame.opCodeAndFin(OpCode.BINARY, fin == Fin.SET ? true : false);
+        binaryFrame.fin((fin == Fin.SET) ? true : false);
+        binaryFrame.opCode(BINARY);
 
         if (masked) {
             binaryFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
@@ -250,7 +257,8 @@ public class DataTest extends FrameTest {
 
         inputPayload[12] = (byte) 0xff;
 
-        binaryFrame.opCodeAndFin(OpCode.CONTINUATION, (fin == Fin.SET) ? true : false);
+        binaryFrame.fin((fin == Fin.SET) ? true : false);
+        binaryFrame.opCode(CONTINUATION);
 
         if (masked) {
             binaryFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);

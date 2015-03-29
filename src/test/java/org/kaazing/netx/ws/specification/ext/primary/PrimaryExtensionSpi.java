@@ -46,7 +46,8 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
                 String msg = "nuqneH, " + new String(payload, 0, payloadLength);
                 byte[] xformedPayload = msg.getBytes(UTF_8);
 
-                incomingFrame.opCodeAndFin(opcode, true);
+                incomingFrame.fin(true);
+                incomingFrame.opCode(opcode);
                 incomingFrame.payloadPut(xformedPayload, 0, xformedPayload.length);
 
                 context.onTextReceived(incomingFrame);
@@ -67,7 +68,8 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
                 String msg = new String(payload, 0, payloadLength).substring("Hello, ".length());
                 byte[] bytes = msg.getBytes(UTF_8);
 
-                outgoingFrame.opCodeAndFin(opcode, true);
+                outgoingFrame.fin(true);
+                outgoingFrame.opCode(opcode);
                 outgoingFrame.maskedPayloadPut(bytes, 0, bytes.length);
                 context.onTextSent(outgoingFrame);
             }

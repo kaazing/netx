@@ -18,6 +18,9 @@ package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CLOSE;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.PONG;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -27,7 +30,6 @@ import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public final class WsOutputStream extends FilterOutputStream {
@@ -74,7 +76,8 @@ public final class WsOutputStream extends FilterOutputStream {
         if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
             outgoingDataFrame.wrap(ByteBuffer.allocate(capacity),  0);
         }
-        outgoingDataFrame.opCodeAndFin(OpCode.BINARY, true);
+        outgoingDataFrame.fin(true);
+        outgoingDataFrame.opCode(BINARY);
         outgoingDataFrame.maskedPayloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(outgoingDataFrame.buffer().asReadOnlyBuffer(), outgoingDataFrame.offset());
@@ -107,7 +110,8 @@ public final class WsOutputStream extends FilterOutputStream {
         }
 
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        outgoingControlFrame.opCodeAndFin(OpCode.CLOSE, true);
+        outgoingControlFrame.fin(true);
+        outgoingControlFrame.opCode(CLOSE);
         outgoingControlFrame.maskedPayloadPut(controlFramePayload, 0, payloadLen);
 
         outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
@@ -117,7 +121,8 @@ public final class WsOutputStream extends FilterOutputStream {
     public void writePong(byte[] buf, int offset, int length) throws IOException {
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
 
-        outgoingControlFrame.opCodeAndFin(OpCode.PONG, true);
+        outgoingControlFrame.fin(true);
+        outgoingControlFrame.opCode(PONG);
         outgoingControlFrame.maskedPayloadPut(buf, offset, length);
         outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
         outputStateMachine.processPong(connection, outgoingFrameRO);

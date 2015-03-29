@@ -18,6 +18,7 @@ package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -29,7 +30,6 @@ import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class WsWriter extends Writer {
@@ -70,7 +70,8 @@ public class WsWriter extends Writer {
             outgoingFrame.wrap(ByteBuffer.allocate(capacity),  0);
         }
 
-        outgoingFrame.opCodeAndFin(OpCode.TEXT, true);
+        outgoingFrame.fin(true);
+        outgoingFrame.opCode(TEXT);
         outgoingFrame.maskedPayloadPut(bytesPayload, 0, bytesPayload.length);
         WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         outgoingFrameRO.wrap(outgoingFrame.buffer().asReadOnlyBuffer(), outgoingFrame.offset());

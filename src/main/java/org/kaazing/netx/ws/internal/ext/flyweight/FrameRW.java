@@ -181,10 +181,20 @@ public class FrameRW extends Frame {
 
     // Mutators
 
-    public void opCodeAndFin(OpCode opcode, boolean fin) {
+    public void fin(boolean fin) {
         checkBuffer(buffer());
 
-        byte leadByte = (byte) (OpCode.toInt(opcode) | (fin ? 0x80 : 0x00));
+        byte leadByte = (byte) Flyweight.uint8Get(buffer(), offset());
+        leadByte = (byte) (leadByte | (fin ? 0x80 : 0x00));
+        buffer().put(offset(), leadByte);
+    }
+
+    public void opCode(OpCode opcode) {
+        checkBuffer(buffer());
+
+        byte leadByte = (byte) Flyweight.uint8Get(buffer(), offset());
+        leadByte = (byte) (leadByte & 0xF0); // Clear the current opcode before setting the new one.
+        leadByte |= OpCode.toInt(opcode);
         buffer().put(offset(), leadByte);
     }
 

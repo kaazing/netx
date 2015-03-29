@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CLOSE;
 
 import java.nio.ByteBuffer;
 
@@ -31,8 +32,8 @@ public class CloseTest extends FrameTest {
         FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
         byte[] payloadBytes = new byte[10];
 
-        closeFrame.opCodeAndFin(OpCode.CLOSE, true);
-
+        closeFrame.fin(true);
+        closeFrame.opCode(CLOSE);
         if (masked) {
             closeFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
         }
@@ -55,7 +56,8 @@ public class CloseTest extends FrameTest {
         byte[] inputPayload = new byte[] { 0x03, (byte) 0xe8 };
         byte[] payloadBytes = new byte[inputPayload.length];
 
-        closeFrame.opCodeAndFin(OpCode.CLOSE, true);
+        closeFrame.fin(true);
+        closeFrame.opCode(CLOSE);
 
         if (masked) {
             closeFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
@@ -89,7 +91,8 @@ public class CloseTest extends FrameTest {
 
         byte[] payloadBytes = new byte[2 + reason.length];
 
-        closeFrame.opCodeAndFin(OpCode.CLOSE, true);
+        closeFrame.fin(true);
+        closeFrame.opCode(CLOSE);
 
         if (masked) {
             closePayload.maskedPayloadPut(statusCode, reason, 0, reason.length);

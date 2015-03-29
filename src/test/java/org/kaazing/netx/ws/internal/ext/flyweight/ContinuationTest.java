@@ -40,7 +40,8 @@ public class ContinuationTest extends FrameTest {
     public void shouldDecodeContinuationWithEmptyPayload(int offset, boolean masked, Fin fin) throws Exception {
         FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
 
-        continuationFrame.opCodeAndFin(OpCode.CONTINUATION, (fin == Fin.SET) ? true : false);
+        continuationFrame.fin((fin == Fin.SET) ? true : false);
+        continuationFrame.opCode(OpCode.CONTINUATION);
 
         if (masked) {
             continuationFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
@@ -72,7 +73,8 @@ public class ContinuationTest extends FrameTest {
         bytes.get(inputPayload);
         byte[] payloadBytes = new byte[inputPayload.length];
 
-        continuationFrame.opCodeAndFin(OpCode.CONTINUATION, (fin == Fin.SET) ? true : false);
+        continuationFrame.fin((fin == Fin.SET) ? true : false);
+        continuationFrame.opCode(OpCode.CONTINUATION);
 
         if (masked) {
             continuationFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
@@ -106,7 +108,8 @@ public class ContinuationTest extends FrameTest {
         bytes.get(inputPayload);
         byte[] payloadBytes = new byte[inputPayload.length];
 
-        continuationFrame.opCodeAndFin(OpCode.CONTINUATION, (fin == Fin.SET) ? true : false);
+        continuationFrame.fin((fin == Fin.SET) ? true : false);
+        continuationFrame.opCode(OpCode.CONTINUATION);
 
         if (masked) {
             continuationFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
@@ -132,7 +135,8 @@ public class ContinuationTest extends FrameTest {
 
         inputPayload[12] = (byte) 0xff;
 
-        continuationFrame.opCodeAndFin(OpCode.CONTINUATION, (fin == Fin.SET) ? true : false);
+        continuationFrame.fin((fin == Fin.SET) ? true : false);
+        continuationFrame.opCode(OpCode.CONTINUATION);
 
         if (masked) {
             continuationFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
