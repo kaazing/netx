@@ -202,9 +202,9 @@ public class FrameRW extends Frame {
      * Puts the specified payload along with the mask bytes into the buffer. The mask-bit is lit up and the payload is
      * masked using the mask bytes.
      *
-     * @param buf
-     * @param offset
-     * @param length
+     * @param buf      source byte[]
+     * @param offset   offset into the passed in byte[]
+     * @param length   number of bytes in the specified byte[] to be used as payload
      */
     public void maskedPayloadPut(byte[] buf, int offset, int length) {
         if (buf != null) {
@@ -240,9 +240,9 @@ public class FrameRW extends Frame {
      * Puts the specified payload along with the mask-bytes into the buffer. The mask-bit is lit up and the payload is
      * masked using the mask-bytes.
      *
-     * @param buf
-     * @param offset
-     * @param length
+     * @param buf      source ByteBuffer
+     * @param offset   offset into the passed in ByteBuffer
+     * @param length   number of bytes in the specified ByteBuffer to be used as payload
      */
     public void maskedPayloadPut(ByteBuffer buf, int offset, int length) {
         if (buf != null) {
@@ -274,11 +274,11 @@ public class FrameRW extends Frame {
     }
 
     /**
-     * Puts the specified payload into the buffer without masking.
+     * Puts the specified payload into the buffer without any masking.
      *
-     * @param buf
-     * @param offset
-     * @param length
+     * @param buf      source byte[]
+     * @param offset   offset into the passed in byte[]
+     * @param length   number of bytes in the specified byte[] to be used as payload
      */
     public void payloadPut(byte[] buf, int offset, int length) {
         if (buf != null) {
@@ -300,11 +300,11 @@ public class FrameRW extends Frame {
     }
 
     /**
-     * Puts the specified payload into the buffer without masking.
+     * Puts the specified payload into the buffer without any masking.
      *
-     * @param buf
-     * @param offset
-     * @param length
+     * @param buf      source ByteBuffer
+     * @param offset   offset into the passed in ByteBuffer
+     * @param length   number of bytes in the specified ByteBuffer to be used as payload
      */
     public void payloadPut(ByteBuffer buf, int offset, int length) {
         if (buf != null) {

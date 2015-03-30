@@ -16,6 +16,8 @@
 
 package org.kaazing.netx.ws.internal.ext;
 
+import java.io.IOException;
+
 
 /**
  * {@link WebSocketExtensionFactorySpi} is part of <i>Service Provider Interface</i> <em>(SPI)</em> for extension developers.
@@ -37,11 +39,13 @@ public abstract class WebSocketExtensionFactorySpi {
     public abstract String getExtensionName();
 
     /**
-     * Creates and returns a {@link WebSocketExtensionSpi} instance corresponding to the extension that this factory is
-     * responsible for.
+     * Creates a {@link WebSocketExtensionSpi} instance. The specified HTTP request header formatted string is validated as well.
+     * An IOException is thrown if the specified string is deemed invalid. If an IOException is thrown, the extension is not
+     * negotiated during the opening handshake and does not have it's hooks exercised when messages are being received or sent.
      *
-     * @param forattedString  String representation of the negotiated extension as per RFC-3864
+     * @param forattedString  String representation of the extension in request header format
      * @return WebSocketExtensionSpi  instance
+     * @throw IOException if the extension considers the specified string is invalid
      */
-    public abstract WebSocketExtensionSpi createExtension(String formattedStr);
+    public abstract WebSocketExtensionSpi createExtension(String formattedStr) throws IOException;
 }

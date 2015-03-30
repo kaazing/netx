@@ -34,10 +34,14 @@ import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
  * When an enabled extension is successfully negotiated, an instance of this class is created using the corresponding
  * {@link WebSocketExtensionFactorySpi} that is registered through META-INF/services. This class is used to instantiate the
  * hooks that can be exercised as the state machine transitions from one state to another while
- * handling the WebSocket traffic. Based on the functionality of the extension, the developer can decide which hooks to code.
+ * handling the WebSocket traffic. Based on the functionality of the extension, the extension developer can decide which
+ * hooks to code.
  */
 public abstract class WebSocketExtensionSpi {
 
+    /**
+     * onInitialized hook is exercised when an extension is successfully negotiated.
+     */
     public WebSocketConsumer onInitialized = new WebSocketConsumer() {
 
         @Override
@@ -46,6 +50,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onError hook is exercised in case of an error.
+     */
     public WebSocketConsumer onError = new WebSocketConsumer() {
 
         @Override
@@ -54,6 +61,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onBinaryReceived hook is exercised when a BINARY frame is received.
+     */
     public WebSocketFrameConsumer onBinaryReceived = new WebSocketFrameConsumer() {
 
         @Override
@@ -62,6 +72,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onBinarySent hook is exercised when sending a BINARY frame.
+     */
     public WebSocketFrameConsumer onBinarySent = new WebSocketFrameConsumer() {
 
         @Override
@@ -70,6 +83,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onContinuationReceived hook is exercised when a CONTINUATION frame is being received.
+     */
     public WebSocketFrameConsumer onContinuationReceived = new WebSocketFrameConsumer() {
 
         @Override
@@ -78,6 +94,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onContinuationSent hook is exercised when sending a CONTINUATION frame.
+     */
     public WebSocketFrameConsumer onContinuationSent = new WebSocketFrameConsumer() {
 
         @Override
@@ -86,6 +105,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onCloseReceived hook is exercised when a CLOSE frame is received.
+     */
     public WebSocketFrameConsumer onCloseReceived = new WebSocketFrameConsumer() {
 
         @Override
@@ -94,6 +116,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onCloseSent hook is exercised when sending a CLOSE frame.
+     */
     public WebSocketFrameConsumer onCloseSent = new WebSocketFrameConsumer() {
 
         @Override
@@ -102,6 +127,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onPingReceived hook is exercised when a PING frame is received.
+     */
     public WebSocketFrameConsumer onPingReceived = new WebSocketFrameConsumer() {
 
         @Override
@@ -110,6 +138,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onPongReceived hook is exercised when a PONG frame is received.
+     */
     public WebSocketFrameConsumer onPongReceived = new WebSocketFrameConsumer() {
 
         @Override
@@ -118,6 +149,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onPongSent hook is exercised when sending a PONG frame.
+     */
     public WebSocketFrameConsumer onPongSent = new WebSocketFrameConsumer() {
 
         @Override
@@ -126,6 +160,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onTextReceived hook is exercised when a TEXT frame is received.
+     */
     public WebSocketFrameConsumer onTextReceived = new WebSocketFrameConsumer() {
 
         @Override
@@ -134,6 +171,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onTextSent hook is exercised when sending a TEXT frame.
+     */
     public WebSocketFrameConsumer onTextSent = new WebSocketFrameConsumer() {
 
         @Override

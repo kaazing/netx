@@ -17,41 +17,93 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Abstract class representing a WebSocket Frame as per RFC 6544.
+ */
 public abstract class Frame extends Flyweight {
     Frame() {
     }
-
-    public abstract boolean fin();
-
-    public abstract int flags();
-
-    public abstract OpCode opCode();
-
-    public abstract int length();   // Only handing frames of size < Integer.MAX_VALUE
-
-    public abstract int mask();
-
-    public abstract boolean masked();
-
-    public abstract int maskOffset();
-
-    public abstract int payloadLength();  // Only handling payloads of size < Integer.MAX_VALUE - 10
-
-    /**
-     * Populates the passed in buffer with unmasked payload.
-     *
-     * @param buf
-     * @param offset
-     * @param length
-     * @return number of payload bytes in the buf
-     */
-    public abstract int payloadGet(byte[] buf, int offset, int length);
-
-    public abstract int payloadOffset();
 
     @Override
     protected Flyweight wrap(final ByteBuffer buffer, final int offset) {
         super.wrap(buffer, offset);
         return this;
     }
+
+    /**
+     * Indicates whether this is a final frame by examining the FIN bit.
+     *
+     * @return true if the FIN bit is set, otherwise false
+     */
+    public abstract boolean fin();
+
+    /**
+     * Returns the reserved flags in the higher nibble of the leading byte of a WebSocket frame.
+     *
+     * @return values between 0-7
+     */
+    public abstract int flags();
+
+    /**
+     * Returns the opcode of the WebSocket frame.
+     *
+     * @return OpCode
+     */
+    public abstract OpCode opCode();
+
+    /**
+     * Returns the length of the WebSocket frame. The maximum length of a WebSocket frame can be Integer.MAX_VALUE.
+     *
+     * ### TODO: long vs int.
+     *
+     * @return the length of the frame
+     */
+    public abstract int length();
+
+    /**
+     * Returns the 4-byte mask as an int that was used to mask the payload. If the frame is unmasked, then -1 is returned.
+     *
+     * @return mask value if the frame is masked, otherwise -1
+     */
+    public abstract int mask();
+
+    /**
+     * Indicates whether the WebSocket frame is masked.
+     *
+     * @return true if the frame is masked, otherwise false
+     */
+    public abstract boolean masked();
+
+    /**
+     * Returns the mask offset. If the frame is unmasked, then -1 is returned.
+     *
+     * @return the mask offset if the frame is masked, otherwise -1
+     */
+    public abstract int maskOffset();
+
+    /**
+     * Returns the payload's length. The maximum length of the payload can be Integer.MAX_VALUE - 10.
+     *
+     * ### TODO: long vs int
+     *
+     * @return payload's length
+     */
+    public abstract int payloadLength();
+
+    /**
+     * Populates the passed in buffer with unmasked payload.
+     *
+     * @param buf      byte array to hold the payload
+     * @param offset   offset into the passed in byte[] starting at which the payload should be copied
+     * @param length   number of payload bytes to be copied into the specified byte[]
+     * @return number of payload bytes actually copied into the specified byte array
+     */
+    public abstract int payloadGet(byte[] buf, int offset, int length);
+
+    /**
+     * Returns the payload's offset in the underlying buffer.
+     *
+     * @return payload offset
+     */
+    public abstract int payloadOffset();
 }

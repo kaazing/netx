@@ -19,6 +19,7 @@ package org.kaazing.netx.ws.internal;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.ServiceLoader.load;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,11 +41,11 @@ public final class WebSocketExtensionFactory {
      * {@link WebSocketExtensionFactorySpi}.
      *
      * @param name            the extension name
-     * @param formattedStr    RFC-3864 formatted string negotiated with the server including the extension name
+     * @param formattedStr    string representation of an extension formatted as HTTP request header
      *
      * @return WebSocketExtension   the parameterized extension
      */
-    public WebSocketExtensionSpi createExtension(String name, String formattedStr) {
+    public WebSocketExtensionSpi createExtension(String name, String formattedStr) throws IOException {
         WebSocketExtensionFactorySpi factory = factoriesRO.get(name);
         if (factory == null) {
             throw new IllegalArgumentException("Unsupported extension: " + name);

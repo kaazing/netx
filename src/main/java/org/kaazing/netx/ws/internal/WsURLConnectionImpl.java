@@ -41,6 +41,8 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
@@ -63,6 +65,8 @@ import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
+    private static final Pattern PATTERN_EXTENSION_FORMAT = Pattern.compile("([a-zA-Z0-9]*)(;?(.*))");
+
     private static final String MSG_INVALID_OPCODE = "Protocol Violation: Invalid opcode = 0x%02X";
     private static final String MSG_MASKED_FRAME_FROM_SERVER = "Protocol Violation: Masked server-to-client frame";
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
@@ -170,15 +174,39 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         this.enabledExtensions.clear();
 
+//        Matcher startMatcher = PATTERN_START.matcher(start);
+//        if (!startMatcher.matches()) {
+//            throw new IllegalStateException("Bad HTTP/1.1 syntax");
+//        }
+//        int responseCode = parseInt(startMatcher.group(1));
+//        String responseMessage = startMatcher.group(2);
+
+
         for (String extension : extensions) {
-            // ### TODO: Validate using SPI.
-            this.enabledExtensions.add(extension);
+            Matcher extensionMatcher = PATTERN_EXTENSION_FORMAT.matcher(extension);
+            if (!extensionMatcher.matches()) {
+                throw new IllegalStateException(format("Bad extension syntax: %s", extension));
+            }
+
+            String extensionName = extensionMatcher.group(1);
+
+            try {
+                // Validate the string representation of the extension.
+                extensionFactory.createExtension(extensionName, extension);
+                this.enabledExtensions.add(extension);
+            }
+            catch (IOException ex) {
+                // The string representation of the extension was deemed invalid by the extension.
+                // So, it will not be negotiated during the opening handshake.
+
+                // #### TODO: Log to indicate why the enabled extension was not negotiated.
+            }
         }
     }
 
     @Override
     public void close() throws IOException {
-        close(0, null); // ### TODO: Should this be 1005(WS_MISSING_STATUS) instead of 0?
+        close(0, null);
     }
 
     @Override
@@ -194,7 +222,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             // Verify code and reason against RFC 6455.
             // If code is present, it must equal to 1000 or in range 3000 to 4999
             if (code != 1000 && (code < 3000 || code > 4999)) {
-                    throw new IOException("code must equal to 1000 or in range 3000 to 4999");
+                    throw new IOException("code must equal to 1000 or within range 3000-4999");
             }
 
             if (reason != null && reason.length() > 0) {
@@ -207,7 +235,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public void connect() throws IOException {
-
         switch (inputState) {
         case START:
             doConnect();
@@ -256,7 +283,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     @Override
     public WsMessageReader getMessageReader() throws IOException {
         if (messageReader == null) {
-            // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
             messageReader = new WsMessageReader(this);
         }
@@ -299,7 +325,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     @Override
     public WsReader getReader() throws IOException {
         if (reader == null) {
-            // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
             reader = new WsReader(this);
         }
@@ -315,7 +340,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     @Override
     public Writer getWriter() throws IOException {
         if (writer == null) {
-            // TODO: trigger lazy connect, same as HTTP
             ensureConnected();
             writer = new WsWriter(this);
         }
@@ -611,12 +635,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         connection.setRequestProperty(HEADER_SEC_WEBSOCKET_VERSION, "13");
 
         if (!enabledExtensions.isEmpty()) {
-            String formattedExtensions = formatExtensionsAsRFC3864(enabledExtensions);
+            String formattedExtensions = formatExtensionsAsRequestHeader(enabledExtensions);
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_EXTENSIONS, formattedExtensions);
         }
 
         if (!enabledProtocols.isEmpty()) {
-            String formattedProtocols = formatProtocolsAsRFC3864(enabledProtocols);
+            String formattedProtocols = formatProtocolsAsRequestHeader(enabledProtocols);
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_PROTOCOL, formattedProtocols);
         }
 
@@ -697,9 +721,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         String[] extensions = formattedExtensions.split(",");
         Collection<String> enabledExtensionNames = getEnabledExtensionNames(enabledExtensions);
         for (String extension : extensions) {
-            String[] properties = extension.split(";");
-            String extnName = properties[0].trim();
+            Matcher extensionMatcher = PATTERN_EXTENSION_FORMAT.matcher(extension);
+            if (!extensionMatcher.matches()) {
+                throw new IllegalStateException(format("Bad extension syntax: %s", extension));
+            }
 
+            String extnName = extensionMatcher.group(1);
             if (!enabledExtensionNames.contains(extnName)) {
                 // Only enabled extensions should be negotiated.
                 String s = format("Invalid extension '%s' negotiated", extnName);
@@ -708,9 +735,18 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
             this.negotiatedExtensions.add(extnName);
 
-            WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extnName, extension);
-            if (extensionSpi != null) {
-                this.negotiatedExtensionSpis.add(extensionSpi);
+            try {
+                WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extnName, extension);
+                if (extensionSpi != null) {
+                    this.negotiatedExtensionSpis.add(extensionSpi);
+                }
+            }
+            catch (IOException ex) {
+                // The string representation of the negotiated extension was deemed invalid by the extension.
+                // So, it will not be activated. This means, it's hooks will not be exercised when the messages
+                //  are being sent or received.
+
+                // ### TODO: Log to indicate why a negotiated extension was not activated.
             }
         }
 
@@ -722,7 +758,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return Base64Util.encode(ByteBuffer.wrap(bytes));
     }
 
-    private static String formatProtocolsAsRFC3864(Collection<String> protocols) {
+    private static String formatProtocolsAsRequestHeader(Collection<String> protocols) {
         assert protocols != null;
 
         StringBuilder sb = new StringBuilder();
@@ -738,7 +774,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return sb.toString();
     }
 
-    private static String formatExtensionsAsRFC3864(Collection<String> extensions) {
+    private static String formatExtensionsAsRequestHeader(Collection<String> extensions) {
         assert extensions != null;
 
         StringBuilder sb = new StringBuilder();

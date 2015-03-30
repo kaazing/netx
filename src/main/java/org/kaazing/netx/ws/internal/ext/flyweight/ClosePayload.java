@@ -15,10 +15,31 @@
  */
 package org.kaazing.netx.ws.internal.ext.flyweight;
 
+/**
+ * ClosePayload provides convenience APIs to access the payload of WebSocket CLOSE frame.
+ *
+ */
 public abstract class ClosePayload extends Flyweight {
+    /**
+     * Returns the status code in the WebSocket CLOSE frame.
+     *
+     * @return code
+     */
     public abstract int statusCode();
 
+    /**
+     * Returns the length of the reason in the WebSocket CLOSE frame.
+     * @return
+     */
     public abstract int reasonLength();
 
+    /**
+     * Populates the specified byte[] with the reason from the WebSocket CLOSE frame.
+     *
+     * @param buf      byte array to hold the reason
+     * @param offset   offset into the passed in byte[] starting at which the reason should be copied
+     * @param length   number of reason bytes to be copied into the specified byte[]
+     * @return the number reason bytes actually copied into the specified byte[]
+     */
     public abstract int reasonGet(byte[] buf, int offset, int length);
 }

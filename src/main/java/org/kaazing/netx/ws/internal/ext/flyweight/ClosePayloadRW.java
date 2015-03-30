@@ -32,7 +32,7 @@ public class ClosePayloadRW extends ClosePayload {
 
     @Override
     public int statusCode() {
-        validate();
+        checkBuffer();
 
         int payloadLength = delegate.payloadLength();
         if (payloadLength >= 2) {
@@ -45,7 +45,7 @@ public class ClosePayloadRW extends ClosePayload {
 
     @Override
     public int reasonLength() {
-        validate();
+        checkBuffer();
 
         int payloadLength = delegate.payloadLength();
         if (payloadLength > 2) {
@@ -64,7 +64,7 @@ public class ClosePayloadRW extends ClosePayload {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
         }
 
-        validate();
+        checkBuffer();
 
         int payloadLength = delegate.payloadLength();
         if (payloadLength > 2) {
@@ -89,6 +89,14 @@ public class ClosePayloadRW extends ClosePayload {
         return this;
     }
 
+    /**
+     * Uses the specified code and reason to create masked payload for the CLOSE frame in the underlying buffer.
+     *
+     * @param code    status code as per RFC 6455
+     * @param reason  for closing the connection with max length of 123 bytes
+     * @param offset  into the specified reason byte[] to be used for creating the masked payload
+     * @param length  number of bytes to be used for creating the masked payload
+     */
     public void maskedPayloadPut(int code, byte[] reason, int offset, int length) {
         if (reason != null) {
             if ((offset < 0) || (length < 0) || (offset + length > reason.length)) {
@@ -96,7 +104,7 @@ public class ClosePayloadRW extends ClosePayload {
             }
         }
 
-        validate();
+        checkBuffer();
 
         int payloadLen = 0;
 
@@ -117,7 +125,14 @@ public class ClosePayloadRW extends ClosePayload {
         delegate.maskedPayloadPut(closePayload, 0, payloadLen);
     }
 
-
+    /**
+     * Uses the specified code and reason to create unmasked payload for the CLOSE frame in the underlying buffer.
+     *
+     * @param code    status code as per RFC 6455
+     * @param reason  for closing the connection with max length of 123 bytes
+     * @param offset  into the specified reason byte[] to be used for creating the unmasked payload
+     * @param length  number of bytes to be used for creating the unmasked payload
+     */
     public void payloadPut(int code, byte[] reason, int offset, int length) {
         if (reason != null) {
             if ((offset < 0) || (length < 0) || (offset + length > reason.length)) {
@@ -125,7 +140,7 @@ public class ClosePayloadRW extends ClosePayload {
             }
         }
 
-        validate();
+        checkBuffer();
 
         int payloadLen = 0;
 
@@ -146,7 +161,7 @@ public class ClosePayloadRW extends ClosePayload {
         delegate.payloadPut(closePayload, 0, payloadLen);
     }
 
-    private void validate() {
+    private void checkBuffer() {
         if ((buffer() == null) || (delegate.buffer() == null)) {
             throw new IllegalStateException("Flyweight has not been wrapped/populated yet with a ByteBuffer.");
         }

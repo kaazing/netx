@@ -16,6 +16,8 @@
 
 package org.kaazing.netx.ws.specification.ext.primary;
 
+import java.io.IOException;
+
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionFactorySpi;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 
@@ -27,7 +29,7 @@ public class PrimaryExtensionFactory extends WebSocketExtensionFactorySpi {
     }
 
     @Override
-    public WebSocketExtensionSpi createExtension(String formattedStr) {
+    public WebSocketExtensionSpi createExtension(String formattedStr) throws IOException {
         return new PrimaryExtensionSpi();
     }
 }
