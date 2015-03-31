@@ -23,6 +23,7 @@ import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
 import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
 import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CONTINUATION;
 import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
+import static org.kaazing.netx.ws.internal.util.FrameUtil.calculateCapacity;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
@@ -178,7 +179,7 @@ public class WsReader extends Reader {
             incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
                                                networkBufferReadOffset,
                                                networkBufferWriteOffset), networkBufferReadOffset);
-
+            boolean masked = incomingFrame.masked();
             int payloadLength = incomingFrame.payloadLength();
 
             if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
@@ -204,13 +205,18 @@ public class WsReader extends Reader {
                     }
                 }
 
-                int bufLength = networkBuffer.length - networkBufferWriteOffset;
-                bytesRead = in.read(networkBuffer, networkBufferWriteOffset, bufLength);
-                if (bytesRead == -1) {
-                    return -1;
+                int frameLength = calculateCapacity(masked, payloadLength);
+                int remainingBytes = incomingFrame.offset() + frameLength - networkBufferWriteOffset;
+                while (remainingBytes > 0) {
+                    bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);
+                    if (bytesRead == -1) {
+                        return -1;
+                    }
+
+                    remainingBytes -= bytesRead;
+                    networkBufferWriteOffset += bytesRead;
                 }
 
-                networkBufferWriteOffset += bytesRead;
                 incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
                                                    networkBufferReadOffset,
                                                    networkBufferWriteOffset), networkBufferReadOffset);
@@ -321,40 +327,36 @@ public class WsReader extends Reader {
 
     private int ensureFrameMetadata() throws IOException {
         int offsetDiff = networkBufferWriteOffset - networkBufferReadOffset;
-        if ((offsetDiff > 10) || (networkBuffer.length - networkBufferWriteOffset > 10)) {
+        if (offsetDiff > 10) {
             // The payload length information is definitely available in the network buffer.
             return 0;
         }
 
         int bytesRead = 0;
+        int maxMetadata = 10;
+        int length = maxMetadata - offsetDiff;
+        int frameMetadataLength = 2;
 
         // Ensure that the networkBuffer at the very least contains the payload length related bytes.
         switch (offsetDiff) {
         case 1:
-            System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, offsetDiff); // no break
-            networkBufferWriteOffset = offsetDiff;
+            System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, offsetDiff);
+            networkBufferWriteOffset = offsetDiff;  // no break
         case 0:
-            bytesRead = in.read(networkBuffer, offsetDiff, networkBuffer.length);
-            if (bytesRead == -1) {
-                return -1;
+            length = frameMetadataLength - offsetDiff;
+            while (length > 0) {
+                bytesRead = in.read(networkBuffer, offsetDiff, length);
+                if (bytesRead == -1) {
+                    return -1;
+                }
+
+                length -= bytesRead;
+                networkBufferWriteOffset += bytesRead;
             }
-
-            networkBufferReadOffset = 0;
-            networkBufferWriteOffset += bytesRead;
-            break;
-
+            networkBufferReadOffset = 0;           // no break;
         default:
-            int frameMetadataLength = 2;
-            int b1 = networkBuffer[networkBufferReadOffset];
+            // int b1 = networkBuffer[networkBufferReadOffset]; // fin, flags and opcode
             int b2 = networkBuffer[networkBufferReadOffset + 1] & 0x7F;
-
-            try {
-                OpCode.fromInt(b1 & 0x0F);
-            }
-            catch (Exception ex) {
-                // We are reading garbage.
-                return -1;
-            }
 
             if (b2 > 0) {
                 switch (b2) {
@@ -368,28 +370,26 @@ public class WsReader extends Reader {
                     break;
                 }
 
-                int remainingCapacity = networkBuffer.length - networkBufferWriteOffset;
-                if (remainingCapacity > frameMetadataLength) {
-                    // networkBuffer has enough capacity for the payload length bytes.
-                    bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingCapacity) ;
-                    if (bytesRead == -1) {
-                        return -1;
-                    }
-
-                    networkBufferWriteOffset += bytesRead;
+                if (offsetDiff >= frameMetadataLength) {
+                    return 0;
                 }
-                else {
+
+                int remainingMetadata = networkBufferReadOffset + frameMetadataLength - networkBufferWriteOffset;
+                if (networkBuffer.length <= networkBufferWriteOffset + remainingMetadata) {
                     // Shift the frame to the beginning of the buffer and try to read more bytes to be able to figure out
                     // the payload length.
                     System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, offsetDiff);
                     networkBufferReadOffset = 0;
                     networkBufferWriteOffset = offsetDiff;
+                }
 
-                    bytesRead = in.read(networkBuffer, networkBufferWriteOffset, networkBuffer.length);
+                while (remainingMetadata > 0) {
+                    bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingMetadata);
                     if (bytesRead == -1) {
                         return -1;
                     }
 
+                    remainingMetadata -= bytesRead;
                     networkBufferWriteOffset += bytesRead;
                 }
             }
