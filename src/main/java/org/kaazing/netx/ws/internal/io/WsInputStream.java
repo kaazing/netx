@@ -170,7 +170,7 @@ public final class WsInputStream extends InputStream {
             // Figure out the payload length and see how much more we need to read to be frame-aligned.
             incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
                                                networkBufferReadOffset,
-                                               networkBufferWriteOffset), networkBufferReadOffset);
+                                               networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
 
             boolean masked = incomingFrame.masked();
             int payloadLength = incomingFrame.payloadLength();
@@ -199,7 +199,7 @@ public final class WsInputStream extends InputStream {
                 }
 
                 int frameLength = calculateCapacity(masked, payloadLength);
-                int remainingBytes = incomingFrame.offset() + frameLength - networkBufferWriteOffset;
+                int remainingBytes = networkBufferReadOffset + frameLength - networkBufferWriteOffset;
                 while (remainingBytes > 0) {
                     bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);
                     if (bytesRead == -1) {
@@ -212,7 +212,7 @@ public final class WsInputStream extends InputStream {
 
                 incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
                                                    networkBufferReadOffset,
-                                                   networkBufferWriteOffset), networkBufferReadOffset);
+                                                   networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
             }
 
             connection.processFrame(incomingFrame, terminalFrameConsumer);

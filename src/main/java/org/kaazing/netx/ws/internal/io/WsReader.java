@@ -110,47 +110,46 @@ public class WsReader extends Reader {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                Frame transformedFrame = frame;
-                OpCode opCode = transformedFrame.opCode();
-                long xformedPayloadLength = transformedFrame.payloadLength();
-                int xformedPayloadOffset = transformedFrame.payloadOffset();
+                OpCode opCode = frame.opCode();
+                int xformedPayloadLength = frame.payloadLength();
+                int xformedPayloadOffset = frame.payloadOffset();
 
                 switch (opCode) {
                 case TEXT:
                 case CONTINUATION:
                     if ((opCode == TEXT) && fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                         connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
                     if ((opCode == CONTINUATION) && !fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(transformedFrame.buffer(), transformedFrame.offset());
+                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                         connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                     }
 
                     int currentLength = applicationBuffer.length;
 
                     if (applicationBufferWriteOffset + xformedPayloadLength > currentLength) {
-                        char[] appBuffer = new char[(int) (currentLength + Math.max(xformedPayloadLength, BUFFER_CHUNK_SIZE))];
+                        char[] appBuffer = new char[currentLength + Math.max(xformedPayloadLength, BUFFER_CHUNK_SIZE)];
 
                         System.arraycopy(applicationBuffer, 0, appBuffer, 0, currentLength);
                         applicationBuffer = appBuffer;
                     }
 
-                    int charsConverted = convertBytesToChars(transformedFrame.buffer(),
+                    int charsConverted = convertBytesToChars(frame.buffer(),
                                                              xformedPayloadOffset,
                                                              xformedPayloadLength,
                                                              applicationBuffer,
                                                              applicationBufferWriteOffset,
                                                              applicationBuffer.length - applicationBufferWriteOffset);
                     applicationBufferWriteOffset += charsConverted;
-                    fragmented = !transformedFrame.fin();
+                    fragmented = !frame.fin();
                     break;
                 case CLOSE:
-                    connection.sendClose(transformedFrame);
+                    connection.sendClose(frame);
                     break;
                 case PING:
-                    connection.sendPong(transformedFrame);
+                    connection.sendPong(frame);
                     break;
                 case BINARY:
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_TEXT_FRAME, OpCode.toInt(BINARY)));
@@ -178,7 +177,7 @@ public class WsReader extends Reader {
             // Figure out the payload length and see how much more we need to read to be frame-aligned.
             incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
                                                networkBufferReadOffset,
-                                               networkBufferWriteOffset), networkBufferReadOffset);
+                                               networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
             boolean masked = incomingFrame.masked();
             int payloadLength = incomingFrame.payloadLength();
 
@@ -206,7 +205,7 @@ public class WsReader extends Reader {
                 }
 
                 int frameLength = calculateCapacity(masked, payloadLength);
-                int remainingBytes = incomingFrame.offset() + frameLength - networkBufferWriteOffset;
+                int remainingBytes = networkBufferReadOffset + frameLength - networkBufferWriteOffset;
                 while (remainingBytes > 0) {
                     bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);
                     if (bytesRead == -1) {
@@ -219,7 +218,7 @@ public class WsReader extends Reader {
 
                 incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
                                                    networkBufferReadOffset,
-                                                   networkBufferWriteOffset), networkBufferReadOffset);
+                                                   networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
             }
 
             connection.processFrame(incomingFrame, terminalFrameConsumer);
