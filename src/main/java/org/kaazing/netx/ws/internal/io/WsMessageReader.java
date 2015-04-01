@@ -412,6 +412,7 @@ public final class WsMessageReader extends MessageReader {
             while (remainingBytes > 0) {
                 int bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);
                 if (bytesRead == -1) {
+                    type = MessageType.EOS;
                     return -1;
                 }
 

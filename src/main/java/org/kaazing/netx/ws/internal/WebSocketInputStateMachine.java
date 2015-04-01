@@ -22,13 +22,13 @@ import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
 import static org.kaazing.netx.ws.internal.WebSocketState.START;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.ERROR;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_BINARY_FRAME;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_CLOSE_FRAME;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_CONTINUATION_FRAME;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PING_FRAME;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_PONG_FRAME;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_TEXT_FRAME;
-import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVED_UPGRADE_RESPONSE;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_BINARY_FRAME;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_CLOSE_FRAME;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_CONTINUATION_FRAME;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_PING_FRAME;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_PONG_FRAME;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_TEXT_FRAME;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_UPGRADE_RESPONSE;
 
 import java.io.IOException;
 
@@ -53,14 +53,14 @@ public class WebSocketInputStateMachine {
             stateMachine[state.ordinal()][ERROR.ordinal()] = CLOSED;
         }
 
-        stateMachine[START.ordinal()][RECEIVED_UPGRADE_RESPONSE.ordinal()] = OPEN;
+        stateMachine[START.ordinal()][RECEIVE_UPGRADE_RESPONSE.ordinal()] = OPEN;
 
-        stateMachine[OPEN.ordinal()][RECEIVED_PING_FRAME.ordinal()] = OPEN;
-        stateMachine[OPEN.ordinal()][RECEIVED_PONG_FRAME.ordinal()] = OPEN;
-        stateMachine[OPEN.ordinal()][RECEIVED_CONTINUATION_FRAME.ordinal()] = OPEN;
-        stateMachine[OPEN.ordinal()][RECEIVED_CLOSE_FRAME.ordinal()] = OPEN;
-        stateMachine[OPEN.ordinal()][RECEIVED_BINARY_FRAME.ordinal()] = OPEN;
-        stateMachine[OPEN.ordinal()][RECEIVED_TEXT_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVE_PING_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVE_PONG_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVE_CONTINUATION_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVE_CLOSE_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVE_BINARY_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVE_TEXT_FRAME.ordinal()] = OPEN;
 
 
         STATE_MACHINE = stateMachine;
@@ -86,7 +86,7 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, RECEIVED_BINARY_FRAME);
+            transition(connection, RECEIVE_BINARY_FRAME);
             context.onBinaryReceived(frame);
             break;
         default:
@@ -109,7 +109,7 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, RECEIVED_CLOSE_FRAME);
+            transition(connection, RECEIVE_CLOSE_FRAME);
             context.onCloseReceived(frame);
             break;
         default:
@@ -132,7 +132,7 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, RECEIVED_CONTINUATION_FRAME);
+            transition(connection, RECEIVE_CONTINUATION_FRAME);
             context.onContinuationReceived(frame);
             break;
         default:
@@ -154,7 +154,7 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, RECEIVED_PING_FRAME);
+            transition(connection, RECEIVE_PING_FRAME);
             context.onPingReceived(frame);
             break;
         default:
@@ -177,7 +177,7 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, RECEIVED_PONG_FRAME);
+            transition(connection, RECEIVE_PONG_FRAME);
             context.onPongReceived(frame);
             break;
         default:
@@ -199,7 +199,7 @@ public class WebSocketInputStateMachine {
 
         switch (state) {
         case OPEN:
-            transition(connection, RECEIVED_TEXT_FRAME);
+            transition(connection, RECEIVE_TEXT_FRAME);
             context.onTextReceived(frame);
             break;
         default:
