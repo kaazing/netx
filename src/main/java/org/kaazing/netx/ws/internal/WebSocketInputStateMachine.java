@@ -37,7 +37,7 @@ import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
-public class WebSocketInputStateMachine {
+public final class WebSocketInputStateMachine {
     private static final WebSocketState[][] STATE_MACHINE;
 
     static {
@@ -66,7 +66,13 @@ public class WebSocketInputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
-    public WebSocketInputStateMachine() {
+    private static final WebSocketInputStateMachine INSTANCE = new WebSocketInputStateMachine();
+
+    private WebSocketInputStateMachine() {
+    }
+
+    public static WebSocketInputStateMachine instance() {
+        return INSTANCE;
     }
 
     public void start(WsURLConnectionImpl connection) {

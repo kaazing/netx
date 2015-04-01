@@ -108,8 +108,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private WebSocketState inputState;
     private WebSocketState outputState;
-    private WebSocketInputStateMachine inputStateMachine;
-    private WebSocketOutputStateMachine outputStateMachine;
     private WebSocketExtensionFactory extensionFactory;
 
     public WsURLConnectionImpl(
@@ -469,14 +467,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return random;
     }
 
-    public WebSocketInputStateMachine getInputStateMachine() throws IOException {
-        return inputStateMachine;
-    }
-
-    public WebSocketOutputStateMachine getOutputStateMachine() throws IOException {
-        return outputStateMachine;
-    }
-
     public InputStream getTcpInputStream() throws IOException {
         return connection.getInputStream();
     }
@@ -542,6 +532,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             doFail(WS_PROTOCOL_ERROR, MSG_MASKED_FRAME_FROM_SERVER);
         }
 
+        WebSocketInputStateMachine inputStateMachine = WebSocketInputStateMachine.instance();
         switch (incomingFrameRO.opCode()) {
         case BINARY:
             inputStateMachine.processBinary(this, incomingFrameRO, terminalConsumer);
@@ -711,8 +702,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private void negotiateExtensions(List<String> enabledExtensions, String formattedExtensions) throws IOException {
 
         if ((formattedExtensions == null) || (formattedExtensions.trim().length() == 0)) {
-            inputStateMachine = new WebSocketInputStateMachine();
-            outputStateMachine = new WebSocketOutputStateMachine();
             this.negotiatedExtensions.clear();
             this.negotiatedExtensionSpis.clear();
             return;
@@ -749,9 +738,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 // ### TODO: Log to indicate why a negotiated extension was not activated.
             }
         }
-
-        inputStateMachine = new WebSocketInputStateMachine();
-        outputStateMachine = new WebSocketOutputStateMachine();
     }
 
     private static String base64Encode(byte[] bytes) {

@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.ListIterator;
 
+import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 
@@ -164,7 +165,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendBinary(Frame dataFrame) throws IOException {
-        connection.getOutputStateMachine().processBinary(connection, dataFrame);
+        WebSocketOutputStateMachine.instance().processBinary(connection, dataFrame);
     }
 
     /**
@@ -174,7 +175,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendClose(Frame closeFrame) throws IOException {
-        connection.getOutputStateMachine().processClose(connection, closeFrame);
+        WebSocketOutputStateMachine.instance().processClose(connection, closeFrame);
     }
 
     /**
@@ -184,7 +185,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendContinuation(Frame dataFrame) throws IOException {
-        connection.getOutputStateMachine().processContinuation(connection, dataFrame);
+        WebSocketOutputStateMachine.instance().processContinuation(connection, dataFrame);
     }
 
     /**
@@ -194,7 +195,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendPong(Frame pongFrame) throws IOException {
-        connection.getOutputStateMachine().processPong(connection, pongFrame);
+        WebSocketOutputStateMachine.instance().processPong(connection, pongFrame);
     }
 
     /**
@@ -204,7 +205,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendText(Frame dataFrame) throws IOException {
-        connection.getOutputStateMachine().processText(connection, dataFrame);
+        WebSocketOutputStateMachine.instance().processText(connection, dataFrame);
     }
 
     private WebSocketExtensionSpi nextExtension() {

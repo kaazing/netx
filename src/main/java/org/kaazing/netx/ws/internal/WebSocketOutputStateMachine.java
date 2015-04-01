@@ -54,7 +54,7 @@ import org.kaazing.netx.ws.internal.ext.flyweight.ClosePayloadRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
-public class WebSocketOutputStateMachine {
+public final class WebSocketOutputStateMachine {
     private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
     private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
     private static final WebSocketState[][] STATE_MACHINE;
@@ -78,14 +78,13 @@ public class WebSocketOutputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
-    private final byte[] mask;
-    private final ClosePayloadRW closePayload;
-    private final byte[] closeReason;
+    private static final WebSocketOutputStateMachine INSTANCE = new WebSocketOutputStateMachine();
 
-    public WebSocketOutputStateMachine() {
-        this.mask = new byte[4];
-        closePayload = new ClosePayloadRW();
-        closeReason = new byte[150];
+    private WebSocketOutputStateMachine() {
+    }
+
+    public static WebSocketOutputStateMachine instance() {
+        return INSTANCE;
     }
 
     public void start(WsURLConnectionImpl connection) {
@@ -184,6 +183,8 @@ public class WebSocketOutputStateMachine {
                         int closeCode = 0;
                         int closePayloadLen = frame.payloadLength();
                         IOException exception = null;
+                        ClosePayloadRW closePayload = new ClosePayloadRW();
+                        byte[] closeReason = null;
 
                         closePayload.wrap(frame.buffer(), frame.offset());
 
@@ -225,7 +226,9 @@ public class WebSocketOutputStateMachine {
                                 int reasonLength = closePayloadLen - 2;
 
                                 if (reasonLength > 0) {
+                                    closeReason = new byte[150];
                                     closePayload.reasonGet(closeReason, 0, reasonLength);
+
                                     if (!validBytesUTF8(ByteBuffer.wrap(closeReason, 0, reasonLength), 0, reasonLength)) {
                                         code = WS_PROTOCOL_ERROR;
                                         exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, reasonLength));
@@ -255,6 +258,7 @@ public class WebSocketOutputStateMachine {
                             assert len >= 2;
 
                             int reasonOffset = 0;
+                            byte[] mask = new byte[4];
 
                             connection.getRandom().nextBytes(mask);
                             out.write(mask);

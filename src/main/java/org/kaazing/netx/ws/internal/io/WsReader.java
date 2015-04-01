@@ -242,6 +242,24 @@ public class WsReader extends Reader {
         in.close();
     }
 
+    @Override
+    public long skip(long n) throws IOException {
+        // ### TODO: Perhaps this can be implemented in future by incrementing applicationBufferReadOffset by n. We should
+        //           ensure that applicationBufferReadOffset >= n before doing incrementing. Otherwise, we can thrown an
+        //           an exception.
+        throw new IOException("Unsupported operation");
+    }
+
+    @Override
+    public void mark(int readAheadLimit) throws IOException {
+        throw new IOException("Unsupported operation");
+    }
+
+    @Override
+    public void reset() throws IOException {
+        throw new IOException("Unsupported operation");
+    }
+
     private int convertBytesToChars(ByteBuffer src,
                                     int srcOffset,
                                     long srcLength,

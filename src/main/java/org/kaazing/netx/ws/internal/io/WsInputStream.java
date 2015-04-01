@@ -258,13 +258,26 @@ public final class WsInputStream extends InputStream {
     }
 
     @Override
-    public long skip(long n) throws IOException {
-        return super.skip(n);
+    public void close() throws IOException {
+        in.close();
     }
 
     @Override
-    public void close() throws IOException {
-        in.close();
+    public long skip(long n) throws IOException {
+        // ### TODO: Perhaps this can be implemented in future by incrementing applicationBufferReadOffset by n. We should
+        //           ensure that applicationBufferReadOffset >= n before doing incrementing. Otherwise, we can thrown an
+        //           an exception.
+        throw new UnsupportedOperationException("Unsupported operation");
+    }
+
+    @Override
+    public void mark(int readAheadLimit) {
+        throw new UnsupportedOperationException("Unsupported operation");
+    }
+
+    @Override
+    public void reset() throws IOException {
+        throw new IOException("Unsupported operation");
     }
 
     private int ensureFrameMetadata() throws IOException {

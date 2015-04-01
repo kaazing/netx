@@ -73,9 +73,8 @@ public class WsWriter extends Writer {
         outgoingFrame.fin(true);
         outgoingFrame.opCode(TEXT);
         outgoingFrame.maskedPayloadPut(bytesPayload, 0, bytesPayload.length);
-        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
         outgoingFrameRO.wrap(outgoingFrame.buffer().asReadOnlyBuffer(), outgoingFrame.offset());
-        outputStateMachine.processText(connection, outgoingFrameRO);
+        WebSocketOutputStateMachine.instance().processText(connection, outgoingFrameRO);
     }
 
     @Override
