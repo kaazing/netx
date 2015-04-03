@@ -23,6 +23,7 @@ import static org.kaazing.netx.http.HttpURLConnection.HTTP_SWITCHING_PROTOCOLS;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Flyweight.uint16Get;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Flyweight.uint8Get;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -97,6 +98,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final List<WebSocketExtensionSpi> negotiatedExtensionSpis;
     private final byte[] commandFramePayload;
     private final FrameRO incomingFrameRO;
+    private final byte[] mask;
 
     private String negotiatedProtocol;
     private WsInputStream inputStream;
@@ -132,6 +134,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.incomingFrameRO = new FrameRO();
+        this.mask = new byte[4];
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -156,6 +159,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.incomingFrameRO = new FrameRO();
+        this.mask = new byte[4];
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -463,6 +467,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return extensionFactory;
     }
 
+    public byte[] getMask() {
+        random.nextBytes(mask);
+        return mask;
+    }
+
     public Random getRandom() {
         return random;
     }
@@ -528,31 +537,60 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             doFail(WS_PROTOCOL_ERROR, format(MSG_INVALID_OPCODE, leadByte));
         }
 
-        if (incomingFrameRO.masked()) {
+        byte maskByte = (byte) uint8Get(incomingFrameRO.buffer(), incomingFrameRO.offset() + 1);
+        if ((maskByte & 0x80) != 0) {
             doFail(WS_PROTOCOL_ERROR, MSG_MASKED_FRAME_FROM_SERVER);
         }
 
+        WebSocketExtensionSpi sentinel = null;
         WebSocketInputStateMachine inputStateMachine = WebSocketInputStateMachine.instance();
+
         switch (incomingFrameRO.opCode()) {
         case BINARY:
-            inputStateMachine.processBinary(this, incomingFrameRO, terminalConsumer);
+            sentinel = new WebSocketExtensionSpi() {
+                {
+                    onBinaryReceived = terminalConsumer;
+                }
+            };
             break;
         case CONTINUATION:
-            inputStateMachine.processContinuation(this, incomingFrameRO, terminalConsumer);
+            sentinel = new WebSocketExtensionSpi() {
+                {
+                    onContinuationReceived = terminalConsumer;
+                }
+            };
             break;
         case CLOSE:
-            inputStateMachine.processClose(this, incomingFrameRO, terminalConsumer);
+            sentinel = new WebSocketExtensionSpi() {
+                {
+                    onCloseReceived = terminalConsumer;
+                }
+            };
             break;
         case PING:
-            inputStateMachine.processPing(this, incomingFrameRO, terminalConsumer);
+            sentinel = new WebSocketExtensionSpi() {
+                {
+                    onPingReceived = terminalConsumer;
+                }
+            };
             break;
         case PONG:
-            inputStateMachine.processPong(this, incomingFrameRO, terminalConsumer);
+            sentinel = new WebSocketExtensionSpi() {
+                {
+                    onPongReceived = terminalConsumer;
+                }
+            };
             break;
         case TEXT:
-            inputStateMachine.processText(this, incomingFrameRO, terminalConsumer);
+            sentinel = new WebSocketExtensionSpi() {
+                {
+                    onTextReceived = terminalConsumer;
+                }
+            };
             break;
         }
+
+        inputStateMachine.processFrame(this, incomingFrameRO, sentinel);
     }
 
     public void sendClose(Frame closeFrame) throws IOException {

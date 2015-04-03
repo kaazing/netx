@@ -42,10 +42,15 @@ public abstract class WebSocketExtensionFactorySpi {
      * Creates a {@link WebSocketExtensionSpi} instance. The specified HTTP request header formatted string is validated as well.
      * An IOException is thrown if the specified string is deemed invalid. If an IOException is thrown, the extension is not
      * negotiated during the opening handshake and does not have it's hooks exercised when messages are being received or sent.
+     * The format for extensionWithParams is as shown below:
      *
-     * @param forattedString  String representation of the extension in request header format
+     * {@code}
+     *      extension-name[;param1=value1;param2;param3=value3]
+     * {@code}
+     *
+     * @param extensionWithParams  String representation of the extension in request header format
      * @return WebSocketExtensionSpi  instance
      * @throw IOException if the extension considers the specified string is invalid
      */
-    public abstract WebSocketExtensionSpi createExtension(String formattedStr) throws IOException;
+    public abstract WebSocketExtensionSpi createExtension(String extensionWithParams) throws IOException;
 }

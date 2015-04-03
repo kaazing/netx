@@ -38,10 +38,12 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
             public void accept(WebSocketContext context, Frame frame) throws IOException {
                 OpCode opcode = frame.opCode();
                 int payloadLength = frame.payloadLength();
+                int payloadOffset = frame.payloadOffset();
                 byte[] payload = new byte[payloadLength];
-                int numBytes = frame.payloadGet(payload, 0, payload.length);
 
-                assert numBytes == payloadLength;
+                for (int i = 0; i < payloadLength; i++) {
+                    payload[i] = frame.buffer().get(payloadOffset++);
+                }
 
                 String msg = "nuqneH, " + new String(payload, 0, payloadLength);
                 byte[] xformedPayload = msg.getBytes(UTF_8);
@@ -60,17 +62,19 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
             public void accept(WebSocketContext context, Frame frame) throws IOException {
                 OpCode opcode = frame.opCode();
                 int payloadLength = frame.payloadLength();
+                int payloadOffset = frame.payloadOffset();
                 byte[] payload = new byte[payloadLength];
-                int numBytes = frame.payloadGet(payload, 0, payload.length);
 
-                assert numBytes == payloadLength;
+                for (int i = 0; i < payloadLength; i++) {
+                    payload[i] = frame.buffer().get(payloadOffset++);
+                }
 
                 String msg = new String(payload, 0, payloadLength).substring("Hello, ".length());
                 byte[] bytes = msg.getBytes(UTF_8);
 
                 outgoingFrame.fin(true);
                 outgoingFrame.opCode(opcode);
-                outgoingFrame.maskedPayloadPut(bytes, 0, bytes.length);
+                outgoingFrame.payloadPut(bytes, 0, bytes.length);
                 context.onTextSent(outgoingFrame);
             }
         };

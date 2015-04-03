@@ -25,47 +25,39 @@ import org.junit.experimental.theories.Theory;
 public class PingTest extends FrameTest {
 
     @Theory
-    public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
+    public void shouldDecodeWithEmptyPayload(int offset) throws Exception {
         FrameRW pingFrame = new FrameRW().wrap(buffer, offset);
 
         pingFrame.fin(true);
         pingFrame.opCode(PING);
-
-        if (masked) {
-            pingFrame.maskedPayloadPut((byte[]) null, offset, 0);
-        }
-        else {
-            pingFrame.payloadPut((byte[]) null, offset, 0);
-        }
+        pingFrame.payloadPut((byte[]) null, offset, 0);
 
         assertEquals(OpCode.PING, pingFrame.opCode());
         assertEquals(0, pingFrame.payloadLength());
         assertEquals(true, pingFrame.fin());
-        assertEquals(masked, pingFrame.masked());
+
     }
 
     @Theory
-    public void shouldDecodeWithPayload(int offset, boolean masked) throws Exception {
+    public void shouldDecodeWithPayload(int offset) throws Exception {
         FrameRW pingFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputBytes = fromHex("03e8ff01");
-        byte[] payload = new byte[inputBytes.length];
 
         pingFrame.fin(true);
         pingFrame.opCode(PING);
-
-        if (masked) {
-            pingFrame.maskedPayloadPut(inputBytes, 0, inputBytes.length);
-        }
-        else {
-            pingFrame.payloadPut(inputBytes, 0, inputBytes.length);
-        }
-
-        pingFrame.payloadGet(payload, 0, payload.length);
+        pingFrame.payloadPut(inputBytes, 0, inputBytes.length);
 
         assertEquals(OpCode.PING, pingFrame.opCode());
         assertEquals(inputBytes.length, pingFrame.payloadLength());
-        assertArrayEquals(inputBytes, payload);
         assertEquals(true, pingFrame.fin());
-        assertEquals(masked, pingFrame.masked());
+
+        int payloadOffset = pingFrame.payloadOffset();
+        int payloadLength = pingFrame.payloadLength();
+        byte[] payloadBytes = new byte[payloadLength];
+
+        for (int i = 0; i < payloadLength; i++) {
+            payloadBytes[i] = pingFrame.buffer().get(payloadOffset++);
+        }
+        assertArrayEquals(inputBytes, payloadBytes);
     }
 }

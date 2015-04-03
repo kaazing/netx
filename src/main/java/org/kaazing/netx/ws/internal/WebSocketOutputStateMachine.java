@@ -36,9 +36,11 @@ import static org.kaazing.netx.ws.internal.WebSocketState.OPEN;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.ERROR;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_BINARY_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_CLOSE_FRAME;
+import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_CONTINUATION_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_PONG_FRAME;
 import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_TEXT_FRAME;
 import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CLOSE;
 import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CONTINUATION;
 import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.PONG;
 import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
@@ -50,8 +52,9 @@ import java.nio.ByteBuffer;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.flyweight.ClosePayloadRW;
+import org.kaazing.netx.ws.internal.ext.flyweight.ClosePayloadRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public final class WebSocketOutputStateMachine {
@@ -68,11 +71,14 @@ public final class WebSocketOutputStateMachine {
             for (WebSocketTransition transition : allOf(WebSocketTransition.class)) {
                 stateMachine[state.ordinal()][transition.ordinal()] = CLOSED;
             }
+
+            stateMachine[state.ordinal()][ERROR.ordinal()] = CLOSED;
         }
 
         stateMachine[OPEN.ordinal()][SEND_PONG_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][SEND_CLOSE_FRAME.ordinal()] = CLOSED;
         stateMachine[OPEN.ordinal()][SEND_BINARY_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][SEND_CONTINUATION_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][SEND_TEXT_FRAME.ordinal()] = OPEN;
 
         STATE_MACHINE = stateMachine;
@@ -91,301 +97,122 @@ public final class WebSocketOutputStateMachine {
         connection.setOutputState(WebSocketState.START);
     }
 
-    public void processBinary(final WsURLConnectionImpl connection, final Frame dataFrame)
-            throws IOException {
+    public void processFrame(final WsURLConnectionImpl connection, final Frame frame) throws IOException {
         WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
             {
-                onBinarySent = new WebSocketFrameConsumer() {
-                    @Override
-                    public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        OutputStream out = connection.getTcpOutputStream();
-
-                        assert frame.opCode() == BINARY;
-                        assert frame.masked();
-                        // If we want to support sending fragmented frames, then we should delete the next line.
-                        assert frame.fin();
-
-                        int length = frame.length();
-                        ByteBuffer buf = frame.buffer();
-                        int offset = frame.offset();
-
-                        for (int i = 0; i < length; i++) {
-                            out.write(buf.get(offset++));
+                OpCode opcode = frame.opCode();
+                switch (opcode) {
+                case BINARY:
+                    onBinarySent = new WebSocketFrameConsumer() {
+                        @Override
+                        public void accept(WebSocketContext context, Frame frame) throws IOException {
+                            assert frame.opCode() == BINARY;
+                            encodeFrame(connection, frame);
                         }
-                    }
-                };
+                    };
+                    break;
+                case CLOSE:
+                    onCloseSent = new WebSocketFrameConsumer() {
+                        @Override
+                        public void accept(WebSocketContext context, Frame frame) throws IOException {
+                            assert frame.opCode() == CLOSE;
+                            validateAndEncodeCloseFrame(connection, frame);
+                        }
+                    };
+                    break;
+                case CONTINUATION:
+                    onContinuationSent = new WebSocketFrameConsumer() {
+                        @Override
+                        public void accept(WebSocketContext context, Frame frame) throws IOException {
+                            assert frame.opCode() == CONTINUATION;
+                            encodeFrame(connection, frame);
+                        }
+                    };
+                    break;
+                case PONG:
+                    onPongSent = new WebSocketFrameConsumer() {
+                        @Override
+                        public void accept(WebSocketContext context, Frame frame) throws IOException {
+                            assert frame.opCode() == PONG;
+                            assert frame.fin();
+                            encodeFrame(connection, frame);
+                        }
+                    };
+                    break;
+                case TEXT:
+                    onTextSent = new WebSocketFrameConsumer() {
+                        @Override
+                        public void accept(WebSocketContext context, Frame frame) throws IOException {
+                            assert frame.opCode() == TEXT;
+                            encodeFrame(connection, frame);
+                        }
+                    };
+                    break;
+                default:
+                    break;
+                }
             }
         };
 
         WebSocketContext context = connection.getContext(sentinel, false);
         WebSocketState state = connection.getOutputState();
+        OpCode opcode = frame.opCode();
 
         switch (state) {
         case OPEN:
-            transition(connection, SEND_BINARY_FRAME);
-            context.onBinarySent(dataFrame);
-            break;
-        default:
-            transition(connection, ERROR);
-            context.onError(format("Invalid state %s to be sending a BINARY frame", state));
-        }
-    }
-
-    public void processContinuation(final WsURLConnectionImpl connection, final Frame dataFrame)
-            throws IOException {
-        WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
-            {
-                onBinarySent = new WebSocketFrameConsumer() {
-                    @Override
-                    public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        OutputStream out = connection.getTcpOutputStream();
-
-                        assert frame.opCode() == CONTINUATION;
-                        assert frame.masked();
-                        assert !frame.fin();
-
-                        int length = frame.length();
-                        ByteBuffer buf = frame.buffer();
-                        int offset = frame.offset();
-
-                        for (int i = 0; i < length; i++) {
-                            out.write(buf.get(offset++));
-                        }
-                    }
-                };
+            switch (opcode) {
+            case BINARY:
+                transition(connection, SEND_BINARY_FRAME);
+                context.onBinarySent(frame);
+                break;
+            case CLOSE:
+                context.onCloseSent(frame);
+                break;
+            case CONTINUATION:
+                transition(connection, SEND_CONTINUATION_FRAME);
+                context.onContinuationSent(frame);
+                break;
+            case PONG:
+                transition(connection, SEND_PONG_FRAME);
+                context.onPongSent(frame);
+                break;
+            case TEXT:
+                transition(connection, SEND_TEXT_FRAME);
+                context.onTextSent(frame);
+                break;
+            default:
+                break;
             }
-        };
-
-        WebSocketContext context = connection.getContext(sentinel, false);
-        WebSocketState state = connection.getOutputState();
-
-        switch (state) {
-        case OPEN:
-            transition(connection, WebSocketTransition.SEND_CONTINUATION_FRAME);
-            context.onBinarySent(dataFrame);
             break;
         default:
             transition(connection, ERROR);
-            context.onError(format("Invalid state %s to be sending a BINARY frame", state));
-        }
-    }
-
-    public void processClose(final WsURLConnectionImpl connection, final Frame closeFrame)
-            throws IOException {
-        WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
-            {
-                onCloseSent = new WebSocketFrameConsumer() {
-                    @Override
-                    public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        OutputStream out = connection.getTcpOutputStream();
-                        int len = 0;
-                        int code = 0;
-                        int closeCode = 0;
-                        int closePayloadLen = frame.payloadLength();
-                        IOException exception = null;
-                        ClosePayloadRW closePayload = new ClosePayloadRW();
-                        byte[] closeReason = null;
-
-                        closePayload.wrap(frame.buffer(), frame.offset());
-
-                        if (closePayloadLen >= 2) {
-                            closeCode = closePayload.statusCode();
-                        }
-
-                        if (closeCode != 0) {
-                            switch (closeCode) {
-                            case WS_MISSING_STATUS_CODE:
-                            case WS_ABNORMAL_CLOSE:
-                            case WS_UNSUCCESSFUL_TLS_HANDSHAKE:
-                                len += 2;
-                                code = WS_PROTOCOL_ERROR;
-                                exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, closePayloadLen));
-                                break;
-                            case WS_NORMAL_CLOSE:
-                            case WS_ENDPOINT_GOING_AWAY:
-                            case WS_PROTOCOL_ERROR:
-                            case WS_INCORRECT_MESSAGE_TYPE:
-                            case WS_INCONSISTENT_DATA_MESSAGE_TYPE:
-                            case WS_VIOLATE_POLICY:
-                            case WS_MESSAGE_TOO_BIG:
-                            case WS_UNSUCCESSFUL_EXTENSION_NEGOTIATION:
-                            case WS_SERVER_TERMINATED_CONNECTION:
-                                len += 2;
-                                code = closeCode;
-                                break;
-                            default:
-                                if ((closeCode >= 3000) && (closeCode <= 4999)) {
-                                    len += 2;
-                                    code = closeCode;
-                                }
-
-                                throw new IOException(format("Invalid CLOSE code %d", closeCode));
-                            }
-
-                            if ((code != WS_PROTOCOL_ERROR) && (closePayloadLen > 2)) {
-                                int reasonLength = closePayloadLen - 2;
-
-                                if (reasonLength > 0) {
-                                    closeReason = new byte[150];
-                                    closePayload.reasonGet(closeReason, 0, reasonLength);
-
-                                    if (!validBytesUTF8(ByteBuffer.wrap(closeReason, 0, reasonLength), 0, reasonLength)) {
-                                        code = WS_PROTOCOL_ERROR;
-                                        exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, reasonLength));
-                                    }
-                                    else if (reasonLength > 123) {
-                                        code = WS_PROTOCOL_ERROR;
-                                        exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, reasonLength));
-                                        len += reasonLength;
-                                    }
-                                    else {
-                                        if (code != WS_NORMAL_CLOSE) {
-                                            reasonLength = 0;
-                                        }
-
-                                        len += reasonLength;
-                                    }
-                                }
-                            }
-                        }
-
-                        out.write(0x88);
-                        encodePayloadLength(out, len);
-                        if (len == 0) {
-                            out.write(EMPTY_MASK);
-                        }
-                        else {
-                            assert len >= 2;
-
-                            int reasonOffset = 0;
-                            byte[] mask = new byte[4];
-
-                            connection.getRandom().nextBytes(mask);
-                            out.write(mask);
-
-                            for (int i = 0; i < len; i++) {
-                                switch (i) {
-                                case 0:
-                                    out.write((byte) (((code >> 8) & 0xFF) ^ mask[i % mask.length]));
-                                    break;
-                                case 1:
-                                    out.write((byte) (((code >> 0) & 0xFF) ^ mask[i % mask.length]));
-                                    break;
-                                default:
-                                    out.write((byte) (closeReason[reasonOffset++] ^ mask[i % mask.length]));
-                                    break;
-                                }
-                            }
-
-                            out.flush();
-                            out.close();
-
-                            if (exception != null) {
-                                throw exception;
-                            }
-                        }
-                    }
-                };
-            }
-        };
-
-        WebSocketContext context = connection.getContext(sentinel, false);
-        WebSocketState state = connection.getOutputState();
-
-        switch (state) {
-        case OPEN:
-            // Do not transition to CLOSED state at this point as we still haven't yet sent the CLOSE frame.
-            context.onCloseSent(closeFrame);
-            break;
-        default:
-            transition(connection, ERROR);
-            context.onError(format("Invalid state %s to be sending a CLOSE frame", state));
-        }
-
-    }
-
-    public void processPong(final WsURLConnectionImpl connection, final Frame pongFrame)
-            throws IOException {
-        WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
-            {
-                onPongSent = new WebSocketFrameConsumer() {
-                    @Override
-                    public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        OutputStream out = connection.getTcpOutputStream();
-
-                        assert frame.opCode() == PONG;
-                        assert frame.masked();
-                        assert frame.fin();
-
-                        int length = frame.length();
-                        ByteBuffer buf = frame.buffer();
-                        int offset = frame.offset();
-
-                        for (int i = 0; i < length; i++) {
-                            out.write(buf.get(offset++));
-                        }
-                    }
-                };
-            }
-        };
-
-        WebSocketContext context = connection.getContext(sentinel, false);
-        WebSocketState state = connection.getOutputState();
-
-        switch (state) {
-        case OPEN:
-            transition(connection, SEND_PONG_FRAME);
-            context.onPongSent(pongFrame);
-            break;
-        default:
-            transition(connection, ERROR);
-            context.onError(format("Invalid state %s to be sending a PONG frame", state));
-        }
-    }
-
-    public void processText(final WsURLConnectionImpl connection, final Frame dataFrame)
-            throws IOException {
-        WebSocketExtensionSpi sentinel = new WebSocketExtensionSpi() {
-            {
-                onTextSent = new WebSocketFrameConsumer() {
-                    @Override
-                    public void accept(WebSocketContext context, Frame frame) throws IOException {
-                        OutputStream out = connection.getTcpOutputStream();
-
-                        assert frame.opCode() == TEXT;
-                        assert frame.masked();
-                        // If we want to support sending fragmented frames, then we should delete the next line.
-                        assert frame.fin();
-
-                        int length = frame.length();
-                        ByteBuffer buf = frame.buffer();
-                        int offset = frame.offset();
-
-                        for (int i = 0; i < length; i++) {
-                            out.write(buf.get(offset++));
-                        }
-                    }
-                };
-            }
-        };
-
-        WebSocketContext context = connection.getContext(sentinel, true);
-        WebSocketState state = connection.getOutputState();
-
-        switch (state) {
-        case OPEN:
-            transition(connection, SEND_TEXT_FRAME);
-            context.onTextSent(dataFrame);
-            break;
-        default:
-            transition(connection, ERROR);
-            context.onError(format("Invalid state %s to be sending a TEXT frame", state));
+            context.onError(format("Invalid state %s to be sending a %s frame", state, opcode));
         }
     }
 
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {
         WebSocketState state = STATE_MACHINE[connection.getOutputState().ordinal()][transition.ordinal()];
         connection.setOutputState(state);
+    }
+
+    private void encodeFrame(WsURLConnectionImpl connection, Frame frame) throws IOException {
+        OutputStream out = connection.getTcpOutputStream();
+        int offset = frame.offset();
+        ByteBuffer buf = frame.buffer();
+        int payloadLength = frame.payloadLength();
+        int payloadOffset = frame.payloadOffset();
+        byte[] mask = connection.getMask();
+
+        assert mask.length == 4;
+
+        out.write(buf.get(offset));
+        encodePayloadLength(out, payloadLength);
+
+        out.write(mask);
+
+        for (int i = 0; i < payloadLength; i++) {
+            out.write((byte) (buf.get(payloadOffset++) ^ mask[i % mask.length]));
+        }
     }
 
     private void encodePayloadLength(OutputStream out, int len) throws IOException {
@@ -443,6 +270,115 @@ public final class WebSocketOutputStateMachine {
             out.write((int) ((length >> 8) & 0xff));
             out.write((int) ((length >> 0) & 0xff));
             break;
+        }
+    }
+
+    private void validateAndEncodeCloseFrame(WsURLConnectionImpl connection, Frame frame) throws IOException {
+        OutputStream out = connection.getTcpOutputStream();
+        int len = 0;
+        int code = 0;
+        int closeCode = 0;
+        ByteBuffer buffer = frame.buffer();
+        int closePayloadLen = frame.payloadLength();
+        int payloadOffset = frame.payloadOffset();
+        IOException exception = null;
+        ClosePayloadRO closePayload = new ClosePayloadRO();
+
+        closePayload.wrap(buffer, payloadOffset, payloadOffset + closePayloadLen);
+
+        if (closePayloadLen >= 2) {
+            closeCode = closePayload.statusCode();
+        }
+
+        if (closeCode != 0) {
+            switch (closeCode) {
+            case WS_MISSING_STATUS_CODE:
+            case WS_ABNORMAL_CLOSE:
+            case WS_UNSUCCESSFUL_TLS_HANDSHAKE:
+                len += 2;
+                code = WS_PROTOCOL_ERROR;
+                exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, closePayloadLen));
+                break;
+            case WS_NORMAL_CLOSE:
+            case WS_ENDPOINT_GOING_AWAY:
+            case WS_PROTOCOL_ERROR:
+            case WS_INCORRECT_MESSAGE_TYPE:
+            case WS_INCONSISTENT_DATA_MESSAGE_TYPE:
+            case WS_VIOLATE_POLICY:
+            case WS_MESSAGE_TOO_BIG:
+            case WS_UNSUCCESSFUL_EXTENSION_NEGOTIATION:
+            case WS_SERVER_TERMINATED_CONNECTION:
+                len += 2;
+                code = closeCode;
+                break;
+            default:
+                if ((closeCode >= 3000) && (closeCode <= 4999)) {
+                    len += 2;
+                    code = closeCode;
+                }
+
+                throw new IOException(format("Invalid CLOSE code %d", closeCode));
+            }
+
+            if ((code != WS_PROTOCOL_ERROR) && (closePayloadLen > 2)) {
+                int reasonLength = closePayloadLen - 2;
+
+                assert reasonLength == closePayload.reasonLength();
+
+                if (reasonLength > 0) {
+                    if (!validBytesUTF8(buffer, closePayload.reasonOffset(), reasonLength)) {
+                        code = WS_PROTOCOL_ERROR;
+                        exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, reasonLength));
+                    }
+                    else if (reasonLength > 123) {
+                        code = WS_PROTOCOL_ERROR;
+                        exception = new IOException(format(MSG_CLOSE_FRAME_VIOLATION, closeCode, reasonLength));
+                        len += reasonLength;
+                    }
+                    else {
+                        if (code != WS_NORMAL_CLOSE) {
+                            reasonLength = 0;
+                        }
+
+                        len += reasonLength;
+                    }
+                }
+            }
+        }
+
+        out.write(0x88);
+        encodePayloadLength(out, len);
+        if (len == 0) {
+            out.write(EMPTY_MASK);
+        }
+        else {
+            assert len >= 2;
+
+            int reasonOffset = closePayload.reasonOffset();
+            byte[] mask = connection.getMask();
+
+            out.write(mask);
+
+            for (int i = 0; i < len; i++) {
+                switch (i) {
+                case 0:
+                    out.write((byte) (((code >> 8) & 0xFF) ^ mask[i % mask.length]));
+                    break;
+                case 1:
+                    out.write((byte) (((code >> 0) & 0xFF) ^ mask[i % mask.length]));
+                    break;
+                default:
+                    out.write((byte) (frame.buffer().get(reasonOffset++) ^ mask[i % mask.length]));
+                    break;
+                }
+            }
+
+            out.flush();
+            out.close();
+
+            if (exception != null) {
+                throw exception;
+            }
         }
     }
 }

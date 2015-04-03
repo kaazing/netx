@@ -37,28 +37,21 @@ public class ContinuationTest extends FrameTest {
     public static final Fin FIN_UNSET = Fin.UNSET;
 
     @Theory
-    public void shouldDecodeContinuationWithEmptyPayload(int offset, boolean masked, Fin fin) throws Exception {
+    public void shouldDecodeContinuationWithEmptyPayload(int offset, Fin fin) throws Exception {
         FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
 
         continuationFrame.fin((fin == Fin.SET) ? true : false);
         continuationFrame.opCode(OpCode.CONTINUATION);
-
-        if (masked) {
-            continuationFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
-        }
-        else {
-            continuationFrame.payloadPut((ByteBuffer) null, offset, 0);
-        }
+        continuationFrame.payloadPut((ByteBuffer) null, offset, 0);
 
 
         assertEquals(OpCode.CONTINUATION, continuationFrame.opCode());
         assertEquals(0, continuationFrame.payloadLength());
         assertEquals(fin == Fin.SET, continuationFrame.fin());
-        assertEquals(masked, continuationFrame.masked());
     }
 
     @Theory
-    public void shouldDecodeContinuationWithUTF8Payload(int offset, boolean masked, Fin fin) throws Exception {
+    public void shouldDecodeContinuationWithUTF8Payload(int offset, Fin fin) throws Exception {
         FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
         ByteBuffer bytes = ByteBuffer.allocate(1000);
         bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
@@ -71,29 +64,27 @@ public class ContinuationTest extends FrameTest {
         bytes.position(0);
         byte[] inputPayload = new byte[bytes.remaining()];
         bytes.get(inputPayload);
-        byte[] payloadBytes = new byte[inputPayload.length];
 
         continuationFrame.fin((fin == Fin.SET) ? true : false);
         continuationFrame.opCode(OpCode.CONTINUATION);
-
-        if (masked) {
-            continuationFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
-        }
-        else {
-            continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
-        }
-
-        continuationFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
         assertEquals(OpCode.CONTINUATION, continuationFrame.opCode());
         assertEquals(inputPayload.length, continuationFrame.payloadLength());
-        assertArrayEquals(inputPayload, payloadBytes);
         assertEquals(fin == Fin.SET, continuationFrame.fin());
-        assertEquals(masked, continuationFrame.masked());
+
+        int payloadOffset = continuationFrame.payloadOffset();
+        int payloadLength = continuationFrame.payloadLength();
+        byte[] payloadBytes = new byte[payloadLength];
+
+        for (int i = 0; i < payloadLength; i++) {
+            payloadBytes[i] = continuationFrame.buffer().get(payloadOffset++);
+        }
+        assertArrayEquals(inputPayload, payloadBytes);
     }
 
     @Theory
-    public void shouldDecodeContinuationWithIncompleteUTF8(int offset, boolean masked, Fin fin) throws Exception {
+    public void shouldDecodeContinuationWithIncompleteUTF8(int offset, Fin fin) throws Exception {
         FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
         ByteBuffer bytes = ByteBuffer.allocate(1000);
         bytes.put("e acute (0xE9 or 0x11101001): ".getBytes(UTF_8));
@@ -106,51 +97,48 @@ public class ContinuationTest extends FrameTest {
         bytes.position(0);
         byte[] inputPayload = new byte[bytes.remaining()];
         bytes.get(inputPayload);
-        byte[] payloadBytes = new byte[inputPayload.length];
 
         continuationFrame.fin((fin == Fin.SET) ? true : false);
         continuationFrame.opCode(OpCode.CONTINUATION);
-
-        if (masked) {
-            continuationFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
-        }
-        else {
-            continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
-        }
-
-        continuationFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
         assertEquals(OpCode.CONTINUATION, continuationFrame.opCode());
         assertEquals(inputPayload.length, continuationFrame.payloadLength());
-        assertArrayEquals(inputPayload, payloadBytes);
         assertEquals(fin == Fin.SET, continuationFrame.fin());
-        assertEquals(masked, continuationFrame.masked());
+
+        int payloadOffset = continuationFrame.payloadOffset();
+        int payloadLength = continuationFrame.payloadLength();
+        byte[] payloadBytes = new byte[payloadLength];
+
+        for (int i = 0; i < payloadLength; i++) {
+            payloadBytes[i] = continuationFrame.buffer().get(payloadOffset++);
+        }
+        assertArrayEquals(inputPayload, payloadBytes);
     }
 
     @Theory
-    public void shouldDecodeContinuationWithBinaryPayload(int offset, boolean masked, Fin fin) throws Exception {
+    public void shouldDecodeContinuationWithBinaryPayload(int offset, Fin fin) throws Exception {
         FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputPayload = new byte[5000];
-        byte[] payloadBytes = new byte[inputPayload.length];
 
         inputPayload[12] = (byte) 0xff;
 
         continuationFrame.fin((fin == Fin.SET) ? true : false);
         continuationFrame.opCode(OpCode.CONTINUATION);
-
-        if (masked) {
-            continuationFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
-        }
-        else {
-            continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
-        }
-
-        continuationFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
         assertEquals(OpCode.CONTINUATION, continuationFrame.opCode());
         assertEquals(inputPayload.length, continuationFrame.payloadLength());
-        assertArrayEquals(inputPayload, payloadBytes);
         assertEquals(fin == Fin.SET, continuationFrame.fin());
-        assertEquals(masked, continuationFrame.masked());
+
+        int payloadOffset = continuationFrame.payloadOffset();
+        int payloadLength = continuationFrame.payloadLength();
+        byte[] payloadBytes = new byte[payloadLength];
+
+        for (int i = 0; i < payloadLength; i++) {
+            payloadBytes[i] = continuationFrame.buffer().get(payloadOffset++);
+        }
+
+        assertArrayEquals(inputPayload, payloadBytes);
     }
 }

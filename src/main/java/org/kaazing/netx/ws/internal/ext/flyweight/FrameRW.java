@@ -18,7 +18,6 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 import static java.lang.String.format;
 
 import java.nio.ByteBuffer;
-import java.security.SecureRandom;
 
 public class FrameRW extends Frame {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
@@ -26,18 +25,11 @@ public class FrameRW extends Frame {
 
     private static final byte FIN_MASK = (byte) 0x80;
     private static final byte OP_CODE_MASK = 0x0F;
-    private static final byte MASKED_MASK = (byte) 0x80;
     private static final byte LENGTH_BYTE_1_MASK = 0x7F;
 
     private static final int LENGTH_OFFSET = 1;
-    private static final int MASK_OFFSET = 1;
-
-    private final byte[] mask;
-    private final SecureRandom random;
 
     public FrameRW() {
-        this.mask = new byte[4];
-        this.random = new SecureRandom();
     }
 
     @Override
@@ -67,70 +59,11 @@ public class FrameRW extends Frame {
     }
 
     @Override
-    public int mask() {
-        checkBuffer(buffer());
-
-        if (!masked()) {
-            return -1;
-        }
-
-        return buffer().getInt(maskOffset());
-    }
-
-    @Override
-    public boolean masked() {
-        checkBuffer(buffer());
-        return (uint8Get(buffer(), offset() + MASK_OFFSET) & MASKED_MASK) != 0;
-    }
-
-    @Override
-    public int maskOffset() {
-        checkBuffer(buffer());
-
-        if (!masked()) {
-            return payloadOffset();
-        }
-
-        return payloadOffset() - 4;
-    }
-
-    @Override
     public OpCode opCode() {
         checkBuffer(buffer());
 
         short byte0 = uint8Get(buffer(), offset());
         return OpCode.fromInt(byte0 & OP_CODE_MASK);
-    }
-
-    @Override
-    public int payloadGet(byte[] buf, int offset, int length) {
-        if (buf == null) {
-            throw new NullPointerException("Null buffer passed in");
-        }
-        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
-            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
-        }
-
-        int min = Math.min(payloadLength(), length);
-
-        if (masked()) {
-
-            int maskIndex = maskOffset();
-            int dataIndex = payloadOffset();
-
-            for (int i = 0; i < mask.length; i++) {
-                mask[i] = buffer().get(maskIndex++);
-            }
-
-            for (int i = 0; i < min; i++) {
-                buf[offset++] = (byte) (buffer().get(dataIndex++) ^ mask[i % mask.length]);
-            }
-        }
-        else {
-            System.arraycopy(buffer().array(), payloadOffset(), buf, offset, min);
-        }
-
-        return min;
     }
 
     @Override
@@ -167,9 +100,6 @@ public class FrameRW extends Frame {
             break;
         }
 
-        if (masked()) {
-            index += 4;
-        }
         return index;
     }
 
@@ -181,6 +111,11 @@ public class FrameRW extends Frame {
 
     // Mutators
 
+    /**
+     * Sets the FIN bit in the lead byte of the frame. If the FIN bit is set, then this is the final frame of the message.
+     *
+     * @param fin   true if this is the final frame, otherwise false
+     */
     public void fin(boolean fin) {
         checkBuffer(buffer());
 
@@ -189,6 +124,11 @@ public class FrameRW extends Frame {
         buffer().put(offset(), leadByte);
     }
 
+    /**
+     * Sets the opcode in the lead byte of the frame.
+     *
+     * @param opcode   OpCode
+     */
     public void opCode(OpCode opcode) {
         checkBuffer(buffer());
 
@@ -196,81 +136,6 @@ public class FrameRW extends Frame {
         leadByte = (byte) (leadByte & 0xF0); // Clear the current opcode before setting the new one.
         leadByte |= OpCode.toInt(opcode);
         buffer().put(offset(), leadByte);
-    }
-
-    /**
-     * Puts the specified payload along with the mask bytes into the buffer. The mask-bit is lit up and the payload is
-     * masked using the mask bytes.
-     *
-     * @param buf      source byte[]
-     * @param offset   offset into the passed in byte[]
-     * @param length   number of bytes in the specified byte[] to be used as payload
-     */
-    public void maskedPayloadPut(byte[] buf, int offset, int length) {
-        if (buf != null) {
-            if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
-                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
-            }
-        }
-
-        checkBuffer(buffer());
-
-        if (buf == null) {
-            length = 0;
-        }
-
-        payloadLength(length, true);
-
-        byte[] maskBuf = EMPTY_MASK;
-        int dataIndex = payloadOffset();
-
-        if ((buf != null) && (length > 0)) {
-            random.nextBytes(mask);
-            maskBuf = mask;
-        }
-
-        putBytes(buffer(), maskOffset(), maskBuf);
-
-        for (int i = 0; i < length; i++) {
-            buffer().put(dataIndex++, (byte) (buf[offset++] ^ maskBuf[i % maskBuf.length]));
-        }
-    }
-
-    /**
-     * Puts the specified payload along with the mask-bytes into the buffer. The mask-bit is lit up and the payload is
-     * masked using the mask-bytes.
-     *
-     * @param buf      source ByteBuffer
-     * @param offset   offset into the passed in ByteBuffer
-     * @param length   number of bytes in the specified ByteBuffer to be used as payload
-     */
-    public void maskedPayloadPut(ByteBuffer buf, int offset, int length) {
-        if (buf != null) {
-            if ((offset < 0) || (length < 0) || (offset + length > buf.limit())) {
-                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.limit()));
-            }
-        }
-
-        if (buf == null) {
-            length = 0;
-        }
-
-        checkBuffer(buffer());
-        payloadLength(length, true);
-
-        byte[] maskBuf = EMPTY_MASK;
-        int dataIndex = payloadOffset();
-
-        if ((buf != null) && (length > 0)) {
-            random.nextBytes(mask);
-            maskBuf = mask;
-        }
-
-        putBytes(buffer(), maskOffset(), maskBuf);
-
-        for (int i = 0; i < length; i++) {
-            buffer().put(dataIndex++, (byte) (buf.get(offset++) ^ maskBuf[i % maskBuf.length]));
-        }
     }
 
     /**
@@ -361,9 +226,114 @@ public class FrameRW extends Frame {
         }
     }
 
-    private static void putBytes(ByteBuffer buffer, int offset, byte[] bytes) {
-        for (int i = 0; i < bytes.length; i++) {
-            buffer.put(offset + i, bytes[i]);
-        }
-    }
+//    private static void putBytes(ByteBuffer buffer, int offset, byte[] bytes) {
+//        for (int i = 0; i < bytes.length; i++) {
+//            buffer.put(offset + i, bytes[i]);
+//        }
+//    }
+
+//    private int payloadGet(byte[] buf, int offset, int length) {
+//        if (buf == null) {
+//            throw new NullPointerException("Null buffer passed in");
+//        }
+//        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+//            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
+//        }
+//
+//        int min = Math.min(payloadLength(), length);
+//
+//        if (masked()) {
+//
+//            int maskIndex = maskOffset();
+//            int dataIndex = payloadOffset();
+//
+//            for (int i = 0; i < mask.length; i++) {
+//                mask[i] = buffer().get(maskIndex++);
+//            }
+//
+//            for (int i = 0; i < min; i++) {
+//                buf[offset++] = (byte) (buffer().get(dataIndex++) ^ mask[i % mask.length]);
+//            }
+//        }
+//        else {
+//            System.arraycopy(buffer().array(), payloadOffset(), buf, offset, min);
+//        }
+//
+//        return min;
+//    }
+
+//    /**
+//     * Puts the specified payload along with the mask-bytes into the buffer. The mask-bit is lit up and the payload is
+//     * masked using the mask-bytes.
+//     *
+//     * @param buf      source ByteBuffer
+//     * @param offset   offset into the passed in ByteBuffer
+//     * @param length   number of bytes in the specified ByteBuffer to be used as payload
+//     */
+//    public void maskedPayloadPut(ByteBuffer buf, int offset, int length) {
+//        if (buf != null) {
+//            if ((offset < 0) || (length < 0) || (offset + length > buf.limit())) {
+//                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.limit()));
+//            }
+//        }
+//
+//        if (buf == null) {
+//            length = 0;
+//        }
+//
+//        checkBuffer(buffer());
+//        payloadLength(length, true);
+//
+//        byte[] maskBuf = EMPTY_MASK;
+//        int dataIndex = payloadOffset();
+//
+//        if ((buf != null) && (length > 0)) {
+//            random.nextBytes(mask);
+//            maskBuf = mask;
+//        }
+//
+//        putBytes(buffer(), maskOffset(), maskBuf);
+//
+//        for (int i = 0; i < length; i++) {
+//            buffer().put(dataIndex++, (byte) (buf.get(offset++) ^ maskBuf[i % maskBuf.length]));
+//        }
+//    }
+
+//    /**
+//     * Puts the specified payload along with the mask bytes into the buffer. The mask-bit is lit up and the payload is
+//     * masked using the mask bytes.
+//     *
+//     * @param buf      source byte[]
+//     * @param offset   offset into the passed in byte[]
+//     * @param length   number of bytes in the specified byte[] to be used as payload
+//     */
+//    public void maskedPayloadPut(byte[] buf, int offset, int length) {
+//        if (buf != null) {
+//            if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+//                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
+//            }
+//        }
+//
+//        checkBuffer(buffer());
+//
+//        if (buf == null) {
+//            length = 0;
+//        }
+//
+//        payloadLength(length, true);
+//
+//        byte[] maskBuf = EMPTY_MASK;
+//        int dataIndex = payloadOffset();
+//
+//        if ((buf != null) && (length > 0)) {
+//            random.nextBytes(mask);
+//            maskBuf = mask;
+//        }
+//
+//        putBytes(buffer(), maskOffset(), maskBuf);
+//
+//        for (int i = 0; i < length; i++) {
+//            buffer().put(dataIndex++, (byte) (buf[offset++] ^ maskBuf[i % maskBuf.length]));
+//        }
+//    }
 }

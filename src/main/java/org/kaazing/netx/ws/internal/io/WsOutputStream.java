@@ -78,10 +78,10 @@ public final class WsOutputStream extends FilterOutputStream {
         }
         outgoingDataFrame.fin(true);
         outgoingDataFrame.opCode(BINARY);
-        outgoingDataFrame.maskedPayloadPut(buf, offset, length);
+        outgoingDataFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(outgoingDataFrame.buffer().asReadOnlyBuffer(), outgoingDataFrame.offset());
-        WebSocketOutputStateMachine.instance().processBinary(connection, outgoingFrameRO);
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
     public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
@@ -110,17 +110,17 @@ public final class WsOutputStream extends FilterOutputStream {
 
         outgoingControlFrame.fin(true);
         outgoingControlFrame.opCode(CLOSE);
-        outgoingControlFrame.maskedPayloadPut(controlFramePayload, 0, payloadLen);
+        outgoingControlFrame.payloadPut(controlFramePayload, 0, payloadLen);
 
         outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
-        WebSocketOutputStateMachine.instance().processClose(connection, outgoingFrameRO);
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
         outgoingControlFrame.fin(true);
         outgoingControlFrame.opCode(PONG);
-        outgoingControlFrame.maskedPayloadPut(buf, offset, length);
+        outgoingControlFrame.payloadPut(buf, offset, length);
         outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
-        WebSocketOutputStateMachine.instance().processPong(connection, outgoingFrameRO);
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 }

@@ -61,27 +61,6 @@ public abstract class Frame extends Flyweight {
     public abstract int length();
 
     /**
-     * Returns the 4-byte mask as an int that was used to mask the payload. If the frame is unmasked, then -1 is returned.
-     *
-     * @return mask value if the frame is masked, otherwise -1
-     */
-    public abstract int mask();
-
-    /**
-     * Indicates whether the WebSocket frame is masked.
-     *
-     * @return true if the frame is masked, otherwise false
-     */
-    public abstract boolean masked();
-
-    /**
-     * Returns the mask offset. If the frame is unmasked, then -1 is returned.
-     *
-     * @return the mask offset if the frame is masked, otherwise -1
-     */
-    public abstract int maskOffset();
-
-    /**
      * Returns the payload's length. The maximum length of the payload can be Integer.MAX_VALUE - 10.
      *
      * ### TODO: long vs int
@@ -89,16 +68,6 @@ public abstract class Frame extends Flyweight {
      * @return payload's length
      */
     public abstract int payloadLength();
-
-    /**
-     * Populates the passed in buffer with unmasked payload.
-     *
-     * @param buf      byte array to hold the payload
-     * @param offset   offset into the passed in byte[] starting at which the payload should be copied
-     * @param length   number of payload bytes to be copied into the specified byte[]
-     * @return number of payload bytes actually copied into the specified byte array
-     */
-    public abstract int payloadGet(byte[] buf, int offset, int length);
 
     /**
      * Returns the payload's offset in the underlying buffer.

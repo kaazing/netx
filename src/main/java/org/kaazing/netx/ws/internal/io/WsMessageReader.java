@@ -381,7 +381,6 @@ public final class WsMessageReader extends MessageReader {
         incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
                                            networkBufferReadOffset,
                                            networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
-        boolean masked = incomingFrame.masked();
         int payloadLength = incomingFrame.payloadLength();
 
         if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
@@ -407,7 +406,7 @@ public final class WsMessageReader extends MessageReader {
                 }
             }
 
-            int frameLength = calculateCapacity(masked, payloadLength);
+            int frameLength = calculateCapacity(false, payloadLength);
             int remainingBytes = networkBufferReadOffset + frameLength - networkBufferWriteOffset;
             while (remainingBytes > 0) {
                 int bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);

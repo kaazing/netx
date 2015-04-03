@@ -165,7 +165,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendBinary(Frame dataFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processBinary(connection, dataFrame);
+        WebSocketOutputStateMachine.instance().processFrame(connection, dataFrame);
     }
 
     /**
@@ -175,7 +175,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendClose(Frame closeFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processClose(connection, closeFrame);
+        WebSocketOutputStateMachine.instance().processFrame(connection, closeFrame);
     }
 
     /**
@@ -185,7 +185,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendContinuation(Frame dataFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processContinuation(connection, dataFrame);
+        WebSocketOutputStateMachine.instance().processFrame(connection, dataFrame);
     }
 
     /**
@@ -195,7 +195,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendPong(Frame pongFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processPong(connection, pongFrame);
+        WebSocketOutputStateMachine.instance().processFrame(connection, pongFrame);
     }
 
     /**
@@ -205,7 +205,7 @@ public class WebSocketContext {
      * @throws IOException
      */
     public void doSendText(Frame dataFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processText(connection, dataFrame);
+        WebSocketOutputStateMachine.instance().processFrame(connection, dataFrame);
     }
 
     private WebSocketExtensionSpi nextExtension() {

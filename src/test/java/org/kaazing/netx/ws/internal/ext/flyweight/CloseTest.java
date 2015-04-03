@@ -28,92 +28,73 @@ import org.junit.experimental.theories.Theory;
 public class CloseTest extends FrameTest {
 
     @Theory
-    public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
+    public void shouldDecodeWithEmptyPayload(int offset) throws Exception {
         FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
-        byte[] payloadBytes = new byte[10];
 
         closeFrame.fin(true);
         closeFrame.opCode(CLOSE);
-        if (masked) {
-            closeFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
-        }
-        else {
-            closeFrame.payloadPut((ByteBuffer) null, offset, 0);
-        }
-
-        int numBytes = closeFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
 
         assertEquals(OpCode.CLOSE, closeFrame.opCode());
         assertEquals(0, closeFrame.payloadLength());
         assertTrue(closeFrame.fin());
-        assertEquals(masked, closeFrame.masked());
-        assertEquals(0, numBytes);
     }
 
     @Theory
-    public void shouldDecodeWithStatusCode1000(int offset, boolean masked) throws Exception {
+    public void shouldDecodeWithStatusCode1000(int offset) throws Exception {
         FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputPayload = new byte[] { 0x03, (byte) 0xe8 };
-        byte[] payloadBytes = new byte[inputPayload.length];
 
         closeFrame.fin(true);
         closeFrame.opCode(CLOSE);
 
-        if (masked) {
-            closeFrame.maskedPayloadPut(inputPayload, 0, inputPayload.length);
-        }
-        else {
-            closeFrame.payloadPut(inputPayload, 0, inputPayload.length);
-        }
-
-        int numBytes = closeFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        closeFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
         assertEquals(OpCode.CLOSE, closeFrame.opCode());
         assertEquals(2, closeFrame.payloadLength());
         assertTrue(closeFrame.fin());
-        assertEquals(masked, closeFrame.masked());
-        assertEquals(2, numBytes);
 
-        ClosePayloadRW closePayload = new ClosePayloadRW();
-        closePayload.wrap(buffer, offset);
+        int payloadOffset = closeFrame.payloadOffset();
+        int payloadLength = closeFrame.payloadLength();
+        ClosePayloadRO closePayload = new ClosePayloadRO();
+        closePayload.wrap(buffer, payloadOffset, payloadOffset + payloadLength);
 
         assertEquals(1000, closePayload.statusCode());
         assertEquals(0, closePayload.reasonLength());
     }
 
     @Theory
-    public void shouldDecodeWithStatusCodeAndReason(int offset, boolean masked) throws Exception {
+    public void shouldDecodeWithStatusCodeAndReason(int offset) throws Exception {
         FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
         int statusCode = 1001;
         byte[] reason = "Something bad happened".getBytes(UTF_8);
-        ClosePayloadRW closePayload = new ClosePayloadRW();
-        closePayload.wrap(buffer, offset);
+        ByteBuffer buf = ByteBuffer.allocate(reason.length + 2);
 
-        byte[] payloadBytes = new byte[2 + reason.length];
+        buf.putShort((short) statusCode);
+        buf.put(reason);
+        buf.flip();
 
         closeFrame.fin(true);
         closeFrame.opCode(CLOSE);
+        closeFrame.payloadPut(buf, 0, reason.length + 2);
 
-        if (masked) {
-            closePayload.maskedPayloadPut(statusCode, reason, 0, reason.length);
-        }
-        else {
-            closePayload.payloadPut(statusCode, reason, 0, reason.length);
-        }
+        int payloadOffset = closeFrame.payloadOffset();
+        int payloadLength = closeFrame.payloadLength();
 
-        int numBytes = closeFrame.payloadGet(payloadBytes, 0, payloadBytes.length);
+        ClosePayloadRO closePayload = new ClosePayloadRO();
+        closePayload.wrap(buffer, payloadOffset, payloadOffset + payloadLength);
 
         assertEquals(OpCode.CLOSE, closeFrame.opCode());
         assertEquals(2 + reason.length, closeFrame.payloadLength());
         assertTrue(closeFrame.fin());
-        assertEquals(masked, closeFrame.masked());
-        assertEquals(2 + reason.length, numBytes);
-
-        byte[] actualReason = new byte[reason.length];
-        closePayload.reasonGet(actualReason, 0, actualReason.length);
 
         assertEquals(1001, closePayload.statusCode());
         assertEquals(reason.length, closePayload.reasonLength());
-        assertArrayEquals(reason, actualReason);
+
+        int reasonOffset = closePayload.reasonOffset();
+        byte[] closeReason = new byte[closePayload.reasonLength()];
+        for (int i = 0; i < closePayload.reasonLength(); i++) {
+            closeReason[i] = closePayload.buffer().get(reasonOffset++);
+        }
+        assertArrayEquals(reason, closeReason);
     }
 }

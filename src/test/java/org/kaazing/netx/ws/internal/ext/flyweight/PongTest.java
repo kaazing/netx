@@ -27,47 +27,39 @@ import org.junit.experimental.theories.Theory;
 public class PongTest extends FrameTest {
 
     @Theory
-    public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
+    public void shouldDecodeWithEmptyPayload(int offset) throws Exception {
         FrameRW pongFrame = new FrameRW().wrap(buffer, offset);
 
         pongFrame.fin(true);
         pongFrame.opCode(PONG);
-
-        if (masked) {
-            pongFrame.maskedPayloadPut((ByteBuffer) null, offset, 0);
-        }
-        else {
-            pongFrame.payloadPut((ByteBuffer) null, offset, 0);
-        }
+        pongFrame.payloadPut((ByteBuffer) null, offset, 0);
 
         assertEquals(OpCode.PONG, pongFrame.opCode());
         assertEquals(0, pongFrame.payloadLength());
         assertEquals(true, pongFrame.fin());
-        assertEquals(masked, pongFrame.masked());
     }
 
     @Theory
-    public void shouldDecodeWithPayload(int offset, boolean masked) throws Exception {
+    public void shouldDecodeWithPayload(int offset) throws Exception {
         FrameRW pongFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputBytes = fromHex("03e8ff01");
-        byte[] payload = new byte[inputBytes.length];
 
         pongFrame.fin(true);
         pongFrame.opCode(PONG);
-
-        if (masked) {
-            pongFrame.maskedPayloadPut(inputBytes, 0, inputBytes.length);
-        }
-        else {
-            pongFrame.payloadPut(inputBytes, 0, inputBytes.length);
-        }
-
-        pongFrame.payloadGet(payload, 0, payload.length);
+        pongFrame.payloadPut(inputBytes, 0, inputBytes.length);
 
         assertEquals(OpCode.PONG, pongFrame.opCode());
         assertEquals(inputBytes.length, pongFrame.payloadLength());
-        assertArrayEquals(inputBytes, payload);
         assertEquals(true, pongFrame.fin());
-        assertEquals(masked, pongFrame.masked());
+
+        int payloadOffset = pongFrame.payloadOffset();
+        int payloadLength = pongFrame.payloadLength();
+        byte[] payloadBytes = new byte[payloadLength];
+
+        for (int i = 0; i < payloadLength; i++) {
+            payloadBytes[i] = pongFrame.buffer().get(payloadOffset++);
+        }
+
+        assertArrayEquals(inputBytes, payloadBytes);
     }
 }
