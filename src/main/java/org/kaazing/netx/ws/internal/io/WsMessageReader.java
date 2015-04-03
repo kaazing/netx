@@ -60,6 +60,7 @@ public final class WsMessageReader extends MessageReader {
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
+    private final FrameRW incomingFrame;
 
     private byte[] networkBuffer;
     private int networkBufferReadOffset;
@@ -70,7 +71,7 @@ public final class WsMessageReader extends MessageReader {
     private int remainingBytes;
     private MessageType type;
     private State state;
-    private final FrameRW incomingFrame;
+    private boolean fragmented;
 
     private enum State {
         INITIAL, PROCESS_MESSAGE_TYPE, PROCESS_FRAME;
@@ -86,6 +87,7 @@ public final class WsMessageReader extends MessageReader {
         this.state = State.INITIAL;
         this.incomingFrame = new FrameRW();
 
+        this.fragmented = false;
         this.networkBufferReadOffset = 0;
         this.networkBufferWriteOffset = 0;
         this.networkBuffer = new byte[BUFFER_CHUNK_SIZE];
@@ -122,8 +124,6 @@ public final class WsMessageReader extends MessageReader {
         applicationBufferWriteOffset = offset;
 
         final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
-            private boolean fragmented;
-
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
                 OpCode opCode = frame.opCode();
@@ -243,8 +243,6 @@ public final class WsMessageReader extends MessageReader {
         applicationBufferLength = length;
 
         final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
-            private boolean fragmented;
-
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
                 OpCode opCode = frame.opCode();

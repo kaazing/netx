@@ -45,6 +45,7 @@ public final class WsInputStream extends InputStream {
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
+    private final FrameRW incomingFrame;
 
     private byte[] networkBuffer;
     private int networkBufferReadOffset;
@@ -52,7 +53,7 @@ public final class WsInputStream extends InputStream {
     private byte[] applicationBuffer;
     private int applicationBufferReadOffset;
     private int applicationBufferWriteOffset;
-    private final FrameRW incomingFrame;
+    private boolean fragmented;
 
     public WsInputStream(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -68,6 +69,7 @@ public final class WsInputStream extends InputStream {
         this.applicationBuffer = new byte[BUFFER_CHUNK_SIZE];
         this.networkBufferReadOffset = 0;
         this.networkBufferWriteOffset = 0;
+        this.fragmented = false;
         this.networkBuffer = new byte[BUFFER_CHUNK_SIZE];
     }
 
@@ -101,8 +103,6 @@ public final class WsInputStream extends InputStream {
         networkBufferWriteOffset = bytesRead;
 
         final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
-            private boolean fragmented;
-
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
                 OpCode opCode = frame.opCode();

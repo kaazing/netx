@@ -51,6 +51,7 @@ public class WsReader extends Reader {
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
+    private final FrameRW incomingFrame;
 
     private byte[] networkBuffer;
     private int networkBufferReadOffset;
@@ -60,7 +61,7 @@ public class WsReader extends Reader {
     private int applicationBufferWriteOffset;
     private int codePoint;
     private int remainingBytes;
-    private final FrameRW incomingFrame;
+    private boolean fragmented;
 
     public WsReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -74,6 +75,7 @@ public class WsReader extends Reader {
         this.codePoint = 0;
         this.remainingBytes = 0;
 
+        this.fragmented = false;
         this.applicationBufferReadOffset = 0;
         this.applicationBufferWriteOffset = 0;
         this.applicationBuffer = new char[BUFFER_CHUNK_SIZE];
@@ -106,8 +108,6 @@ public class WsReader extends Reader {
         networkBufferWriteOffset = bytesRead;
 
         final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
-            private boolean fragmented;
-
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
                 OpCode opCode = frame.opCode();
