@@ -56,7 +56,8 @@ import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
-import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
+import org.kaazing.netx.ws.internal.io.IncomingSentinelExtension;
+import org.kaazing.netx.ws.internal.io.OutgoingSentinelExtension;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
 import org.kaazing.netx.ws.internal.io.WsMessageReader;
 import org.kaazing.netx.ws.internal.io.WsMessageWriter;
@@ -99,6 +100,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final byte[] commandFramePayload;
     private final FrameRO incomingFrameRO;
     private final byte[] mask;
+    private final IncomingSentinelExtension incomingSentinel;
+    private final OutgoingSentinelExtension outgoingSentinel;
 
     private String negotiatedProtocol;
     private WsInputStream inputStream;
@@ -135,6 +138,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.incomingFrameRO = new FrameRO();
         this.mask = new byte[4];
+        this.incomingSentinel = new IncomingSentinelExtension();
+        this.outgoingSentinel = new OutgoingSentinelExtension(this);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -160,6 +165,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.incomingFrameRO = new FrameRO();
         this.mask = new byte[4];
+        this.incomingSentinel = new IncomingSentinelExtension();
+        this.outgoingSentinel = new OutgoingSentinelExtension(this);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -175,14 +182,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         this.enabledExtensions.clear();
-
-//        Matcher startMatcher = PATTERN_START.matcher(start);
-//        if (!startMatcher.matches()) {
-//            throw new IllegalStateException("Bad HTTP/1.1 syntax");
-//        }
-//        int responseCode = parseInt(startMatcher.group(1));
-//        String responseMessage = startMatcher.group(2);
-
 
         for (String extension : extensions) {
             Matcher extensionMatcher = PATTERN_EXTENSION_FORMAT.matcher(extension);
@@ -472,6 +471,14 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return mask;
     }
 
+    public IncomingSentinelExtension getIncomingSentinel() {
+        return incomingSentinel;
+    }
+
+    public OutgoingSentinelExtension getOutgoingSentinel() {
+        return outgoingSentinel;
+    }
+
     public Random getRandom() {
         return random;
     }
@@ -492,8 +499,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return outputState;
     }
 
-    public void processFrame(final Frame frame, final WebSocketFrameConsumer terminalConsumer)
-            throws IOException {
+    public void processFrame(final Frame frame, final WebSocketExtensionSpi sentinel) throws IOException {
         if (frame == null) {
             throw new NullPointerException("Null frame passed in");
         }
@@ -542,54 +548,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             doFail(WS_PROTOCOL_ERROR, MSG_MASKED_FRAME_FROM_SERVER);
         }
 
-        WebSocketExtensionSpi sentinel = null;
         WebSocketInputStateMachine inputStateMachine = WebSocketInputStateMachine.instance();
-
-        switch (incomingFrameRO.opCode()) {
-        case BINARY:
-            sentinel = new WebSocketExtensionSpi() {
-                {
-                    onBinaryReceived = terminalConsumer;
-                }
-            };
-            break;
-        case CONTINUATION:
-            sentinel = new WebSocketExtensionSpi() {
-                {
-                    onContinuationReceived = terminalConsumer;
-                }
-            };
-            break;
-        case CLOSE:
-            sentinel = new WebSocketExtensionSpi() {
-                {
-                    onCloseReceived = terminalConsumer;
-                }
-            };
-            break;
-        case PING:
-            sentinel = new WebSocketExtensionSpi() {
-                {
-                    onPingReceived = terminalConsumer;
-                }
-            };
-            break;
-        case PONG:
-            sentinel = new WebSocketExtensionSpi() {
-                {
-                    onPongReceived = terminalConsumer;
-                }
-            };
-            break;
-        case TEXT:
-            sentinel = new WebSocketExtensionSpi() {
-                {
-                    onTextReceived = terminalConsumer;
-                }
-            };
-            break;
-        }
-
         inputStateMachine.processFrame(this, incomingFrameRO, sentinel);
     }
 

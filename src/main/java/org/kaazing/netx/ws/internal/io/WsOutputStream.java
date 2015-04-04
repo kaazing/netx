@@ -36,7 +36,6 @@ public final class WsOutputStream extends FilterOutputStream {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
 
     private final WsURLConnectionImpl connection;
-
     private final byte[] controlFramePayload;
     private final FrameRW outgoingDataFrame;
     private final FrameRW outgoingControlFrame;
@@ -81,7 +80,28 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingDataFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(outgoingDataFrame.buffer().asReadOnlyBuffer(), outgoingDataFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
+    }
+
+    public void writeContinuation(byte[] buf, int offset, int length) throws IOException {
+        if (buf == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
+        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
+        }
+
+        int capacity = FrameUtil.calculateCapacity(true, length);
+
+        if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
+            outgoingDataFrame.wrap(ByteBuffer.allocate(capacity),  0);
+        }
+        outgoingDataFrame.fin(true);
+        outgoingDataFrame.opCode(BINARY);
+        outgoingDataFrame.payloadPut(buf, offset, length);
+
+        outgoingFrameRO.wrap(outgoingDataFrame.buffer().asReadOnlyBuffer(), outgoingDataFrame.offset());
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
     }
 
     public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
@@ -113,14 +133,15 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingControlFrame.payloadPut(controlFramePayload, 0, payloadLen);
 
         outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
         outgoingControlFrame.fin(true);
         outgoingControlFrame.opCode(PONG);
         outgoingControlFrame.payloadPut(buf, offset, length);
+
         outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
     }
 }

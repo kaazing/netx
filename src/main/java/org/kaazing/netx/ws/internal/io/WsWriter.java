@@ -21,7 +21,6 @@ import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -37,14 +36,12 @@ public class WsWriter extends Writer {
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private final WsURLConnectionImpl connection;
-    private final OutputStream out;
-
     private final FrameRW outgoingFrame;
     private final FrameRO outgoingFrameRO;
 
+
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
-        this.out = connection.getTcpOutputStream();
         this.outgoingFrame = new FrameRW();
         this.outgoingFrameRO = new FrameRO();
     }
@@ -73,8 +70,9 @@ public class WsWriter extends Writer {
         outgoingFrame.fin(true);
         outgoingFrame.opCode(TEXT);
         outgoingFrame.payloadPut(bytesPayload, 0, bytesPayload.length);
+
         outgoingFrameRO.wrap(outgoingFrame.buffer().asReadOnlyBuffer(), outgoingFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
     }
 
     @Override
@@ -84,6 +82,6 @@ public class WsWriter extends Writer {
 
     @Override
     public void close() throws IOException {
-        out.close();
+        connection.getTcpOutputStream().close();
     }
 }

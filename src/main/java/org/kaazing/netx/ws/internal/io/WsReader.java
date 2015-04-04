@@ -46,6 +46,7 @@ public class WsReader extends Reader {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
     private static final String MSG_NON_TEXT_FRAME = "Non-text frame - opcode = 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
+    private static final String MSG_INVALID_OPCODE = "Protocol Violation: Invalid opcode = 0x%02X";
 
     private static final int BUFFER_CHUNK_SIZE = 8192;
 
@@ -62,6 +63,59 @@ public class WsReader extends Reader {
     private int codePoint;
     private int remainingBytes;
     private boolean fragmented;
+
+    private final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            OpCode opCode = frame.opCode();
+            int xformedPayloadLength = frame.payloadLength();
+            int xformedPayloadOffset = frame.payloadOffset();
+
+            switch (opCode) {
+            case TEXT:
+            case CONTINUATION:
+                if ((opCode == TEXT) && fragmented) {
+                    byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
+                    connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
+                }
+
+                if ((opCode == CONTINUATION) && !fragmented) {
+                    byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
+                    connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
+                }
+
+                int currentLength = applicationBuffer.length;
+
+                if (applicationBufferWriteOffset + xformedPayloadLength > currentLength) {
+                    char[] appBuffer = new char[currentLength + Math.max(xformedPayloadLength, BUFFER_CHUNK_SIZE)];
+
+                    System.arraycopy(applicationBuffer, 0, appBuffer, 0, currentLength);
+                    applicationBuffer = appBuffer;
+                }
+
+                int charsConverted = convertBytesToChars(frame.buffer(),
+                                                         xformedPayloadOffset,
+                                                         xformedPayloadLength,
+                                                         applicationBuffer,
+                                                         applicationBufferWriteOffset,
+                                                         applicationBuffer.length - applicationBufferWriteOffset);
+                applicationBufferWriteOffset += charsConverted;
+                fragmented = !frame.fin();
+                break;
+            case CLOSE:
+                connection.sendClose(frame);
+                break;
+            case PING:
+                connection.sendPong(frame);
+                break;
+            case PONG:
+                break;
+            case BINARY:
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_TEXT_FRAME, OpCode.toInt(BINARY)));
+                break;
+            }
+        }
+    };
 
     public WsReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
@@ -106,59 +160,6 @@ public class WsReader extends Reader {
 
         networkBufferReadOffset = 0;
         networkBufferWriteOffset = bytesRead;
-
-        final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
-            @Override
-            public void accept(WebSocketContext context, Frame frame) throws IOException {
-                OpCode opCode = frame.opCode();
-                int xformedPayloadLength = frame.payloadLength();
-                int xformedPayloadOffset = frame.payloadOffset();
-
-                switch (opCode) {
-                case TEXT:
-                case CONTINUATION:
-                    if ((opCode == TEXT) && fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
-                        connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
-                    }
-
-                    if ((opCode == CONTINUATION) && !fragmented) {
-                        byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
-                        connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
-                    }
-
-                    int currentLength = applicationBuffer.length;
-
-                    if (applicationBufferWriteOffset + xformedPayloadLength > currentLength) {
-                        char[] appBuffer = new char[currentLength + Math.max(xformedPayloadLength, BUFFER_CHUNK_SIZE)];
-
-                        System.arraycopy(applicationBuffer, 0, appBuffer, 0, currentLength);
-                        applicationBuffer = appBuffer;
-                    }
-
-                    int charsConverted = convertBytesToChars(frame.buffer(),
-                                                             xformedPayloadOffset,
-                                                             xformedPayloadLength,
-                                                             applicationBuffer,
-                                                             applicationBufferWriteOffset,
-                                                             applicationBuffer.length - applicationBufferWriteOffset);
-                    applicationBufferWriteOffset += charsConverted;
-                    fragmented = !frame.fin();
-                    break;
-                case CLOSE:
-                    connection.sendClose(frame);
-                    break;
-                case PING:
-                    connection.sendPong(frame);
-                    break;
-                case BINARY:
-                    connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_TEXT_FRAME, OpCode.toInt(BINARY)));
-                    break;
-                case PONG:
-                    break;
-                }
-            }
-        };
 
         while (true) {
             if (networkBufferReadOffset == networkBufferWriteOffset) {
@@ -220,7 +221,9 @@ public class WsReader extends Reader {
                                                    networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
             }
 
-            connection.processFrame(incomingFrame, terminalFrameConsumer);
+            validateOpCode();
+            connection.getIncomingSentinel().setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
+            connection.processFrame(incomingFrame, connection.getIncomingSentinel());
             networkBufferReadOffset += incomingFrame.length();
         }
 
@@ -412,5 +415,15 @@ public class WsReader extends Reader {
         }
 
         return bytesRead;
+    }
+
+    private void validateOpCode() throws IOException {
+        int leadByte = Flyweight.uint8Get(incomingFrame.buffer(), incomingFrame.offset());
+        try {
+            incomingFrame.opCode();
+        }
+        catch (Exception ex) {
+            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_INVALID_OPCODE, leadByte));
+        }
     }
 }
