@@ -98,7 +98,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final List<WebSocketExtensionSpi> negotiatedExtensionSpis;
     private final byte[] commandFramePayload;
     private final FrameRO incomingFrameRO;
-    private final byte[] mask;
 
     private String negotiatedProtocol;
     private WsInputStream inputStream;
@@ -136,7 +135,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.incomingFrameRO = new FrameRO();
-        this.mask = new byte[4];
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -161,7 +159,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.incomingFrameRO = new FrameRO();
-        this.mask = new byte[4];
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -473,11 +470,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     public WebSocketExtensionFactory getExtensionFactory() {
         return extensionFactory;
-    }
-
-    public byte[] getMask() {
-        random.nextBytes(mask);
-        return mask;
     }
 
     public Random getRandom() {
