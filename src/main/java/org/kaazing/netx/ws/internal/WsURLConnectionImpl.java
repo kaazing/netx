@@ -50,7 +50,6 @@ import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.HttpURLConnection;
 import org.kaazing.netx.http.auth.ChallengeHandler;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
@@ -100,8 +99,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final byte[] commandFramePayload;
     private final FrameRO incomingFrameRO;
     private final byte[] mask;
-    private final IncomingSentinelExtension incomingSentinel;
-    private final OutgoingSentinelExtension outgoingSentinel;
 
     private String negotiatedProtocol;
     private WsInputStream inputStream;
@@ -114,6 +111,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private WebSocketState inputState;
     private WebSocketState outputState;
     private WebSocketExtensionFactory extensionFactory;
+    private DefaultWebSocketContext incomingContext;
+    private DefaultWebSocketContext outgoingContext;
 
     public WsURLConnectionImpl(
             URLConnectionHelper helper,
@@ -138,8 +137,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.incomingFrameRO = new FrameRO();
         this.mask = new byte[4];
-        this.incomingSentinel = new IncomingSentinelExtension();
-        this.outgoingSentinel = new OutgoingSentinelExtension(this);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -165,8 +162,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.incomingFrameRO = new FrameRO();
         this.mask = new byte[4];
-        this.incomingSentinel = new IncomingSentinelExtension();
-        this.outgoingSentinel = new OutgoingSentinelExtension(this);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -453,13 +448,27 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         throw new IOException(exceptionMessage);
     }
 
-    public WebSocketContext getContext(WebSocketExtensionSpi sentinel, boolean reverse) {
-        List<WebSocketExtensionSpi> extensions = new ArrayList<WebSocketExtensionSpi>(this.negotiatedExtensionSpis);
-        if (reverse) {
-            Collections.reverse(extensions);
+    public DefaultWebSocketContext getIncomingContext() {
+        if (incomingContext != null) {
+            return incomingContext;
         }
-        extensions.add(sentinel);
-        return new WebSocketContext(this, unmodifiableList(extensions));
+
+        List<WebSocketExtensionSpi> extensions = new ArrayList<WebSocketExtensionSpi>(this.negotiatedExtensionSpis);
+        extensions.add(new IncomingSentinelExtension());
+        incomingContext = new DefaultWebSocketContext(this, unmodifiableList(extensions));
+        return incomingContext;
+    }
+
+    public DefaultWebSocketContext getOutgoingContext() {
+        if (outgoingContext != null) {
+            return outgoingContext;
+        }
+
+        List<WebSocketExtensionSpi> extensions = new ArrayList<WebSocketExtensionSpi>(this.negotiatedExtensionSpis);
+        Collections.reverse(extensions);
+        extensions.add(new OutgoingSentinelExtension(this));
+        outgoingContext = new DefaultWebSocketContext(this, unmodifiableList(extensions));
+        return outgoingContext;
     }
 
     public WebSocketExtensionFactory getExtensionFactory() {
@@ -469,14 +478,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public byte[] getMask() {
         random.nextBytes(mask);
         return mask;
-    }
-
-    public IncomingSentinelExtension getIncomingSentinel() {
-        return incomingSentinel;
-    }
-
-    public OutgoingSentinelExtension getOutgoingSentinel() {
-        return outgoingSentinel;
     }
 
     public Random getRandom() {
@@ -499,7 +500,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return outputState;
     }
 
-    public void processFrame(final Frame frame, final WebSocketExtensionSpi sentinel) throws IOException {
+    public void processFrame(final Frame frame) throws IOException {
         if (frame == null) {
             throw new NullPointerException("Null frame passed in");
         }
@@ -549,7 +550,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         WebSocketInputStateMachine inputStateMachine = WebSocketInputStateMachine.instance();
-        inputStateMachine.processFrame(this, incomingFrameRO, sentinel);
+        inputStateMachine.processFrame(this, incomingFrameRO);
     }
 
     public void sendClose(Frame closeFrame) throws IOException {

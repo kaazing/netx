@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 
+import org.kaazing.netx.ws.internal.DefaultWebSocketContext;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
@@ -222,8 +223,10 @@ public class WsReader extends Reader {
             }
 
             validateOpCode();
-            connection.getIncomingSentinel().setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame, connection.getIncomingSentinel());
+            DefaultWebSocketContext context = connection.getIncomingContext();
+            IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+            sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
+            connection.processFrame(incomingFrame);
             networkBufferReadOffset += incomingFrame.length();
         }
 

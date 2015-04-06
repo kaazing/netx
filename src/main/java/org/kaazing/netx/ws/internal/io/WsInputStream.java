@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
+import org.kaazing.netx.ws.internal.DefaultWebSocketContext;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
@@ -216,8 +217,10 @@ public final class WsInputStream extends InputStream {
             }
 
             validateOpCode();
-            connection.getIncomingSentinel().setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame, connection.getIncomingSentinel());
+            DefaultWebSocketContext context = connection.getIncomingContext();
+            IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+            sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
+            connection.processFrame(incomingFrame);
             networkBufferReadOffset += incomingFrame.length();
         }
 

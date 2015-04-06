@@ -52,58 +52,50 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
 
     private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
 
-    private final WsURLConnectionImpl connection;
     private final ClosePayloadRO closePayload;
 
-    private final WebSocketFrameConsumer terminalBinaryFrameConsumer = new WebSocketFrameConsumer() {
-        @Override
-        public void accept(WebSocketContext context, Frame frame) throws IOException {
-            assert frame.opCode() == BINARY;
-            encodeFrame(connection, frame);
-        }
-    };
-
-    private final WebSocketFrameConsumer terminalContinuationFrameConsumer = new WebSocketFrameConsumer() {
-        @Override
-        public void accept(WebSocketContext context, Frame frame) throws IOException {
-            assert frame.opCode() == CONTINUATION;
-            encodeFrame(connection, frame);
-        }
-    };
-
-    private final WebSocketFrameConsumer terminalCloseFrameConsumer = new WebSocketFrameConsumer() {
-        @Override
-        public void accept(WebSocketContext context, Frame frame) throws IOException {
-            assert frame.opCode() == CLOSE;
-            validateAndEncodeCloseFrame(connection, frame);
-        }
-    };
-
-    private final WebSocketFrameConsumer terminalPongFrameConsumer = new WebSocketFrameConsumer() {
-        @Override
-        public void accept(WebSocketContext context, Frame frame) throws IOException {
-            assert frame.opCode() == PONG;
-            encodeFrame(connection, frame);
-        }
-    };
-
-    private final WebSocketFrameConsumer terminalTextFrameConsumer = new WebSocketFrameConsumer() {
-        @Override
-        public void accept(WebSocketContext context, Frame frame) throws IOException {
-            assert frame.opCode() == TEXT;
-            encodeFrame(connection, frame);
-        }
-    };
-
-    public OutgoingSentinelExtension(WsURLConnectionImpl connection) {
-        this.connection = connection;
+    public OutgoingSentinelExtension(final WsURLConnectionImpl connection) {
         this.closePayload = new ClosePayloadRO();
 
-        super.onBinarySent = terminalBinaryFrameConsumer;
-        super.onContinuationSent = terminalContinuationFrameConsumer;
-        super.onCloseSent = terminalCloseFrameConsumer;
-        super.onPongSent = terminalPongFrameConsumer;
-        super.onTextSent = terminalTextFrameConsumer;
+        super.onBinarySent = new WebSocketFrameConsumer() {
+            @Override
+            public void accept(WebSocketContext context, Frame frame) throws IOException {
+                assert frame.opCode() == BINARY;
+                encodeFrame(connection, frame);
+            }
+        };
+
+        super.onContinuationSent = new WebSocketFrameConsumer() {
+            @Override
+            public void accept(WebSocketContext context, Frame frame) throws IOException {
+                assert frame.opCode() == CONTINUATION;
+                encodeFrame(connection, frame);
+            }
+        };
+
+        super.onCloseSent = new WebSocketFrameConsumer() {
+            @Override
+            public void accept(WebSocketContext context, Frame frame) throws IOException {
+                assert frame.opCode() == CLOSE;
+                validateAndEncodeCloseFrame(connection, frame);
+            }
+        };
+
+        super.onPongSent = new WebSocketFrameConsumer() {
+            @Override
+            public void accept(WebSocketContext context, Frame frame) throws IOException {
+                assert frame.opCode() == PONG;
+                encodeFrame(connection, frame);
+            }
+        };
+
+        super.onTextSent = new WebSocketFrameConsumer() {
+            @Override
+            public void accept(WebSocketContext context, Frame frame) throws IOException {
+                assert frame.opCode() == TEXT;
+                encodeFrame(connection, frame);
+            }
+        };
     }
 
     private void encodeFrame(WsURLConnectionImpl connection, Frame frame) throws IOException {

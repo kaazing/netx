@@ -23,22 +23,21 @@ import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
+import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class WsWriter extends Writer {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private final WsURLConnectionImpl connection;
     private final FrameRW outgoingFrame;
     private final FrameRO outgoingFrameRO;
-
+    private ByteBuffer payload;
 
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
@@ -59,9 +58,15 @@ public class WsWriter extends Writer {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
         }
 
+        int payloadLength = Utf8Util.byteCountUTF8(cbuf, offset, length);
+        int capacity = FrameUtil.calculateCapacity(false, payloadLength);
 
-        byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8); // ### TODO: charsToBytes()
-        int capacity = FrameUtil.calculateCapacity(true, bytesPayload.length);
+        if ((payload == null) || (payload.capacity() < payloadLength)) {
+            payload = ByteBuffer.allocate(payloadLength);
+        }
+
+        int byteCount = Utf8Util.charstoUTF8Bytes(cbuf, offset, length, payload, 0);
+        assert payloadLength == byteCount;
 
         if ((outgoingFrame.buffer() == null) || (outgoingFrame.buffer().capacity() < capacity)) {
             outgoingFrame.wrap(ByteBuffer.allocate(capacity),  0);
@@ -69,10 +74,10 @@ public class WsWriter extends Writer {
 
         outgoingFrame.fin(true);
         outgoingFrame.opCode(TEXT);
-        outgoingFrame.payloadPut(bytesPayload, 0, bytesPayload.length);
+        outgoingFrame.payloadPut(payload, 0, byteCount);
 
         outgoingFrameRO.wrap(outgoingFrame.buffer().asReadOnlyBuffer(), outgoingFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
     @Override

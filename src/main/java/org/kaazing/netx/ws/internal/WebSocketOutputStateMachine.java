@@ -29,8 +29,6 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_TEXT_FRAME;
 
 import java.io.IOException;
 
-import org.kaazing.netx.ws.internal.ext.WebSocketContext;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 
@@ -72,12 +70,12 @@ public final class WebSocketOutputStateMachine {
         connection.setOutputState(WebSocketState.START);
     }
 
-    public void processFrame(final WsURLConnectionImpl connection,
-                             final Frame frame,
-                             final WebSocketExtensionSpi sentinel) throws IOException {
-        WebSocketContext context = connection.getContext(sentinel, true);
+    public void processFrame(final WsURLConnectionImpl connection, final Frame frame) throws IOException {
+        DefaultWebSocketContext context = connection.getOutgoingContext();
         WebSocketState state = connection.getOutputState();
         OpCode opcode = frame.opCode();
+
+        context.reset();
 
         switch (state) {
         case OPEN:

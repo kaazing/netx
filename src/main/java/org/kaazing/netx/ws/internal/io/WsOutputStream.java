@@ -80,7 +80,7 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingDataFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(outgoingDataFrame.buffer().asReadOnlyBuffer(), outgoingDataFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
     public void writeContinuation(byte[] buf, int offset, int length) throws IOException {
@@ -101,7 +101,7 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingDataFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(outgoingDataFrame.buffer().asReadOnlyBuffer(), outgoingDataFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
     public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
@@ -133,7 +133,7 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingControlFrame.payloadPut(controlFramePayload, 0, payloadLen);
 
         outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
@@ -142,6 +142,6 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingControlFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO, connection.getOutgoingSentinel());
+        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 }

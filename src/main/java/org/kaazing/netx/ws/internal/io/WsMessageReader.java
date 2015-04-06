@@ -35,6 +35,7 @@ import java.nio.ByteBuffer;
 
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
+import org.kaazing.netx.ws.internal.DefaultWebSocketContext;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
@@ -243,8 +244,10 @@ public final class WsMessageReader extends MessageReader {
             finalFrame = incomingFrame.fin();
 
             validateOpCode();
-            connection.getIncomingSentinel().setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame, connection.getIncomingSentinel());
+            DefaultWebSocketContext context = connection.getIncomingContext();
+            IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+            sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opCode());
+            connection.processFrame(incomingFrame);
             networkBufferReadOffset += incomingFrame.length();
             state = State.PROCESS_MESSAGE_TYPE;
 
@@ -319,8 +322,10 @@ public final class WsMessageReader extends MessageReader {
             finalFrame = incomingFrame.fin();
 
             validateOpCode();
-            connection.getIncomingSentinel().setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame, connection.getIncomingSentinel());
+            DefaultWebSocketContext context = connection.getIncomingContext();
+            IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+            sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opCode());
+            connection.processFrame(incomingFrame);
             networkBufferReadOffset += incomingFrame.length();
             state = State.PROCESS_MESSAGE_TYPE;
 
@@ -488,8 +493,10 @@ public final class WsMessageReader extends MessageReader {
                 connection.doFail(WS_PROTOCOL_ERROR, MSG_FRAGMENTED_CONTROL_FRAME);
             }
 
-            connection.getIncomingSentinel().setTerminalConsumer(terminalControlFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame, connection.getIncomingSentinel());
+            DefaultWebSocketContext context = connection.getIncomingContext();
+            IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+            sentinel.setTerminalConsumer(terminalControlFrameConsumer, incomingFrame.opCode());
+            connection.processFrame(incomingFrame);
             networkBufferReadOffset += incomingFrame.length();
 
             if (networkBufferReadOffset == networkBufferWriteOffset) {

@@ -32,8 +32,6 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_UPGRADE_R
 
 import java.io.IOException;
 
-import org.kaazing.netx.ws.internal.ext.WebSocketContext;
-import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 
@@ -79,12 +77,12 @@ public final class WebSocketInputStateMachine {
         connection.setInputState(START);
     }
 
-    public void processFrame(final WsURLConnectionImpl connection,
-                             final Frame frame,
-                             final WebSocketExtensionSpi sentinel) throws IOException {
-        WebSocketContext context = connection.getContext(sentinel, false);
+    public void processFrame(final WsURLConnectionImpl connection, final Frame frame) throws IOException {
+        DefaultWebSocketContext context = connection.getIncomingContext();
         WebSocketState state = connection.getInputState();
         OpCode opcode = frame.opCode();
+
+        context.reset();
 
         switch (state) {
         case OPEN:
@@ -119,6 +117,7 @@ public final class WebSocketInputStateMachine {
             transition(connection, ERROR);
             context.onError(format("Invalid state %s to be receiving a BINARY frame", state));
         }
+
     }
 
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {

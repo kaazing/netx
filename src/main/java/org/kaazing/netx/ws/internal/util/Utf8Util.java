@@ -214,4 +214,51 @@ public final class Utf8Util {
 
         return true;
     }
+
+    public static int charstoUTF8Bytes(char[] srcBuf, int srcOffset, int srcLength, ByteBuffer dest, int destOffset) {
+        int destMark = destOffset;
+        String msg = "Invalid UTF-16 codepoint %d";
+
+        for (int i = srcOffset; i < srcLength;) {
+            char ch = srcBuf[i];
+
+            if (ch < 0x0080) {
+                dest.put(destOffset++, (byte) ch);
+            }
+            else if (ch < 0x0800) {
+                dest.put(destOffset++, (byte) (0xc0 | (ch >> 6)));
+                dest.put(destOffset++, (byte) (0x80 | (ch & 0x3f)));
+            }
+            else if (ch < 0xD800) {
+                dest.put(destOffset++, (byte) (0xe0 | (ch >> 12)));
+                dest.put(destOffset++, (byte) (0x80 | ((ch >> 6) & 0x3F)));
+                dest.put(destOffset++, (byte) (0x80 | (ch & 0x3F)));
+            }
+            else if (ch >= 0xD800 && ch <= 0xDFFF) {          // surrogate pair
+                if (i == srcBuf.length) {
+                    throw new IllegalStateException(format(msg, ch));
+                }
+
+                char ch1 = ch;
+                char ch2 = srcBuf[++i];
+
+                if (ch1 > 0xDBFF) {
+                    throw new IllegalStateException(format(msg, ch1));
+                }
+
+                int codePoint = (((ch1 & 0x03FF) << 10) | (ch2 & 0x03FF)) + 0x10000;
+                dest.put(destOffset++, (byte) (0xf0 | (codePoint >> 18)));
+                dest.put(destOffset++, (byte) (0x80 | ((codePoint >> 12) & 0x3F)));
+                dest.put(destOffset++, (byte) (0x80 | ((codePoint >> 6) & 0x3F)));
+                dest.put(destOffset++, (byte) (0x80 | (codePoint & 0x3F)));
+            }
+            else {
+                throw new IllegalStateException(format(msg, ch));
+            }
+
+            i++;
+        }
+
+        return destOffset - destMark;
+    }
 }
