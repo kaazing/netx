@@ -32,6 +32,7 @@ import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
@@ -48,6 +49,7 @@ public final class WsInputStream extends InputStream {
     private final WsURLConnectionImpl connection;
     private final InputStream in;
     private final FrameRW incomingFrame;
+    private final FrameRO incomingFrameRO;
 
     private byte[] networkBuffer;
     private int networkBufferReadOffset;
@@ -56,6 +58,8 @@ public final class WsInputStream extends InputStream {
     private int applicationBufferReadOffset;
     private int applicationBufferWriteOffset;
     private boolean fragmented;
+    private ByteBuffer heapBuffer;
+    private ByteBuffer heapBufferRO;
 
     private final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
         @Override
@@ -116,6 +120,7 @@ public final class WsInputStream extends InputStream {
         this.connection = connection;
         this.in = connection.getTcpInputStream();
         this.incomingFrame = new FrameRW();
+        this.incomingFrameRO = new FrameRO();
 
         this.applicationBufferReadOffset = 0;
         this.applicationBufferWriteOffset = 0;
@@ -124,6 +129,8 @@ public final class WsInputStream extends InputStream {
         this.networkBufferWriteOffset = 0;
         this.fragmented = false;
         this.networkBuffer = new byte[BUFFER_CHUNK_SIZE];
+        this.heapBuffer = ByteBuffer.wrap(networkBuffer);
+        this.heapBufferRO = heapBuffer.asReadOnlyBuffer();
     }
 
     @Override
@@ -170,10 +177,7 @@ public final class WsInputStream extends InputStream {
             // At this point, we should have sufficient bytes to figure out whether the frame has been read completely.
             // Ensure that we have at least one complete frame. We may have read only a partial frame the very first time.
             // Figure out the payload length and see how much more we need to read to be frame-aligned.
-            incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
-                                               networkBufferReadOffset,
-                                               networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
-
+            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             int payloadLength = incomingFrame.payloadLength();
 
             if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
@@ -186,6 +190,8 @@ public final class WsInputStream extends InputStream {
 
                     System.arraycopy(networkBuffer, networkBufferReadOffset, netBuffer, 0, len);
                     networkBuffer = netBuffer;
+                    heapBuffer = ByteBuffer.wrap(networkBuffer);
+                    heapBufferRO = heapBuffer.asReadOnlyBuffer();
                     networkBufferReadOffset = 0;
                     networkBufferWriteOffset = len;
                 }
@@ -211,16 +217,14 @@ public final class WsInputStream extends InputStream {
                     networkBufferWriteOffset += bytesRead;
                 }
 
-                incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
-                                                   networkBufferReadOffset,
-                                                   networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
+                incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             }
 
             validateOpCode();
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame);
+            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
         }
 

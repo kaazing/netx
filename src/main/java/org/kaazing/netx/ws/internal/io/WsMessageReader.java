@@ -40,6 +40,7 @@ import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
@@ -62,6 +63,7 @@ public final class WsMessageReader extends MessageReader {
     private final WsURLConnectionImpl connection;
     private final InputStream in;
     private final FrameRW incomingFrame;
+    private final FrameRO incomingFrameRO;
 
     private byte[] networkBuffer;
     private int networkBufferReadOffset;
@@ -75,6 +77,8 @@ public final class WsMessageReader extends MessageReader {
     private MessageType type;
     private State state;
     private boolean fragmented;
+    private ByteBuffer heapBuffer;
+    private ByteBuffer heapBufferRO;
 
     private enum State {
         INITIAL, PROCESS_MESSAGE_TYPE, PROCESS_FRAME;
@@ -188,14 +192,16 @@ public final class WsMessageReader extends MessageReader {
         this.in = connection.getTcpInputStream();
         this.state = State.INITIAL;
         this.incomingFrame = new FrameRW();
+        this.incomingFrameRO = new FrameRO();
 
         this.fragmented = false;
+        this.applicationBufferWriteOffset = 0;
+        this.applicationBufferLength = 0;
         this.networkBufferReadOffset = 0;
         this.networkBufferWriteOffset = 0;
         this.networkBuffer = new byte[BUFFER_CHUNK_SIZE];
-
-        this.applicationBufferWriteOffset = 0;
-        this.applicationBufferLength = 0;
+        this.heapBuffer = ByteBuffer.wrap(networkBuffer);
+        this.heapBufferRO = heapBuffer.asReadOnlyBuffer();
     }
 
     @Override
@@ -238,16 +244,14 @@ public final class WsMessageReader extends MessageReader {
                 break;
             }
 
-            incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
-                                               networkBufferReadOffset,
-                                               networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
+            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             finalFrame = incomingFrame.fin();
 
             validateOpCode();
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame);
+            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
             state = State.PROCESS_MESSAGE_TYPE;
 
@@ -315,17 +319,14 @@ public final class WsMessageReader extends MessageReader {
                 break;
             }
 
-            incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
-                                               networkBufferReadOffset,
-                                               networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
-
+            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             finalFrame = incomingFrame.fin();
 
             validateOpCode();
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame);
+            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
             state = State.PROCESS_MESSAGE_TYPE;
 
@@ -397,9 +398,7 @@ public final class WsMessageReader extends MessageReader {
             return -1;
         }
 
-        incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
-                                           networkBufferReadOffset,
-                                           networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
+        incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
         int payloadLength = incomingFrame.payloadLength();
 
         if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
@@ -412,6 +411,8 @@ public final class WsMessageReader extends MessageReader {
 
                 System.arraycopy(networkBuffer, networkBufferReadOffset, netBuffer, 0, len);
                 networkBuffer = netBuffer;
+                heapBuffer = ByteBuffer.wrap(networkBuffer);
+                heapBufferRO = heapBuffer.asReadOnlyBuffer();
                 networkBufferReadOffset = 0;
                 networkBufferWriteOffset = len;
             }
@@ -438,9 +439,7 @@ public final class WsMessageReader extends MessageReader {
                 networkBufferWriteOffset += bytesRead;
             }
 
-            incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
-                                               networkBufferReadOffset,
-                                               networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
+            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
         }
 
         int leadByte = Flyweight.uint8Get(incomingFrame.buffer(), incomingFrame.offset());
@@ -496,7 +495,7 @@ public final class WsMessageReader extends MessageReader {
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalControlFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame);
+            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
 
             if (networkBufferReadOffset == networkBufferWriteOffset) {

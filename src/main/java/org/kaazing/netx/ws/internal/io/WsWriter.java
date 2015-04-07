@@ -39,6 +39,9 @@ public class WsWriter extends Writer {
     private final FrameRO outgoingFrameRO;
     private ByteBuffer payload;
 
+    private ByteBuffer heapBuffer;
+    private ByteBuffer heapBufferRO;
+
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
         this.outgoingFrame = new FrameRW();
@@ -69,14 +72,16 @@ public class WsWriter extends Writer {
         assert payloadLength == byteCount;
 
         if ((outgoingFrame.buffer() == null) || (outgoingFrame.buffer().capacity() < capacity)) {
-            outgoingFrame.wrap(ByteBuffer.allocate(capacity),  0);
+            heapBuffer = ByteBuffer.allocate(capacity);
+            heapBufferRO = heapBuffer.asReadOnlyBuffer();
+            outgoingFrame.wrap(heapBuffer,  0);
         }
 
         outgoingFrame.fin(true);
         outgoingFrame.opCode(TEXT);
         outgoingFrame.payloadPut(payload, 0, byteCount);
 
-        outgoingFrameRO.wrap(outgoingFrame.buffer().asReadOnlyBuffer(), outgoingFrame.offset());
+        outgoingFrameRO.wrap(heapBufferRO, outgoingFrame.offset());
         WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 

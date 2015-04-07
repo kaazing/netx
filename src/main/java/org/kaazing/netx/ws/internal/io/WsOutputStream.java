@@ -40,6 +40,10 @@ public final class WsOutputStream extends FilterOutputStream {
     private final FrameRW outgoingDataFrame;
     private final FrameRW outgoingControlFrame;
     private final FrameRO outgoingFrameRO;
+    private final ByteBuffer heapBufferControlFrameRO;
+
+    private ByteBuffer heapBuffer;
+    private ByteBuffer heapBufferRO;
 
     public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
         super(connection.getTcpOutputStream());
@@ -48,6 +52,7 @@ public final class WsOutputStream extends FilterOutputStream {
         this.outgoingControlFrame = new FrameRW();
         this.controlFramePayload = new byte[150]; // To handle negative tests. Have some extra bytes.
         this.outgoingControlFrame.wrap(ByteBuffer.allocate(150), 0);
+        this.heapBufferControlFrameRO = outgoingControlFrame.buffer().asReadOnlyBuffer();
         this.outgoingFrameRO = new FrameRO();
     }
 
@@ -70,16 +75,18 @@ public final class WsOutputStream extends FilterOutputStream {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
         }
 
-        int capacity = FrameUtil.calculateCapacity(true, length);
+        int capacity = FrameUtil.calculateCapacity(false, length);
 
         if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
-            outgoingDataFrame.wrap(ByteBuffer.allocate(capacity),  0);
+            heapBuffer = ByteBuffer.allocate(capacity);
+            heapBufferRO = heapBuffer.asReadOnlyBuffer();
+            outgoingDataFrame.wrap(heapBuffer,  0);
         }
         outgoingDataFrame.fin(true);
         outgoingDataFrame.opCode(BINARY);
         outgoingDataFrame.payloadPut(buf, offset, length);
 
-        outgoingFrameRO.wrap(outgoingDataFrame.buffer().asReadOnlyBuffer(), outgoingDataFrame.offset());
+        outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
         WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
@@ -91,16 +98,18 @@ public final class WsOutputStream extends FilterOutputStream {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
         }
 
-        int capacity = FrameUtil.calculateCapacity(true, length);
+        int capacity = FrameUtil.calculateCapacity(false, length);
 
         if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
-            outgoingDataFrame.wrap(ByteBuffer.allocate(capacity),  0);
+            heapBuffer = ByteBuffer.allocate(capacity);
+            heapBufferRO = heapBuffer.asReadOnlyBuffer();
+            outgoingDataFrame.wrap(heapBuffer,  0);
         }
         outgoingDataFrame.fin(true);
         outgoingDataFrame.opCode(BINARY);
         outgoingDataFrame.payloadPut(buf, offset, length);
 
-        outgoingFrameRO.wrap(outgoingDataFrame.buffer().asReadOnlyBuffer(), outgoingDataFrame.offset());
+        outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
         WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
@@ -132,7 +141,7 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingControlFrame.opCode(CLOSE);
         outgoingControlFrame.payloadPut(controlFramePayload, 0, payloadLen);
 
-        outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
+        outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
         WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 
@@ -141,7 +150,7 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingControlFrame.opCode(PONG);
         outgoingControlFrame.payloadPut(buf, offset, length);
 
-        outgoingFrameRO.wrap(outgoingControlFrame.buffer().asReadOnlyBuffer(), outgoingControlFrame.offset());
+        outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
         WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
     }
 }

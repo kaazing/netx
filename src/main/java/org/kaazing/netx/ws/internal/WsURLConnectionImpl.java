@@ -53,7 +53,6 @@ import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.io.IncomingSentinelExtension;
 import org.kaazing.netx.ws.internal.io.OutgoingSentinelExtension;
@@ -97,7 +96,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final List<String> negotiatedExtensionsRO;
     private final List<WebSocketExtensionSpi> negotiatedExtensionSpis;
     private final byte[] commandFramePayload;
-    private final FrameRO incomingFrameRO;
 
     private String negotiatedProtocol;
     private WsInputStream inputStream;
@@ -134,7 +132,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionsRO = unmodifiableList(negotiatedExtensions);
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
-        this.incomingFrameRO = new FrameRO();
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -158,7 +155,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionsRO = unmodifiableList(negotiatedExtensions);
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
-        this.incomingFrameRO = new FrameRO();
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -492,18 +488,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return outputState;
     }
 
-    public void processFrame(final Frame frame) throws IOException {
-        if (frame == null) {
+    public void processFrame(final Frame frameRO) throws IOException {
+        if (frameRO == null) {
             throw new NullPointerException("Null frame passed in");
         }
 
-        int offset = frame.offset();
-        ByteBuffer buffer = frame.buffer().asReadOnlyBuffer();
-
-        incomingFrameRO.wrap(buffer, offset);
-
-        int leadByte = Flyweight.uint8Get(incomingFrameRO.buffer(), incomingFrameRO.offset());
-        int flags = incomingFrameRO.flags();
+        int leadByte = Flyweight.uint8Get(frameRO.buffer(), frameRO.offset());
+        int flags = frameRO.flags();
 
         switch (flags) {
         case 0:
@@ -513,16 +504,16 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         try {
-            OpCode opcode = incomingFrameRO.opCode();
+            OpCode opcode = frameRO.opCode();
             switch (opcode) {
             case CLOSE:
             case PING:
             case PONG:
-                if (!incomingFrameRO.fin()) {
+                if (!frameRO.fin()) {
                     doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_CONTROL_FRAME, leadByte));
                 }
 
-                if (incomingFrameRO.payloadLength() > MAX_COMMAND_FRAME_PAYLOAD) {
+                if (frameRO.payloadLength() > MAX_COMMAND_FRAME_PAYLOAD) {
                     doFail(WS_PROTOCOL_ERROR, format(MSG_PAYLOAD_LENGTH_EXCEEDED, opcode));
                 }
                 break;
@@ -536,13 +527,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             doFail(WS_PROTOCOL_ERROR, format(MSG_INVALID_OPCODE, leadByte));
         }
 
-        byte maskByte = (byte) uint8Get(incomingFrameRO.buffer(), incomingFrameRO.offset() + 1);
+        byte maskByte = (byte) uint8Get(frameRO.buffer(), frameRO.offset() + 1);
         if ((maskByte & 0x80) != 0) {
             doFail(WS_PROTOCOL_ERROR, MSG_MASKED_FRAME_FROM_SERVER);
         }
 
         WebSocketInputStateMachine inputStateMachine = WebSocketInputStateMachine.instance();
-        inputStateMachine.processFrame(this, incomingFrameRO);
+        inputStateMachine.processFrame(this, frameRO);
     }
 
     public void sendClose(Frame closeFrame) throws IOException {

@@ -38,6 +38,7 @@ import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
@@ -54,6 +55,7 @@ public class WsReader extends Reader {
     private final WsURLConnectionImpl connection;
     private final InputStream in;
     private final FrameRW incomingFrame;
+    private final FrameRO incomingFrameRO;
 
     private byte[] networkBuffer;
     private int networkBufferReadOffset;
@@ -64,6 +66,8 @@ public class WsReader extends Reader {
     private int codePoint;
     private int remainingBytes;
     private boolean fragmented;
+    private ByteBuffer heapBuffer;
+    private ByteBuffer heapBufferRO;
 
     private final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
         @Override
@@ -126,6 +130,7 @@ public class WsReader extends Reader {
         this.connection = connection;
         this.in = connection.getTcpInputStream();
         this.incomingFrame = new FrameRW();
+        this.incomingFrameRO = new FrameRO();
 
         this.codePoint = 0;
         this.remainingBytes = 0;
@@ -137,6 +142,8 @@ public class WsReader extends Reader {
         this.networkBufferReadOffset = 0;
         this.networkBufferWriteOffset = 0;
         this.networkBuffer = new byte[BUFFER_CHUNK_SIZE];
+        this.heapBuffer = ByteBuffer.wrap(networkBuffer);
+        this.heapBufferRO = heapBuffer.asReadOnlyBuffer();
     }
 
 
@@ -177,9 +184,7 @@ public class WsReader extends Reader {
             // At this point, we should have sufficient bytes to figure out whether the frame has been read completely.
             // Ensure that we have at least one complete frame. We may have read only a partial frame the very first time.
             // Figure out the payload length and see how much more we need to read to be frame-aligned.
-            incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
-                                               networkBufferReadOffset,
-                                               networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
+            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             int payloadLength = incomingFrame.payloadLength();
 
             if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
@@ -192,6 +197,8 @@ public class WsReader extends Reader {
 
                     System.arraycopy(networkBuffer, networkBufferReadOffset, netBuffer, 0, len);
                     networkBuffer = netBuffer;
+                    heapBuffer = ByteBuffer.wrap(networkBuffer);
+                    heapBufferRO = heapBuffer.asReadOnlyBuffer();
                     networkBufferReadOffset = 0;
                     networkBufferWriteOffset = len;
                 }
@@ -217,16 +224,14 @@ public class WsReader extends Reader {
                     networkBufferWriteOffset += bytesRead;
                 }
 
-                incomingFrame.wrap(ByteBuffer.wrap(networkBuffer,
-                                                   networkBufferReadOffset,
-                                                   networkBufferWriteOffset - networkBufferReadOffset), networkBufferReadOffset);
+                incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             }
 
             validateOpCode();
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrame);
+            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
         }
 
