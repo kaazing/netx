@@ -98,12 +98,12 @@ public class WsReader extends Reader {
                     applicationBuffer = appBuffer;
                 }
 
-                int charsConverted = convertBytesToChars(frame.buffer(),
-                                                         xformedPayloadOffset,
-                                                         xformedPayloadLength,
-                                                         applicationBuffer,
-                                                         applicationBufferWriteOffset,
-                                                         applicationBuffer.length - applicationBufferWriteOffset);
+                int charsConverted = utf8BytesToChars(frame.buffer(),
+                                                      xformedPayloadOffset,
+                                                      xformedPayloadLength,
+                                                      applicationBuffer,
+                                                      applicationBufferWriteOffset,
+                                                      applicationBuffer.length - applicationBufferWriteOffset);
                 applicationBufferWriteOffset += charsConverted;
                 fragmented = !frame.fin();
                 break;
@@ -270,12 +270,12 @@ public class WsReader extends Reader {
         throw new IOException("Unsupported operation");
     }
 
-    private int convertBytesToChars(ByteBuffer src,
-                                    int srcOffset,
-                                    long srcLength,
-                                    char[] dest,
-                                    int destOffset,
-                                    int destLength)  throws IOException {
+    private int utf8BytesToChars(ByteBuffer src,
+                                 int srcOffset,
+                                 long srcLength,
+                                 char[] dest,
+                                 int destOffset,
+                                 int destLength)  throws IOException {
         int destMark = destOffset;
         int index = 0;
 

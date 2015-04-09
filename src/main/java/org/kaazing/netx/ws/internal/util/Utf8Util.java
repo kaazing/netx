@@ -26,6 +26,8 @@ import java.nio.ByteBuffer;
 public final class Utf8Util {
     public static final int INVALID_UTF8 = -1;
 
+    private static final String MSG_INVALID_CODEPOINT = "Invalid UTF-16 codepoint %d";
+
     private Utf8Util() {
     }
 
@@ -215,9 +217,19 @@ public final class Utf8Util {
         return true;
     }
 
+    /**
+     * Custom UTF-8 encoding. Generates UTF-8 byte sequence for the specified char[]. The UTF-8 byte sequence is
+     * encoded in the specified ByteBuffer.
+     *
+     * @param srcBuf         the source char[] to be encoded as UTF-8 byte sequence
+     * @param srcOffset      offset in the char[] from where the conversion to UTF-8 should begin
+     * @param srcLength      the number of chars to be encoded as UTF-8 bytes
+     * @param dest           the destination ByteBuffer
+     * @param destOffset     offset in the ByteBuffer starting where the encoded UTF-8 bytes should be copied
+     * @return the number of bytes encoded
+     */
     public static int charstoUTF8Bytes(char[] srcBuf, int srcOffset, int srcLength, ByteBuffer dest, int destOffset) {
         int destMark = destOffset;
-        String msg = "Invalid UTF-16 codepoint %d";
 
         for (int i = srcOffset; i < srcLength;) {
             char ch = srcBuf[i];
@@ -227,33 +239,36 @@ public final class Utf8Util {
             }
             else if (ch < 0x0800) {
                 dest.put(destOffset++, (byte) (0xc0 | (ch >> 6)));
-                dest.put(destOffset++, (byte) (0x80 | (ch & 0x3f)));
+                dest.put(destOffset++, (byte) (0x80 | ((ch >> 0) & 0x3f)));
             }
-            else if (ch < 0xD800) {
+            else if (((ch >= 0x0800) && (ch <= 0xD7FF)) ||
+                     ((ch >= 0xE000) && (ch <= 0xFFFF))) {
                 dest.put(destOffset++, (byte) (0xe0 | (ch >> 12)));
                 dest.put(destOffset++, (byte) (0x80 | ((ch >> 6) & 0x3F)));
-                dest.put(destOffset++, (byte) (0x80 | (ch & 0x3F)));
+                dest.put(destOffset++, (byte) (0x80 | ((ch >> 0) & 0x3F)));
             }
-            else if (ch >= 0xD800 && ch <= 0xDFFF) {          // surrogate pair
+            else if ((ch >= Character.MIN_SURROGATE) && (ch <= Character.MAX_SURROGATE)) {  // Surrogate pair
                 if (i == srcBuf.length) {
-                    throw new IllegalStateException(format(msg, ch));
+                    throw new IllegalStateException(format(MSG_INVALID_CODEPOINT, ch));
                 }
 
                 char ch1 = ch;
                 char ch2 = srcBuf[++i];
 
-                if (ch1 > 0xDBFF) {
-                    throw new IllegalStateException(format(msg, ch1));
+                if (ch1 > Character.MAX_HIGH_SURROGATE) {
+                    throw new IllegalStateException(format(MSG_INVALID_CODEPOINT, ch1));
                 }
 
-                int codePoint = (((ch1 & 0x03FF) << 10) | (ch2 & 0x03FF)) + 0x10000;
+                int codePoint = Character.toCodePoint(ch1, ch2);
+//                int codePoint = (((ch1 & 0x03FF) << 10) | (ch2 & 0x03FF)) + Character.MIN_SUPPLEMENTARY_CODE_POINT;
+
                 dest.put(destOffset++, (byte) (0xf0 | (codePoint >> 18)));
                 dest.put(destOffset++, (byte) (0x80 | ((codePoint >> 12) & 0x3F)));
                 dest.put(destOffset++, (byte) (0x80 | ((codePoint >> 6) & 0x3F)));
-                dest.put(destOffset++, (byte) (0x80 | (codePoint & 0x3F)));
+                dest.put(destOffset++, (byte) (0x80 | ((codePoint >> 0) & 0x3F)));
             }
             else {
-                throw new IllegalStateException(format(msg, ch));
+                throw new IllegalStateException(format(MSG_INVALID_CODEPOINT, ch));
             }
 
             i++;

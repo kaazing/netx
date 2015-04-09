@@ -145,12 +145,12 @@ public final class WsMessageReader extends MessageReader {
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                 }
 
-                int charsConverted = convertBytesToChars(frame.buffer(),
-                                                         xformedPayloadOffset,
-                                                         xformedPayloadLength,
-                                                         applicationCharBuffer,
-                                                         applicationBufferWriteOffset,
-                                                         applicationBufferLength);
+                int charsConverted = utf8BytesToChars(frame.buffer(),
+                                                      xformedPayloadOffset,
+                                                      xformedPayloadLength,
+                                                      applicationCharBuffer,
+                                                      applicationBufferWriteOffset,
+                                                      applicationBufferLength);
                 applicationBufferWriteOffset += charsConverted;
                 applicationBufferLength -= charsConverted;
                 fragmented = !frame.fin();
@@ -518,12 +518,12 @@ public final class WsMessageReader extends MessageReader {
         return leadByte;
     }
 
-    private int convertBytesToChars(ByteBuffer src,
-                                    int srcOffset,
-                                    long srcLength,
-                                    char[] dest,
-                                    int destOffset,
-                                    int destLength) throws IOException {
+    private int utf8BytesToChars(ByteBuffer src,
+                                 int srcOffset,
+                                 long srcLength,
+                                 char[] dest,
+                                 int destOffset,
+                                 int destLength) throws IOException {
         int destMark = destOffset;
         int index = 0;
 
