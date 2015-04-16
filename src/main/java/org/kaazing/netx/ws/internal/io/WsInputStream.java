@@ -224,7 +224,7 @@ public final class WsInputStream extends InputStream {
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+            connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
         }
 

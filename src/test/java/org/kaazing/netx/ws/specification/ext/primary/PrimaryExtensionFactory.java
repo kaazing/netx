@@ -32,4 +32,8 @@ public class PrimaryExtensionFactory extends WebSocketExtensionFactorySpi {
     public WebSocketExtensionSpi createExtension(String formattedStr) throws IOException {
         return new PrimaryExtensionSpi();
     }
+
+    @Override
+    public void validate(String extensionWithParams) throws IOException {
+    }
 }

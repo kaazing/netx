@@ -26,7 +26,6 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
@@ -87,7 +86,7 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingDataFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        connection.processOutgoingFrame(outgoingFrameRO);
     }
 
     public void writeContinuation(byte[] buf, int offset, int length) throws IOException {
@@ -110,7 +109,7 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingDataFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        connection.processOutgoingFrame(outgoingFrameRO);
     }
 
     public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
@@ -142,7 +141,7 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingControlFrame.payloadPut(controlFramePayload, 0, payloadLen);
 
         outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        connection.processOutgoingFrame(outgoingFrameRO);
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
@@ -151,6 +150,6 @@ public final class WsOutputStream extends FilterOutputStream {
         outgoingControlFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        connection.processOutgoingFrame(outgoingFrameRO);
     }
 }

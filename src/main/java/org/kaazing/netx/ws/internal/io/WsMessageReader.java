@@ -251,7 +251,7 @@ public final class WsMessageReader extends MessageReader {
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+            connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
             state = State.PROCESS_MESSAGE_TYPE;
 
@@ -326,7 +326,7 @@ public final class WsMessageReader extends MessageReader {
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+            connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
             state = State.PROCESS_MESSAGE_TYPE;
 
@@ -495,7 +495,7 @@ public final class WsMessageReader extends MessageReader {
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
             sentinel.setTerminalConsumer(terminalControlFrameConsumer, incomingFrame.opCode());
-            connection.processFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+            connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
 
             if (networkBufferReadOffset == networkBufferWriteOffset) {

@@ -39,10 +39,10 @@ public abstract class WebSocketExtensionFactorySpi {
     public abstract String getExtensionName();
 
     /**
-     * Creates a {@link WebSocketExtensionSpi} instance. The specified HTTP request header formatted string is validated as well.
-     * An IOException is thrown if the specified string is deemed invalid. If an IOException is thrown, the extension is not
-     * negotiated during the opening handshake and does not have it's hooks exercised when messages are being received or sent.
-     * The format for extensionWithParams is as shown below:
+     * Creates a {@link WebSocketExtensionSpi} instance. This method is called <b>only</b> when the extension has been
+     * successfully negotiated between the client and the server. If this method throws an IOException, then the negotiated
+     * extension will not participate when messages are being received or sent. The format for extensionWithParams is as
+     * shown below:
      *
      * {@code}
      *      extension-name[;param1=value1;param2;param3=value3]
@@ -50,7 +50,21 @@ public abstract class WebSocketExtensionFactorySpi {
      *
      * @param extensionWithParams  String representation of the extension in request header format
      * @return WebSocketExtensionSpi  instance
-     * @throw IOException if the extension considers the specified string is invalid
+     * @throw IOException if the specified string contains invalid extension name, parameter name or parameter value
      */
     public abstract WebSocketExtensionSpi createExtension(String extensionWithParams) throws IOException;
+
+    /**
+     * Validates the extension name, parameter names and values in the specified string. This method is called for an enabled
+     * extensions before the opening handshake to ensure that the string representation of the extension is valid. The extension
+     * will not be negotiated if IOException is thrown. The format of the specified string will be as shown below:
+     *
+     * {@code}
+     *      extension-name[;param1=value1;param2;param3=value3]
+     * {@code}
+     *
+     * @param extensionWithParams  String representation of the extension in request header format
+     * @throw IOException if the specified string contains invalid extension name, parameter name or parameter value
+     */
+    public abstract void validate(String extensionWithParams) throws IOException;
 }

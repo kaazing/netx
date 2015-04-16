@@ -57,13 +57,7 @@ public final class WebSocketOutputStateMachine {
         STATE_MACHINE = stateMachine;
     }
 
-    private static final WebSocketOutputStateMachine INSTANCE = new WebSocketOutputStateMachine();
-
-    private WebSocketOutputStateMachine() {
-    }
-
-    public static WebSocketOutputStateMachine instance() {
-        return INSTANCE;
+    public WebSocketOutputStateMachine() {
     }
 
     public void start(WsURLConnectionImpl connection) {

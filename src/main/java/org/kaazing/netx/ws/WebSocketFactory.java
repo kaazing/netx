@@ -206,7 +206,7 @@ public final class WebSocketFactory {
      * @param challengeHandler   default ChallengeHandler
      */
     public void setDefaultChallengeHandler(ChallengeHandler challengeHandler) {
-        defaultChallengeHandler = challengeHandler;
+        this.defaultChallengeHandler = challengeHandler;
     }
 
     /**
@@ -218,7 +218,7 @@ public final class WebSocketFactory {
      * @param connectTimeout    timeout value in milliseconds
      */
     public void setDefaultConnectTimeout(int connectTimeout) {
-        defaultConnectTimeout = connectTimeout;
+        this.defaultConnectTimeout = connectTimeout;
      }
 
     /**
@@ -228,6 +228,6 @@ public final class WebSocketFactory {
      * @param redirectPolicy     HttpRedirectPolicy to be enforced during redirects
      */
     public void setDefaultRedirectPolicy(HttpRedirectPolicy redirectPolicy) {
-        defaultRedirectPolicy = redirectPolicy;
+        this.defaultRedirectPolicy = redirectPolicy;
     }
 }

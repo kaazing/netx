@@ -60,17 +60,10 @@ public final class WebSocketInputStateMachine {
         stateMachine[OPEN.ordinal()][RECEIVE_BINARY_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVE_TEXT_FRAME.ordinal()] = OPEN;
 
-
         STATE_MACHINE = stateMachine;
     }
 
-    private static final WebSocketInputStateMachine INSTANCE = new WebSocketInputStateMachine();
-
-    private WebSocketInputStateMachine() {
-    }
-
-    public static WebSocketInputStateMachine instance() {
-        return INSTANCE;
+    public WebSocketInputStateMachine() {
     }
 
     public void start(WsURLConnectionImpl connection) {
@@ -116,6 +109,7 @@ public final class WebSocketInputStateMachine {
         default:
             transition(connection, ERROR);
             context.onError(format("Invalid state %s to be receiving a BINARY frame", state));
+            break;
         }
 
     }

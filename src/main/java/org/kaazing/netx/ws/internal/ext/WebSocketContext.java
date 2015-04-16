@@ -17,7 +17,6 @@ package org.kaazing.netx.ws.internal.ext;
 
 import java.io.IOException;
 
-import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 
@@ -163,7 +162,7 @@ public abstract class WebSocketContext {
      * @throws IOException
      */
     public void doSendBinary(Frame dataFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processFrame(connection, dataFrame);
+        connection.processOutgoingFrame(dataFrame);
     }
 
     /**
@@ -173,7 +172,7 @@ public abstract class WebSocketContext {
      * @throws IOException
      */
     public void doSendClose(Frame closeFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processFrame(connection, closeFrame);
+        connection.processOutgoingFrame(closeFrame);
     }
 
     /**
@@ -183,7 +182,7 @@ public abstract class WebSocketContext {
      * @throws IOException
      */
     public void doSendContinuation(Frame dataFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processFrame(connection, dataFrame);
+        connection.processOutgoingFrame(dataFrame);
     }
 
     /**
@@ -193,7 +192,7 @@ public abstract class WebSocketContext {
      * @throws IOException
      */
     public void doSendPong(Frame pongFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processFrame(connection, pongFrame);
+        connection.processOutgoingFrame(pongFrame);
     }
 
     /**
@@ -203,6 +202,6 @@ public abstract class WebSocketContext {
      * @throws IOException
      */
     public void doSendText(Frame dataFrame) throws IOException {
-        WebSocketOutputStateMachine.instance().processFrame(connection, dataFrame);
+        connection.processOutgoingFrame(dataFrame);
     }
 }

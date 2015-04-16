@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
@@ -82,7 +81,7 @@ public class WsWriter extends Writer {
         outgoingFrame.payloadPut(payload, 0, byteCount);
 
         outgoingFrameRO.wrap(heapBufferRO, outgoingFrame.offset());
-        WebSocketOutputStateMachine.instance().processFrame(connection, outgoingFrameRO);
+        connection.processOutgoingFrame(outgoingFrameRO);
     }
 
     @Override

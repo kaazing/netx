@@ -107,6 +107,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private WebSocketState inputState;
     private WebSocketState outputState;
+    private final WebSocketInputStateMachine inputStateMachine;
+    private final WebSocketOutputStateMachine outputStateMachine;
     private WebSocketExtensionFactory extensionFactory;
     private DefaultWebSocketContext incomingContext;
     private DefaultWebSocketContext outgoingContext;
@@ -116,7 +118,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             URL location,
             URI httpLocation,
             Random random,
-            WebSocketExtensionFactory extensionFactory) throws IOException {
+            WebSocketExtensionFactory extensionFactory,
+            WebSocketInputStateMachine inputStateMachine,
+            WebSocketOutputStateMachine outputStateMachine) throws IOException {
 
         super(location);
 
@@ -132,6 +136,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.negotiatedExtensionsRO = unmodifiableList(negotiatedExtensions);
         this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
+        this.inputStateMachine = inputStateMachine;
+        this.outputStateMachine = outputStateMachine;
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -140,22 +146,17 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             URI location,
             URI httpLocation,
             Random random,
-            WebSocketExtensionFactory extensionFactory) throws IOException {
+            WebSocketExtensionFactory extensionFactory,
+            WebSocketInputStateMachine inputStateMachine,
+            WebSocketOutputStateMachine outputStateMachine) throws IOException {
 
-        super(null);
-
-        this.random = random;
-        this.inputState = WebSocketState.START;
-        this.extensionFactory = extensionFactory;
-        this.enabledProtocols = new LinkedList<String>();
-        this.enabledProtocolsRO = unmodifiableCollection(enabledProtocols);
-        this.enabledExtensions = new ArrayList<String>();
-        this.enabledExtensionsRO = unmodifiableList(enabledExtensions);
-        this.negotiatedExtensions = new ArrayList<String>();
-        this.negotiatedExtensionsRO = unmodifiableList(negotiatedExtensions);
-        this.negotiatedExtensionSpis = new ArrayList<WebSocketExtensionSpi>();
-        this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
-        this.connection = openHttpConnection(helper, httpLocation);
+        this(helper,
+             (URL) null,
+             httpLocation,
+             random,
+             extensionFactory,
+             inputStateMachine,
+             outputStateMachine);
     }
 
     // -------------------------- WsURLConnection Methods -------------------
@@ -169,20 +170,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             throw new IllegalArgumentException("No extensions specified to be enabled");
         }
 
-        this.enabledExtensions.clear();
+        enabledExtensions.clear();
 
         for (String extension : extensions) {
-            Matcher extensionMatcher = PATTERN_EXTENSION_FORMAT.matcher(extension);
-            if (!extensionMatcher.matches()) {
-                throw new IllegalStateException(format("Bad extension syntax: %s", extension));
-            }
-
-            String extensionName = extensionMatcher.group(1);
-
             try {
                 // Validate the string representation of the extension.
-                extensionFactory.createExtension(extensionName, extension);
-                this.enabledExtensions.add(extension);
+                extensionFactory.validateExtension(extension);
+                enabledExtensions.add(extension);
             }
             catch (IOException ex) {
                 // The string representation of the extension was deemed invalid by the extension.
@@ -488,7 +482,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return outputState;
     }
 
-    public void processFrame(final Frame frameRO) throws IOException {
+    public void processIncomingFrame(final Frame frameRO) throws IOException {
         if (frameRO == null) {
             throw new NullPointerException("Null frame passed in");
         }
@@ -532,8 +526,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             doFail(WS_PROTOCOL_ERROR, MSG_MASKED_FRAME_FROM_SERVER);
         }
 
-        WebSocketInputStateMachine inputStateMachine = WebSocketInputStateMachine.instance();
         inputStateMachine.processFrame(this, frameRO);
+    }
+
+    public void processOutgoingFrame(final Frame frameRO) throws IOException {
+        outputStateMachine.processFrame(this, frameRO);
     }
 
     public void sendClose(Frame closeFrame) throws IOException {
@@ -706,7 +703,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             this.negotiatedExtensions.add(extnName);
 
             try {
-                WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extnName, extension);
+                WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extension);
                 if (extensionSpi != null) {
                     this.negotiatedExtensionSpis.add(extensionSpi);
                 }
