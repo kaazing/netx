@@ -556,6 +556,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         sendClose(code, commandFramePayload, 0, reasonLength);
+
+        // Received a CLOSE frame from the server. Since the client has completed the CLOSE handshake by sending back a CLOSE
+        // frame, we can now set inputState to CLOSED.
+        inputState = CLOSED;
     }
 
     public void sendPong(Frame frame) throws IOException {
@@ -667,7 +671,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private void sendClose(int code, byte[] reason, int offset, int length) throws IOException {
         getOutputStream().writeClose(code, reason, offset, length);
         disconnect();
-        inputState = CLOSED;
         outputState = CLOSED;
     }
 

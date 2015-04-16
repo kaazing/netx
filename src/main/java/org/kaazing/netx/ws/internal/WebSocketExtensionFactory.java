@@ -101,7 +101,7 @@ public final class WebSocketExtensionFactory {
             throw new IllegalArgumentException("Unsupported extension: " + extensionName);
         }
 
-        factory.validate(extensionWithParams);
+        factory.validateExtension(extensionWithParams);
     }
 
     /**

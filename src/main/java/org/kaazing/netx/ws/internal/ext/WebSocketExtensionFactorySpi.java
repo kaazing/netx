@@ -66,5 +66,5 @@ public abstract class WebSocketExtensionFactorySpi {
      * @param extensionWithParams  String representation of the extension in request header format
      * @throw IOException if the specified string contains invalid extension name, parameter name or parameter value
      */
-    public abstract void validate(String extensionWithParams) throws IOException;
+    public abstract void validateExtension(String extensionWithParams) throws IOException;
 }

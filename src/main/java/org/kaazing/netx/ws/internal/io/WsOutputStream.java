@@ -67,6 +67,10 @@ public final class WsOutputStream extends FilterOutputStream {
 
     @Override
     public void write(byte[] buf, int offset, int length) throws IOException {
+        if (connection.getOutputState() == CLOSED) {
+            throw new IOException("Connection closed");
+        }
+
         if (buf == null) {
             throw new NullPointerException("Null buffer passed in");
         }
@@ -90,6 +94,10 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     public void writeContinuation(byte[] buf, int offset, int length) throws IOException {
+        if (connection.getOutputState() == CLOSED) {
+            throw new IOException("Connection closed");
+        }
+
         if (buf == null) {
             throw new NullPointerException("Null buffer passed in");
         }
@@ -145,6 +153,10 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
+        if (connection.getOutputState() == CLOSED) {
+            throw new IOException("Connection closed");
+        }
+
         outgoingControlFrame.fin(true);
         outgoingControlFrame.opCode(PONG);
         outgoingControlFrame.payloadPut(buf, offset, length);
