@@ -495,6 +495,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             break;
         default:
           doFail(WS_PROTOCOL_ERROR, format(MSG_RESERVED_BITS_SET, flags));
+          break;
         }
 
         try {

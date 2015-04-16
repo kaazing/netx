@@ -100,6 +100,7 @@ public final class WebSocketOutputStateMachine {
         default:
             transition(connection, ERROR);
             context.onError(format("Invalid state %s to be sending a %s frame", state, opcode));
+            break;
         }
     }
 
