@@ -48,7 +48,7 @@ public abstract class WebSocketExtensionFactorySpi {
      *      extension-name[;param1=value1;param2;param3=value3]
      * {@code}
      *
-     * @param extensionWithParams  String representation of the extension in request header format
+     * @param extensionWithParams  String representation of the extension in response header format
      * @return WebSocketExtensionSpi  instance
      * @throw IOException if the specified string contains invalid extension name, parameter name or parameter value
      */

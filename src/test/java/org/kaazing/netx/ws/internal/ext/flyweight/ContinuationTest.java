@@ -41,11 +41,11 @@ public class ContinuationTest extends FrameTest {
         FrameRW continuationFrame = new FrameRW().wrap(buffer, offset);
 
         continuationFrame.fin((fin == Fin.SET) ? true : false);
-        continuationFrame.opCode(OpCode.CONTINUATION);
+        continuationFrame.opcode(Opcode.CONTINUATION);
         continuationFrame.payloadPut((ByteBuffer) null, offset, 0);
 
 
-        assertEquals(OpCode.CONTINUATION, continuationFrame.opCode());
+        assertEquals(Opcode.CONTINUATION, continuationFrame.opcode());
         assertEquals(0, continuationFrame.payloadLength());
         assertEquals(fin == Fin.SET, continuationFrame.fin());
     }
@@ -66,10 +66,10 @@ public class ContinuationTest extends FrameTest {
         bytes.get(inputPayload);
 
         continuationFrame.fin((fin == Fin.SET) ? true : false);
-        continuationFrame.opCode(OpCode.CONTINUATION);
+        continuationFrame.opcode(Opcode.CONTINUATION);
         continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
-        assertEquals(OpCode.CONTINUATION, continuationFrame.opCode());
+        assertEquals(Opcode.CONTINUATION, continuationFrame.opcode());
         assertEquals(inputPayload.length, continuationFrame.payloadLength());
         assertEquals(fin == Fin.SET, continuationFrame.fin());
 
@@ -99,10 +99,10 @@ public class ContinuationTest extends FrameTest {
         bytes.get(inputPayload);
 
         continuationFrame.fin((fin == Fin.SET) ? true : false);
-        continuationFrame.opCode(OpCode.CONTINUATION);
+        continuationFrame.opcode(Opcode.CONTINUATION);
         continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
-        assertEquals(OpCode.CONTINUATION, continuationFrame.opCode());
+        assertEquals(Opcode.CONTINUATION, continuationFrame.opcode());
         assertEquals(inputPayload.length, continuationFrame.payloadLength());
         assertEquals(fin == Fin.SET, continuationFrame.fin());
 
@@ -124,10 +124,10 @@ public class ContinuationTest extends FrameTest {
         inputPayload[12] = (byte) 0xff;
 
         continuationFrame.fin((fin == Fin.SET) ? true : false);
-        continuationFrame.opCode(OpCode.CONTINUATION);
+        continuationFrame.opcode(Opcode.CONTINUATION);
         continuationFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
-        assertEquals(OpCode.CONTINUATION, continuationFrame.opCode());
+        assertEquals(Opcode.CONTINUATION, continuationFrame.opcode());
         assertEquals(inputPayload.length, continuationFrame.payloadLength());
         assertEquals(fin == Fin.SET, continuationFrame.fin());
 

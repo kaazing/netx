@@ -53,7 +53,7 @@ import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.io.IncomingSentinelExtension;
 import org.kaazing.netx.ws.internal.io.OutgoingSentinelExtension;
 import org.kaazing.netx.ws.internal.io.WsInputStream;
@@ -66,12 +66,21 @@ import org.kaazing.netx.ws.internal.util.Base64Util;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
     private static final Pattern PATTERN_EXTENSION_FORMAT = Pattern.compile("([a-zA-Z0-9]*)(;?(.*))");
+    private static final Pattern PATTERN_COMMA_SEPARATED_FORMAT = Pattern.compile(",");
+    private static final Pattern PATTERN_SEMI_COLON_SEPARATED_FORMAT = Pattern.compile(";");
 
     private static final String MSG_INVALID_OPCODE = "Protocol Violation: Invalid opcode = 0x%02X";
     private static final String MSG_MASKED_FRAME_FROM_SERVER = "Protocol Violation: Masked server-to-client frame";
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
     private static final String MSG_PAYLOAD_LENGTH_EXCEEDED = "Protocol Violation: %s payload is more than 125 bytes";
+    private static final String MSG_INVALID_PROTOCOL_NEGOTIATED = "Negotiated protocol \"%s\" was not enabled";
+    private static final String MSG_INVALID_EXTENSION_NEGOTIATED = "Negotiated extension \"%s\" was not enabled";
+    private static final String MSG_INVALID_EXTENSION_SYNTAX = "Bad extension syntax: %s";
+    private static final String MSG_NO_EXTENSIONS_SPEICIFIED = "Empty string passed in to enable extensions";
+    private static final String MSG_INVALID_CLOSE_CODE = "CLOSE code must be equal to 1000 or within the range 3000-4999";
+    private static final String MSG_ALREADY_CONNECTED = "Already connected";
+    private static final String MSG_WEBSOCKET_BIDIRECTIONAL = "WebSocket is bidirectional";
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
@@ -96,6 +105,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final List<String> negotiatedExtensionsRO;
     private final List<WebSocketExtensionSpi> negotiatedExtensionSpis;
     private final byte[] commandFramePayload;
+    private final WebSocketInputStateMachine inputStateMachine;
+    private final WebSocketOutputStateMachine outputStateMachine;
+    private final WebSocketExtensionFactory extensionFactory;
 
     private String negotiatedProtocol;
     private WsInputStream inputStream;
@@ -107,9 +119,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private WebSocketState inputState;
     private WebSocketState outputState;
-    private final WebSocketInputStateMachine inputStateMachine;
-    private final WebSocketOutputStateMachine outputStateMachine;
-    private WebSocketExtensionFactory extensionFactory;
     private DefaultWebSocketContext incomingContext;
     private DefaultWebSocketContext outgoingContext;
 
@@ -149,7 +158,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             WebSocketExtensionFactory extensionFactory,
             WebSocketInputStateMachine inputStateMachine,
             WebSocketOutputStateMachine outputStateMachine) throws IOException {
-
         this(helper,
              (URL) null,
              httpLocation,
@@ -167,7 +175,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         if (extensions.length == 0) {
-            throw new IllegalArgumentException("No extensions specified to be enabled");
+            throw new IllegalArgumentException(MSG_NO_EXTENSIONS_SPEICIFIED);
         }
 
         enabledExtensions.clear();
@@ -205,7 +213,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             // Verify code and reason against RFC 6455.
             // If code is present, it must equal to 1000 or in range 3000 to 4999
             if (code != 1000 && (code < 3000 || code > 4999)) {
-                    throw new IOException("code must equal to 1000 or within range 3000-4999");
+                throw new IOException(MSG_INVALID_CLOSE_CODE);
             }
 
             if (reason != null && reason.length() > 0) {
@@ -223,7 +231,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             doConnect();
             break;
         default:
-            throw new IOException("Already connected");
+            throw new IOException(MSG_ALREADY_CONNECTED);
         }
     }
 
@@ -241,7 +249,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     public Collection<String> getEnabledExtensions() {
         return enabledExtensionsRO;
     }
-
 
     @Override
     public Collection<String> getEnabledProtocols() {
@@ -346,7 +353,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         case START:
             break;
         default:
-            throw new IllegalStateException("Already connected");
+            throw new IllegalStateException(MSG_ALREADY_CONNECTED);
         }
 
         this.enabledProtocols.clear();
@@ -377,14 +384,14 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     @Override
     public void setDoInput(boolean doInput) {
         if (!doInput) {
-            throw new UnsupportedOperationException("WebSocket is bidirectional");
+            throw new UnsupportedOperationException(MSG_WEBSOCKET_BIDIRECTIONAL);
         }
     }
 
     @Override
     public void setDoOutput(boolean doOutput) {
         if (!doOutput) {
-            throw new UnsupportedOperationException("WebSocket is bidirectional");
+            throw new UnsupportedOperationException(MSG_WEBSOCKET_BIDIRECTIONAL);
         }
     }
 
@@ -458,10 +465,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return outgoingContext;
     }
 
-    public WebSocketExtensionFactory getExtensionFactory() {
-        return extensionFactory;
-    }
-
     public Random getRandom() {
         return random;
     }
@@ -499,7 +502,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         try {
-            OpCode opcode = frameRO.opCode();
+            Opcode opcode = frameRO.opcode();
             switch (opcode) {
             case CLOSE:
             case PING:
@@ -534,7 +537,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         outputStateMachine.processFrame(this, frameRO);
     }
 
-    public void sendClose(Frame closeFrame) throws IOException {
+    public void sendCloseIfNecessary(Frame closeFrame) throws IOException {
+        if (outputState == CLOSED) {
+            return;
+        }
+
         int closePayloadLength = closeFrame.payloadLength();
         int code = 0;
         int reasonOffset = 0;
@@ -556,10 +563,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         sendClose(code, commandFramePayload, 0, reasonLength);
-
-        // Received a CLOSE frame from the server. Since the client has completed the CLOSE handshake by sending back a CLOSE
-        // frame, we can now set inputState to CLOSED.
-        inputState = CLOSED;
     }
 
     public void sendPong(Frame frame) throws IOException {
@@ -571,10 +574,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
 
         getOutputStream().writePong(commandFramePayload, 0, (int) payloadLength);
-    }
-
-    public void setExtensionFactory(WebSocketExtensionFactory extensionFactory) {
-        this.extensionFactory = extensionFactory;
     }
 
     public void setInputState(WebSocketState state) {
@@ -609,12 +608,12 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         connection.setRequestProperty(HEADER_SEC_WEBSOCKET_VERSION, "13");
 
         if (!enabledExtensions.isEmpty()) {
-            String formattedExtensions = formatExtensionsAsRequestHeader(enabledExtensions);
+            String formattedExtensions = formatAsRequestHeader(enabledExtensions);
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_EXTENSIONS, formattedExtensions);
         }
 
         if (!enabledProtocols.isEmpty()) {
-            String formattedProtocols = formatProtocolsAsRequestHeader(enabledProtocols);
+            String formattedProtocols = formatAsRequestHeader(enabledProtocols);
             connection.setRequestProperty(HEADER_SEC_WEBSOCKET_PROTOCOL, formattedProtocols);
         }
 
@@ -629,8 +628,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         negotiateProtocol(enabledProtocols, connection.getHeaderField(HEADER_SEC_WEBSOCKET_PROTOCOL));
         negotiateExtensions(enabledExtensions, connection.getHeaderField(HEADER_SEC_WEBSOCKET_EXTENSIONS));
 
-        this.inputState = OPEN;
-        this.outputState = OPEN;
+        inputState = OPEN;
+        outputState = OPEN;
     }
 
     private void disconnect() {
@@ -671,50 +670,49 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private void sendClose(int code, byte[] reason, int offset, int length) throws IOException {
         getOutputStream().writeClose(code, reason, offset, length);
         disconnect();
-        outputState = CLOSED;
     }
 
     private void negotiateProtocol(Collection<String> enabledProtocols, String negotiatedProtocol) throws IOException {
         if (negotiatedProtocol != null && !enabledProtocols.contains(negotiatedProtocol)) {
-            throw new IOException(format("Connection failed. Negotiated protocol \"%s\" was not enabled", negotiatedProtocol));
+            throw new IOException(format(MSG_INVALID_PROTOCOL_NEGOTIATED, negotiatedProtocol));
         }
         this.negotiatedProtocol = negotiatedProtocol;
     }
 
     private void negotiateExtensions(List<String> enabledExtensions, String formattedExtensions) throws IOException {
+        negotiatedExtensions.clear();
+        negotiatedExtensionSpis.clear();
 
         if ((formattedExtensions == null) || (formattedExtensions.trim().length() == 0)) {
-            this.negotiatedExtensions.clear();
-            this.negotiatedExtensionSpis.clear();
             return;
         }
 
-        String[] extensions = formattedExtensions.split(",");
+        String[] extensions = PATTERN_COMMA_SEPARATED_FORMAT.split(formattedExtensions);
         Collection<String> enabledExtensionNames = getEnabledExtensionNames(enabledExtensions);
         for (String extension : extensions) {
             Matcher extensionMatcher = PATTERN_EXTENSION_FORMAT.matcher(extension);
             if (!extensionMatcher.matches()) {
-                throw new IllegalStateException(format("Bad extension syntax: %s", extension));
+                throw new IllegalStateException(format(MSG_INVALID_EXTENSION_SYNTAX, extension));
             }
 
             String extnName = extensionMatcher.group(1);
             if (!enabledExtensionNames.contains(extnName)) {
                 // Only enabled extensions should be negotiated.
-                String s = format("Invalid extension '%s' negotiated", extnName);
+                String s = format(MSG_INVALID_EXTENSION_NEGOTIATED, extnName);
                 throw new IOException(s);
             }
 
-            this.negotiatedExtensions.add(extnName);
+            negotiatedExtensions.add(extnName);
 
             try {
                 WebSocketExtensionSpi extensionSpi = extensionFactory.createExtension(extension);
                 if (extensionSpi != null) {
-                    this.negotiatedExtensionSpis.add(extensionSpi);
+                    negotiatedExtensionSpis.add(extensionSpi);
                 }
             }
             catch (IOException ex) {
                 // The string representation of the negotiated extension was deemed invalid by the extension.
-                // So, it will not be activated. This means, it's hooks will not be exercised when the messages
+                // So, it will not be activated. This means, the extension-hooks will not be exercised when the messages
                 //  are being sent or received.
 
                 // ### TODO: Log to indicate why a negotiated extension was not activated.
@@ -726,33 +724,17 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         return Base64Util.encode(ByteBuffer.wrap(bytes));
     }
 
-    private static String formatProtocolsAsRequestHeader(Collection<String> protocols) {
-        assert protocols != null;
+    private static String formatAsRequestHeader(Collection<String> values) {
+        assert values != null;
 
         StringBuilder sb = new StringBuilder();
 
-        for (String protocol : protocols) {
+        for (String value : values) {
             if (sb.length() > 0) {
                 sb.append(", ");
             }
 
-            sb.append(protocol);
-        }
-
-        return sb.toString();
-    }
-
-    private static String formatExtensionsAsRequestHeader(Collection<String> extensions) {
-        assert extensions != null;
-
-        StringBuilder sb = new StringBuilder();
-
-        for (String extension : extensions) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-
-            sb.append(extension.toString());
+            sb.append(value);
         }
 
         return sb.toString();
@@ -765,7 +747,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
         List<String> names = new ArrayList<String>();
         for (String extension : extensions) {
-            String[] tokens = extension.split(";");
+            String[] tokens = PATTERN_SEMI_COLON_SEPARATED_FORMAT.split(extension);
             String extnName = tokens[0].trim();
 
             names.add(extnName);

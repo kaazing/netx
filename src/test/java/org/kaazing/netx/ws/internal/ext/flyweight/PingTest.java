@@ -18,7 +18,7 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.PING;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PING;
 
 import org.junit.experimental.theories.Theory;
 
@@ -29,10 +29,10 @@ public class PingTest extends FrameTest {
         FrameRW pingFrame = new FrameRW().wrap(buffer, offset);
 
         pingFrame.fin(true);
-        pingFrame.opCode(PING);
+        pingFrame.opcode(PING);
         pingFrame.payloadPut((byte[]) null, offset, 0);
 
-        assertEquals(OpCode.PING, pingFrame.opCode());
+        assertEquals(Opcode.PING, pingFrame.opcode());
         assertEquals(0, pingFrame.payloadLength());
         assertEquals(true, pingFrame.fin());
 
@@ -44,10 +44,10 @@ public class PingTest extends FrameTest {
         byte[] inputBytes = fromHex("03e8ff01");
 
         pingFrame.fin(true);
-        pingFrame.opCode(PING);
+        pingFrame.opcode(PING);
         pingFrame.payloadPut(inputBytes, 0, inputBytes.length);
 
-        assertEquals(OpCode.PING, pingFrame.opCode());
+        assertEquals(Opcode.PING, pingFrame.opcode());
         assertEquals(inputBytes.length, pingFrame.payloadLength());
         assertEquals(true, pingFrame.fin());
 

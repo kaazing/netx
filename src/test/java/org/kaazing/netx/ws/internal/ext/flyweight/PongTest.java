@@ -18,7 +18,7 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.PONG;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PONG;
 
 import java.nio.ByteBuffer;
 
@@ -31,10 +31,10 @@ public class PongTest extends FrameTest {
         FrameRW pongFrame = new FrameRW().wrap(buffer, offset);
 
         pongFrame.fin(true);
-        pongFrame.opCode(PONG);
+        pongFrame.opcode(PONG);
         pongFrame.payloadPut((ByteBuffer) null, offset, 0);
 
-        assertEquals(OpCode.PONG, pongFrame.opCode());
+        assertEquals(Opcode.PONG, pongFrame.opcode());
         assertEquals(0, pongFrame.payloadLength());
         assertEquals(true, pongFrame.fin());
     }
@@ -45,10 +45,10 @@ public class PongTest extends FrameTest {
         byte[] inputBytes = fromHex("03e8ff01");
 
         pongFrame.fin(true);
-        pongFrame.opCode(PONG);
+        pongFrame.opcode(PONG);
         pongFrame.payloadPut(inputBytes, 0, inputBytes.length);
 
-        assertEquals(OpCode.PONG, pongFrame.opCode());
+        assertEquals(Opcode.PONG, pongFrame.opcode());
         assertEquals(inputBytes.length, pongFrame.payloadLength());
         assertEquals(true, pongFrame.fin());
 

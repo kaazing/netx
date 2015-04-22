@@ -23,7 +23,7 @@ import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
@@ -36,7 +36,7 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                OpCode opcode = frame.opCode();
+                Opcode opcode = frame.opcode();
                 int payloadLength = frame.payloadLength();
                 int payloadOffset = frame.payloadOffset();
                 byte[] payload = new byte[payloadLength];
@@ -49,7 +49,7 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
                 byte[] xformedPayload = msg.getBytes(UTF_8);
 
                 incomingFrame.fin(true);
-                incomingFrame.opCode(opcode);
+                incomingFrame.opcode(opcode);
                 incomingFrame.payloadPut(xformedPayload, 0, xformedPayload.length);
 
                 context.onTextReceived(incomingFrame);
@@ -60,7 +60,7 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                OpCode opcode = frame.opCode();
+                Opcode opcode = frame.opcode();
                 int payloadLength = frame.payloadLength();
                 int payloadOffset = frame.payloadOffset();
                 byte[] payload = new byte[payloadLength];
@@ -73,7 +73,7 @@ public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
                 byte[] bytes = msg.getBytes(UTF_8);
 
                 outgoingFrame.fin(true);
-                outgoingFrame.opCode(opcode);
+                outgoingFrame.opcode(opcode);
                 outgoingFrame.payloadPut(bytes, 0, bytes.length);
                 context.onTextSent(outgoingFrame);
             }

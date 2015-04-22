@@ -30,7 +30,7 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.SEND_TEXT_FRAME;
 import java.io.IOException;
 
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 
 public final class WebSocketOutputStateMachine {
     private static final WebSocketState[][] STATE_MACHINE;
@@ -67,7 +67,7 @@ public final class WebSocketOutputStateMachine {
     public void processFrame(final WsURLConnectionImpl connection, final Frame frame) throws IOException {
         DefaultWebSocketContext context = connection.getOutgoingContext();
         WebSocketState state = connection.getOutputState();
-        OpCode opcode = frame.opCode();
+        Opcode opcode = frame.opcode();
 
         context.reset();
 
@@ -80,6 +80,7 @@ public final class WebSocketOutputStateMachine {
                 break;
             case CLOSE:
                 context.onCloseSent(frame);
+                transition(connection, SEND_CLOSE_FRAME);
                 break;
             case CONTINUATION:
                 transition(connection, SEND_CONTINUATION_FRAME);

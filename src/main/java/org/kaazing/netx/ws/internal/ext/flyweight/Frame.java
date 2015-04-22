@@ -49,7 +49,7 @@ public abstract class Frame extends Flyweight {
      *
      * @return OpCode
      */
-    public abstract OpCode opCode();
+    public abstract Opcode opcode();
 
     /**
      * Returns the length of the WebSocket frame. The maximum length of a WebSocket frame can be Integer.MAX_VALUE.

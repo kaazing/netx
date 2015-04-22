@@ -20,10 +20,10 @@ import static java.lang.Character.charCount;
 import static java.lang.Character.toChars;
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CLOSE;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CONTINUATION;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CLOSE;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CONTINUATION;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
 import static org.kaazing.netx.ws.internal.util.FrameUtil.calculateCapacity;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
@@ -42,7 +42,7 @@ import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public final class WsMessageReader extends MessageReader {
@@ -87,19 +87,19 @@ public final class WsMessageReader extends MessageReader {
     final WebSocketFrameConsumer terminalBinaryFrameConsumer = new WebSocketFrameConsumer() {
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            OpCode opCode = frame.opCode();
+            Opcode opcode = frame.opcode();
             long xformedPayloadLength = frame.payloadLength();
             int xformedPayloadOffset = frame.payloadOffset();
 
-            switch (opCode) {
+            switch (opcode) {
             case BINARY:
             case CONTINUATION:
-                if ((opCode == BINARY) && fragmented) {
+                if ((opcode == BINARY) && fragmented) {
                     byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                 }
 
-                if ((opCode == CONTINUATION) && !fragmented) {
+                if ((opcode == CONTINUATION) && !fragmented) {
                     byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                 }
@@ -119,7 +119,7 @@ public final class WsMessageReader extends MessageReader {
                 fragmented = !frame.fin();
                 break;
             default:
-                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, OpCode.toInt(opCode)));
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, Opcode.toInt(opcode)));
                 break;
             }
         }
@@ -128,19 +128,19 @@ public final class WsMessageReader extends MessageReader {
     private final WebSocketFrameConsumer terminalTextFrameConsumer = new WebSocketFrameConsumer() {
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            OpCode opCode = frame.opCode();
+            Opcode opcode = frame.opcode();
             long xformedPayloadLength = frame.payloadLength();
             int xformedPayloadOffset = frame.payloadOffset();
 
-            switch (opCode) {
+            switch (opcode) {
             case TEXT:
             case CONTINUATION:
-                if ((opCode == TEXT) && fragmented) {
+                if ((opcode == TEXT) && fragmented) {
                     byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                 }
 
-                if ((opCode == CONTINUATION) && !fragmented) {
+                if ((opcode == CONTINUATION) && !fragmented) {
                     byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                 }
@@ -156,7 +156,7 @@ public final class WsMessageReader extends MessageReader {
                 fragmented = !frame.fin();
                 break;
             default:
-                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, OpCode.toInt(opCode)));
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_BINARY_FRAME, Opcode.toInt(opcode)));
                 break;
             }
         }
@@ -165,11 +165,11 @@ public final class WsMessageReader extends MessageReader {
     private final WebSocketFrameConsumer terminalControlFrameConsumer = new WebSocketFrameConsumer() {
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            OpCode opCode = frame.opCode();
+            Opcode opcode = frame.opcode();
 
-            switch (opCode) {
+            switch (opcode) {
             case CLOSE:
-                connection.sendClose(frame);
+                connection.sendCloseIfNecessary(frame);
                 break;
             case PING:
                 connection.sendPong(frame);
@@ -177,7 +177,7 @@ public final class WsMessageReader extends MessageReader {
             case PONG:
                 break;
             default:
-                connection.doFail(WS_PROTOCOL_ERROR, format("Unexpected frame opcode 0x%02X", OpCode.toInt(opCode)));
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, Opcode.toInt(opcode)));
                 break;
             }
         }
@@ -247,10 +247,10 @@ public final class WsMessageReader extends MessageReader {
             incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             finalFrame = incomingFrame.fin();
 
-            validateOpCode();
+            validateOpcode();
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-            sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opCode());
+            sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opcode());
             connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
             state = State.PROCESS_MESSAGE_TYPE;
@@ -322,10 +322,10 @@ public final class WsMessageReader extends MessageReader {
             incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             finalFrame = incomingFrame.fin();
 
-            validateOpCode();
+            validateOpcode();
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-            sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opCode());
+            sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opcode());
             connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
             state = State.PROCESS_MESSAGE_TYPE;
@@ -453,16 +453,16 @@ public final class WsMessageReader extends MessageReader {
             break;
         }
 
-        OpCode opCode = null;
+        Opcode opcode = null;
 
         try {
-            opCode = incomingFrame.opCode();
+            opcode = incomingFrame.opcode();
         }
         catch (Exception ex) {
             connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, leadByte & 0x0F));
         }
 
-        switch (opCode) {
+        switch (opcode) {
         case CONTINUATION:
             if (state == State.INITIAL) {
                 // The first frame cannot be a fragmented frame..
@@ -473,14 +473,14 @@ public final class WsMessageReader extends MessageReader {
         case TEXT:
             if (state == State.PROCESS_MESSAGE_TYPE) {
                 // In a subsequent fragmented frame, the opcode should NOT be set.
-                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, OpCode.toInt(TEXT)));
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, Opcode.toInt(TEXT)));
             }
             type = MessageType.TEXT;
             break;
         case BINARY:
             if (state == State.PROCESS_MESSAGE_TYPE) {
                 // In a subsequent fragmented frame, the opcode should NOT be set.
-                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, OpCode.toInt(BINARY)));
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, Opcode.toInt(BINARY)));
             }
             type = MessageType.BINARY;
             break;
@@ -494,7 +494,7 @@ public final class WsMessageReader extends MessageReader {
 
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-            sentinel.setTerminalConsumer(terminalControlFrameConsumer, incomingFrame.opCode());
+            sentinel.setTerminalConsumer(terminalControlFrameConsumer, incomingFrame.opcode());
             connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
 
@@ -503,14 +503,14 @@ public final class WsMessageReader extends MessageReader {
                 networkBufferWriteOffset = 0;
             }
 
-            if (opCode == CLOSE) {
+            if (opcode == CLOSE) {
                 type = MessageType.EOS;
                 return -1;
             }
             leadByte = readMessageType();
             break;
         default:
-            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opCode.ordinal()));
+            connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opcode.ordinal()));
             break;
         }
 
@@ -655,10 +655,10 @@ public final class WsMessageReader extends MessageReader {
         return bytesRead;
     }
 
-    private void validateOpCode() throws IOException {
+    private void validateOpcode() throws IOException {
         int leadByte = Flyweight.uint8Get(incomingFrame.buffer(), incomingFrame.offset());
         try {
-            incomingFrame.opCode();
+            incomingFrame.opcode();
         }
         catch (Exception ex) {
             connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, leadByte & 0x0F));

@@ -20,9 +20,9 @@ import static java.lang.Character.charCount;
 import static java.lang.Character.toChars;
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CONTINUATION;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CONTINUATION;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
 import static org.kaazing.netx.ws.internal.util.FrameUtil.calculateCapacity;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
@@ -40,7 +40,7 @@ import org.kaazing.netx.ws.internal.ext.flyweight.Flyweight;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class WsReader extends Reader {
@@ -49,6 +49,7 @@ public class WsReader extends Reader {
     private static final String MSG_NON_TEXT_FRAME = "Non-text frame - opcode = 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
     private static final String MSG_INVALID_OPCODE = "Protocol Violation: Invalid opcode = 0x%02X";
+    private static final String MSG_UNSUPPORTED_OPERATION = "Unsupported Operation";
 
     private static final int BUFFER_CHUNK_SIZE = 8192;
 
@@ -72,19 +73,19 @@ public class WsReader extends Reader {
     private final WebSocketFrameConsumer terminalFrameConsumer = new WebSocketFrameConsumer() {
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            OpCode opCode = frame.opCode();
+            Opcode opcode = frame.opcode();
             int xformedPayloadLength = frame.payloadLength();
             int xformedPayloadOffset = frame.payloadOffset();
 
-            switch (opCode) {
+            switch (opcode) {
             case TEXT:
             case CONTINUATION:
-                if ((opCode == TEXT) && fragmented) {
+                if ((opcode == TEXT) && fragmented) {
                     byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                 }
 
-                if ((opCode == CONTINUATION) && !fragmented) {
+                if ((opcode == CONTINUATION) && !fragmented) {
                     byte leadByte = (byte) Flyweight.uint8Get(frame.buffer(), frame.offset());
                     connection.doFail(WS_PROTOCOL_ERROR, format(MSG_FRAGMENTED_FRAME, leadByte));
                 }
@@ -108,7 +109,7 @@ public class WsReader extends Reader {
                 fragmented = !frame.fin();
                 break;
             case CLOSE:
-                connection.sendClose(frame);
+                connection.sendCloseIfNecessary(frame);
                 break;
             case PING:
                 connection.sendPong(frame);
@@ -116,7 +117,7 @@ public class WsReader extends Reader {
             case PONG:
                 break;
             case BINARY:
-                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_TEXT_FRAME, OpCode.toInt(BINARY)));
+                connection.doFail(WS_PROTOCOL_ERROR, format(MSG_NON_TEXT_FRAME, Opcode.toInt(BINARY)));
                 break;
             }
         }
@@ -227,10 +228,10 @@ public class WsReader extends Reader {
                 incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
             }
 
-            validateOpCode();
+            validateOpcode();
             DefaultWebSocketContext context = connection.getIncomingContext();
             IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-            sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opCode());
+            sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opcode());
             connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
             networkBufferReadOffset += incomingFrame.length();
         }
@@ -257,17 +258,17 @@ public class WsReader extends Reader {
         // ### TODO: Perhaps this can be implemented in future by incrementing applicationBufferReadOffset by n. We should
         //           ensure that applicationBufferReadOffset >= n before doing incrementing. Otherwise, we can thrown an
         //           an exception.
-        throw new IOException("Unsupported operation");
+        throw new IOException(MSG_UNSUPPORTED_OPERATION);
     }
 
     @Override
     public void mark(int readAheadLimit) throws IOException {
-        throw new IOException("Unsupported operation");
+        throw new IOException(MSG_UNSUPPORTED_OPERATION);
     }
 
     @Override
     public void reset() throws IOException {
-        throw new IOException("Unsupported operation");
+        throw new IOException(MSG_UNSUPPORTED_OPERATION);
     }
 
     private int utf8BytesToChars(ByteBuffer src,
@@ -425,10 +426,10 @@ public class WsReader extends Reader {
         return bytesRead;
     }
 
-    private void validateOpCode() throws IOException {
+    private void validateOpcode() throws IOException {
         int leadByte = Flyweight.uint8Get(incomingFrame.buffer(), incomingFrame.offset());
         try {
-            incomingFrame.opCode();
+            incomingFrame.opcode();
         }
         catch (Exception ex) {
             connection.doFail(WS_PROTOCOL_ERROR, format(MSG_INVALID_OPCODE, leadByte));

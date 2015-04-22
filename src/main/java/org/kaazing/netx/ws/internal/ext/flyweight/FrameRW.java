@@ -59,11 +59,11 @@ public class FrameRW extends Frame {
     }
 
     @Override
-    public OpCode opCode() {
+    public Opcode opcode() {
         checkBuffer(buffer());
 
         short byte0 = uint8Get(buffer(), offset());
-        return OpCode.fromInt(byte0 & OP_CODE_MASK);
+        return Opcode.fromInt(byte0 & OP_CODE_MASK);
     }
 
     @Override
@@ -129,12 +129,12 @@ public class FrameRW extends Frame {
      *
      * @param opcode   OpCode
      */
-    public void opCode(OpCode opcode) {
+    public void opcode(Opcode opcode) {
         checkBuffer(buffer());
 
         byte leadByte = (byte) Flyweight.uint8Get(buffer(), offset());
         leadByte = (byte) (leadByte & 0xF0); // Clear the current opcode before setting the new one.
-        leadByte |= OpCode.toInt(opcode);
+        leadByte |= Opcode.toInt(opcode);
         buffer().put(offset(), leadByte);
     }
 

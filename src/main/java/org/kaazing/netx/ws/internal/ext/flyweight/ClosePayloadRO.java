@@ -78,37 +78,4 @@ public class ClosePayloadRO extends ClosePayload {
             throw new IllegalStateException("Flyweight has not been wrapped/populated yet with a ByteBuffer.");
         }
     }
-
-//    private int reasonGet(byte[] buf, int offset, int length) {
-//        if (buf == null) {
-//            throw new NullPointerException("Null buffer passed in");
-//        }
-//        else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
-//            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
-//        }
-//
-//        checkBuffer();
-//
-//        if (reasonLength() == 0) {
-//            return 0;
-//        }
-//
-//        int min = Math.min(reasonLength(), length);
-//
-//        if (delegate.masked()) {
-//
-//            int maskIndex = delegate.maskOffset();
-//            int reasonOffset = reasonOffset();
-//
-//            for (int i = 0; i < min; i++) {
-//                // Account for 2 bytes of status code while unmasking the reason.
-//                buf[offset++] = (byte) (buffer().get(reasonOffset++) ^ buffer().get(maskIndex + ((i + 2) % 4)));
-//            }
-//        }
-//        else {
-//            System.arraycopy(buffer().array(), reasonOffset(), buf, offset, min);
-//        }
-//
-//        return min;
-//    }
 }

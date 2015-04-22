@@ -17,10 +17,10 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import static java.lang.String.format;
 
-public enum OpCode {
+public enum Opcode {
     BINARY, CLOSE, CONTINUATION, PING, PONG, TEXT;
 
-    public static OpCode fromInt(int value) {
+    public static Opcode fromInt(int value) {
         switch (value) {
         case 0x00:
             return CONTINUATION;
@@ -39,7 +39,7 @@ public enum OpCode {
         }
     };
 
-    public static int toInt(OpCode value) {
+    public static int toInt(Opcode value) {
         switch (value) {
         case CONTINUATION:
             return 0x00;

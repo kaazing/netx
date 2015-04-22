@@ -50,11 +50,11 @@ public class FrameRO extends Frame {
     }
 
     @Override
-    public OpCode opCode() {
+    public Opcode opcode() {
         checkBuffer(buffer());
 
         short byte0 = uint8Get(buffer(), offset());
-        return OpCode.fromInt(byte0 & OP_CODE_MASK);
+        return Opcode.fromInt(byte0 & OP_CODE_MASK);
     }
 
     @Override

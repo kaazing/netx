@@ -16,7 +16,7 @@
 package org.kaazing.netx.ws.internal.io;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public final class IncomingSentinelExtension extends WebSocketExtensionSpi {
@@ -34,7 +34,7 @@ public final class IncomingSentinelExtension extends WebSocketExtensionSpi {
         this.cachedOnTextReceived = super.onTextReceived;
     }
 
-    public void setTerminalConsumer(WebSocketFrameConsumer terminalConsumer, OpCode opcode) {
+    public void setTerminalConsumer(WebSocketFrameConsumer terminalConsumer, Opcode opcode) {
         restoreConsumers();
 
         switch (opcode) {

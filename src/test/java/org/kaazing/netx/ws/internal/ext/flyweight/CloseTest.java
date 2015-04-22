@@ -19,7 +19,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CLOSE;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CLOSE;
 
 import java.nio.ByteBuffer;
 
@@ -32,9 +32,9 @@ public class CloseTest extends FrameTest {
         FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
 
         closeFrame.fin(true);
-        closeFrame.opCode(CLOSE);
+        closeFrame.opcode(CLOSE);
 
-        assertEquals(OpCode.CLOSE, closeFrame.opCode());
+        assertEquals(Opcode.CLOSE, closeFrame.opcode());
         assertEquals(0, closeFrame.payloadLength());
         assertTrue(closeFrame.fin());
     }
@@ -45,11 +45,11 @@ public class CloseTest extends FrameTest {
         byte[] inputPayload = new byte[] { 0x03, (byte) 0xe8 };
 
         closeFrame.fin(true);
-        closeFrame.opCode(CLOSE);
+        closeFrame.opcode(CLOSE);
 
         closeFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
-        assertEquals(OpCode.CLOSE, closeFrame.opCode());
+        assertEquals(Opcode.CLOSE, closeFrame.opcode());
         assertEquals(2, closeFrame.payloadLength());
         assertTrue(closeFrame.fin());
 
@@ -74,7 +74,7 @@ public class CloseTest extends FrameTest {
         buf.flip();
 
         closeFrame.fin(true);
-        closeFrame.opCode(CLOSE);
+        closeFrame.opcode(CLOSE);
         closeFrame.payloadPut(buf, 0, reason.length + 2);
 
         int payloadOffset = closeFrame.payloadOffset();
@@ -83,7 +83,7 @@ public class CloseTest extends FrameTest {
         ClosePayloadRO closePayload = new ClosePayloadRO();
         closePayload.wrap(buffer, payloadOffset, payloadOffset + payloadLength);
 
-        assertEquals(OpCode.CLOSE, closeFrame.opCode());
+        assertEquals(Opcode.CLOSE, closeFrame.opcode());
         assertEquals(2 + reason.length, closeFrame.payloadLength());
         assertTrue(closeFrame.fin());
 

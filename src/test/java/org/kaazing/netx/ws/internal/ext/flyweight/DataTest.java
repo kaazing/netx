@@ -19,9 +19,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CONTINUATION;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CONTINUATION;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
 
 import java.nio.ByteBuffer;
 
@@ -44,10 +44,10 @@ public class DataTest extends FrameTest {
         FrameRW textFrame = new FrameRW().wrap(buffer, offset);
 
         textFrame.fin((fin == Fin.SET) ? true : false);
-        textFrame.opCode(TEXT);
+        textFrame.opcode(TEXT);
         textFrame.payloadPut((ByteBuffer) null, offset, 0);
 
-        assertEquals(OpCode.TEXT, textFrame.opCode());
+        assertEquals(Opcode.TEXT, textFrame.opcode());
         assertEquals(0, textFrame.payloadLength());
         assertEquals(fin == Fin.SET, textFrame.fin());
     }
@@ -68,10 +68,10 @@ public class DataTest extends FrameTest {
         bytes.get(inputPayload);
 
         textFrame.fin((fin == Fin.SET) ? true : false);
-        textFrame.opCode(TEXT);
+        textFrame.opcode(TEXT);
         textFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
-        assertEquals(OpCode.TEXT, textFrame.opCode());
+        assertEquals(Opcode.TEXT, textFrame.opcode());
         assertEquals(inputPayload.length, textFrame.payloadLength());
         assertEquals(fin == Fin.SET, textFrame.fin());
 
@@ -101,10 +101,10 @@ public class DataTest extends FrameTest {
         bytes.get(inputPayload);
 
         textFrame.fin((fin == Fin.SET) ? true : false);
-        textFrame.opCode(TEXT);
+        textFrame.opcode(TEXT);
         textFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
-        assertEquals(OpCode.TEXT, textFrame.opCode());
+        assertEquals(Opcode.TEXT, textFrame.opcode());
         assertEquals(inputPayload.length, textFrame.payloadLength());
         assertEquals(fin == Fin.SET, textFrame.fin());
 
@@ -123,10 +123,10 @@ public class DataTest extends FrameTest {
         FrameRW binaryFrame = new FrameRW().wrap(buffer, offset);
 
         binaryFrame.fin((fin == Fin.SET) ? true : false);
-        binaryFrame.opCode(BINARY);
+        binaryFrame.opcode(BINARY);
         binaryFrame.payloadPut((ByteBuffer) null, offset, 0);
 
-        assertEquals(OpCode.BINARY, binaryFrame.opCode());
+        assertEquals(Opcode.BINARY, binaryFrame.opcode());
         assertEquals(0, binaryFrame.payloadLength());
         assertEquals(fin == Fin.SET, binaryFrame.fin());
     }
@@ -138,10 +138,10 @@ public class DataTest extends FrameTest {
         inputPayload[12] = (byte) 0xff;
 
         binaryFrame.fin((fin == Fin.SET) ? true : false);
-        binaryFrame.opCode(CONTINUATION);
+        binaryFrame.opcode(CONTINUATION);
         binaryFrame.payloadPut(inputPayload, 0, inputPayload.length);
 
-        assertEquals(OpCode.CONTINUATION, binaryFrame.opCode());
+        assertEquals(Opcode.CONTINUATION, binaryFrame.opcode());
         assertEquals(inputPayload.length, binaryFrame.payloadLength());
         assertEquals(fin == Fin.SET, binaryFrame.fin());
 

@@ -33,7 +33,7 @@ import static org.kaazing.netx.ws.internal.WebSocketTransition.RECEIVE_UPGRADE_R
 import java.io.IOException;
 
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 
 public final class WebSocketInputStateMachine {
     private static final WebSocketState[][] STATE_MACHINE;
@@ -56,7 +56,7 @@ public final class WebSocketInputStateMachine {
         stateMachine[OPEN.ordinal()][RECEIVE_PING_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVE_PONG_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVE_CONTINUATION_FRAME.ordinal()] = OPEN;
-        stateMachine[OPEN.ordinal()][RECEIVE_CLOSE_FRAME.ordinal()] = OPEN;
+        stateMachine[OPEN.ordinal()][RECEIVE_CLOSE_FRAME.ordinal()] = CLOSED;
         stateMachine[OPEN.ordinal()][RECEIVE_BINARY_FRAME.ordinal()] = OPEN;
         stateMachine[OPEN.ordinal()][RECEIVE_TEXT_FRAME.ordinal()] = OPEN;
 
@@ -73,7 +73,7 @@ public final class WebSocketInputStateMachine {
     public void processFrame(final WsURLConnectionImpl connection, final Frame frame) throws IOException {
         DefaultWebSocketContext context = connection.getIncomingContext();
         WebSocketState state = connection.getInputState();
-        OpCode opcode = frame.opCode();
+        Opcode opcode = frame.opcode();
 
         context.reset();
 

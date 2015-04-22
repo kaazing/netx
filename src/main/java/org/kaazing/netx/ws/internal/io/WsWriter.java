@@ -18,7 +18,7 @@ package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -77,7 +77,7 @@ public class WsWriter extends Writer {
         }
 
         outgoingFrame.fin(true);
-        outgoingFrame.opCode(TEXT);
+        outgoingFrame.opcode(TEXT);
         outgoingFrame.payloadPut(payload, 0, byteCount);
 
         outgoingFrameRO.wrap(heapBufferRO, outgoingFrame.offset());

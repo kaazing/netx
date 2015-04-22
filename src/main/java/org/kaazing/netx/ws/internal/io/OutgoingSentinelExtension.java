@@ -29,11 +29,11 @@ import static org.kaazing.netx.ws.WsURLConnection.WS_SERVER_TERMINATED_CONNECTIO
 import static org.kaazing.netx.ws.WsURLConnection.WS_UNSUCCESSFUL_EXTENSION_NEGOTIATION;
 import static org.kaazing.netx.ws.WsURLConnection.WS_UNSUCCESSFUL_TLS_HANDSHAKE;
 import static org.kaazing.netx.ws.WsURLConnection.WS_VIOLATE_POLICY;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CLOSE;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CONTINUATION;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.PONG;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.TEXT;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CLOSE;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CONTINUATION;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PONG;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 
 import java.io.IOException;
@@ -62,7 +62,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         super.onBinarySent = new WebSocketFrameConsumer() {
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                assert frame.opCode() == BINARY;
+                assert frame.opcode() == BINARY;
                 encodeFrame(connection, frame);
             }
         };
@@ -70,7 +70,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         super.onContinuationSent = new WebSocketFrameConsumer() {
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                assert frame.opCode() == CONTINUATION;
+                assert frame.opcode() == CONTINUATION;
                 encodeFrame(connection, frame);
             }
         };
@@ -78,7 +78,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         super.onCloseSent = new WebSocketFrameConsumer() {
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                assert frame.opCode() == CLOSE;
+                assert frame.opcode() == CLOSE;
                 validateAndEncodeCloseFrame(connection, frame);
             }
         };
@@ -86,7 +86,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         super.onPongSent = new WebSocketFrameConsumer() {
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                assert frame.opCode() == PONG;
+                assert frame.opcode() == PONG;
                 encodeFrame(connection, frame);
             }
         };
@@ -94,7 +94,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         super.onTextSent = new WebSocketFrameConsumer() {
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                assert frame.opCode() == TEXT;
+                assert frame.opcode() == TEXT;
                 encodeFrame(connection, frame);
             }
         };

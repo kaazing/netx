@@ -18,9 +18,9 @@ package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.BINARY;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.CLOSE;
-import static org.kaazing.netx.ws.internal.ext.flyweight.OpCode.PONG;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CLOSE;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PONG;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -86,7 +86,7 @@ public final class WsOutputStream extends FilterOutputStream {
             outgoingDataFrame.wrap(heapBuffer,  0);
         }
         outgoingDataFrame.fin(true);
-        outgoingDataFrame.opCode(BINARY);
+        outgoingDataFrame.opcode(BINARY);
         outgoingDataFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
@@ -113,7 +113,7 @@ public final class WsOutputStream extends FilterOutputStream {
             outgoingDataFrame.wrap(heapBuffer,  0);
         }
         outgoingDataFrame.fin(true);
-        outgoingDataFrame.opCode(BINARY);
+        outgoingDataFrame.opcode(BINARY);
         outgoingDataFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
@@ -145,7 +145,7 @@ public final class WsOutputStream extends FilterOutputStream {
         }
 
         outgoingControlFrame.fin(true);
-        outgoingControlFrame.opCode(CLOSE);
+        outgoingControlFrame.opcode(CLOSE);
         outgoingControlFrame.payloadPut(controlFramePayload, 0, payloadLen);
 
         outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
@@ -158,7 +158,7 @@ public final class WsOutputStream extends FilterOutputStream {
         }
 
         outgoingControlFrame.fin(true);
-        outgoingControlFrame.opCode(PONG);
+        outgoingControlFrame.opcode(PONG);
         outgoingControlFrame.payloadPut(buf, offset, length);
 
         outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
