@@ -16,52 +16,66 @@
 package org.kaazing.netx.ws.specification.ext.primary;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
 import org.kaazing.netx.ws.internal.ext.WebSocketExtensionSpi;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
-import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class PrimaryExtensionSpi extends WebSocketExtensionSpi {
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    private final FrameFactory factory = FrameFactory.newInstance(8192);
-
+    private final FrameRW outgoingFrame = new FrameRW().wrap(ByteBuffer.allocate(1024), 0);
+    private final FrameRW incomingFrame = new FrameRW().wrap(ByteBuffer.allocate(1024), 0);
     {
-        onTextFrameReceived = new WebSocketFrameConsumer() {
+        onTextReceived = new WebSocketFrameConsumer() {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                OpCode opcode = frame.getOpCode();
-                int payloadLength = frame.getLength();
-                Payload payload = frame.getPayload();
+                Opcode opcode = frame.opcode();
+                int payloadLength = frame.payloadLength();
+                int payloadOffset = frame.payloadOffset();
+                byte[] payload = new byte[payloadLength];
 
-                String msg = "nuqneH, " + new String(payload.buffer().array(), payload.offset(), payloadLength);
-                byte[] bytes = msg.getBytes(UTF_8);
-                Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
+                for (int i = 0; i < payloadLength; i++) {
+                    payload[i] = frame.buffer().get(payloadOffset++);
+                }
 
-                context.onTextReceived((Data) transformedFrame);
+                String msg = "nuqneH, " + new String(payload, 0, payloadLength);
+                byte[] xformedPayload = msg.getBytes(UTF_8);
+
+                incomingFrame.fin(true);
+                incomingFrame.opcode(opcode);
+                incomingFrame.payloadPut(xformedPayload, 0, xformedPayload.length);
+
+                context.onTextReceived(incomingFrame);
             }
         };
 
-        onTextFrameSent = new WebSocketFrameConsumer() {
+        onTextSent = new WebSocketFrameConsumer() {
 
             @Override
             public void accept(WebSocketContext context, Frame frame) throws IOException {
-                OpCode opcode = frame.getOpCode();
-                int payloadLength = frame.getLength();
-                Payload payload = frame.getPayload();
+                Opcode opcode = frame.opcode();
+                int payloadLength = frame.payloadLength();
+                int payloadOffset = frame.payloadOffset();
+                byte[] payload = new byte[payloadLength];
 
-                String msg = new String(payload.buffer().array(), payload.offset(), payloadLength).substring("Hello, ".length());
+                for (int i = 0; i < payloadLength; i++) {
+                    payload[i] = frame.buffer().get(payloadOffset++);
+                }
+
+                String msg = new String(payload, 0, payloadLength).substring("Hello, ".length());
                 byte[] bytes = msg.getBytes(UTF_8);
-                Frame transformedFrame = factory.getFrame(opcode, frame.isFin(), frame.isMasked(), bytes, 0, bytes.length);
 
-                context.onTextSent((Data) transformedFrame);
+                outgoingFrame.fin(true);
+                outgoingFrame.opcode(opcode);
+                outgoingFrame.payloadPut(bytes, 0, bytes.length);
+                context.onTextSent(outgoingFrame);
             }
         };
     }

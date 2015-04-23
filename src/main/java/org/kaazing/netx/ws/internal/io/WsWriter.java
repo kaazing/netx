@@ -18,31 +18,33 @@ package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
+import java.nio.ByteBuffer;
 
-import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.FrameFactory;
-import org.kaazing.netx.ws.internal.ext.flyweight.OpCode;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
+import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
+import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class WsWriter extends Writer {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
-    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private final WsURLConnectionImpl connection;
-    private final OutputStream out;
+    private final FrameRW outgoingFrame;
+    private final FrameRO outgoingFrameRO;
+    private ByteBuffer payload;
 
-    private Data dataFrame;
+    private ByteBuffer heapBuffer;
+    private ByteBuffer heapBufferRO;
 
     public WsWriter(WsURLConnectionImpl connection) throws IOException {
         this.connection = connection;
-        this.out = connection.getTcpOutputStream();
+        this.outgoingFrame = new FrameRW();
+        this.outgoingFrameRO = new FrameRO();
     }
 
     @Override
@@ -58,12 +60,28 @@ public class WsWriter extends Writer {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
         }
 
+        int payloadLength = Utf8Util.byteCountUTF8(cbuf, offset, length);
+        int capacity = FrameUtil.calculateCapacity(false, payloadLength);
 
-        byte[] bytesPayload = String.valueOf(cbuf, offset, length).getBytes(UTF_8);
-        dataFrame = (Data) getFrame(OpCode.TEXT, true, true, bytesPayload, 0, bytesPayload.length);
+        if ((payload == null) || (payload.capacity() < payloadLength)) {
+            payload = ByteBuffer.allocate(payloadLength);
+        }
 
-        WebSocketOutputStateMachine outputStateMachine = connection.getOutputStateMachine();
-        outputStateMachine.processText(connection, dataFrame);
+        int byteCount = Utf8Util.charstoUTF8Bytes(cbuf, offset, length, payload, 0);
+        assert payloadLength == byteCount;
+
+        if ((outgoingFrame.buffer() == null) || (outgoingFrame.buffer().capacity() < capacity)) {
+            heapBuffer = ByteBuffer.allocate(capacity);
+            heapBufferRO = heapBuffer.asReadOnlyBuffer();
+            outgoingFrame.wrap(heapBuffer,  0);
+        }
+
+        outgoingFrame.fin(true);
+        outgoingFrame.opcode(TEXT);
+        outgoingFrame.payloadPut(payload, 0, byteCount);
+
+        outgoingFrameRO.wrap(heapBufferRO, outgoingFrame.offset());
+        connection.processOutgoingFrame(outgoingFrameRO);
     }
 
     @Override
@@ -73,12 +91,6 @@ public class WsWriter extends Writer {
 
     @Override
     public void close() throws IOException {
-        out.close();
-    }
-
-    private Frame getFrame(OpCode opcode, boolean fin, boolean masked, byte[] payload, int payloadOffset, long payloadLen)
-            throws IOException {
-        FrameFactory factory = connection.getOutputStateMachine().getFrameFactory();
-        return factory.getFrame(opcode, fin, masked, payload, payloadOffset, payloadLen);
+        connection.getTcpOutputStream().close();
     }
 }

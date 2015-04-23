@@ -17,70 +17,49 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PONG;
 
-import org.junit.Ignore;
+import java.nio.ByteBuffer;
+
 import org.junit.experimental.theories.Theory;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class PongTest extends FrameTest {
 
     @Theory
-    public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("8a"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.PONG, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        assertEquals(payload.offset(), payload.limit());
-        Pong pong = (Pong) frame;
-        assertEquals(0, pong.getLength());
+    public void shouldDecodeWithEmptyPayload(int offset) throws Exception {
+        FrameRW pongFrame = new FrameRW().wrap(buffer, offset);
+
+        pongFrame.fin(true);
+        pongFrame.opcode(PONG);
+        pongFrame.payloadPut((ByteBuffer) null, offset, 0);
+
+        assertEquals(Opcode.PONG, pongFrame.opcode());
+        assertEquals(0, pongFrame.payloadLength());
+        assertEquals(true, pongFrame.fin());
     }
 
     @Theory
-    public void shouldDecodeWithPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("8a"));
+    public void shouldDecodeWithPayload(int offset) throws Exception {
+        FrameRW pongFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputBytes = fromHex("03e8ff01");
-        putLengthMaskAndPayload(buffer, offset + 1, inputBytes, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.PONG, frame.getOpCode());
-        byte[] payloadBytes = new byte[inputBytes.length];
-        Payload payload = frame.getPayload();
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
+
+        pongFrame.fin(true);
+        pongFrame.opcode(PONG);
+        pongFrame.payloadPut(inputBytes, 0, inputBytes.length);
+
+        assertEquals(Opcode.PONG, pongFrame.opcode());
+        assertEquals(inputBytes.length, pongFrame.payloadLength());
+        assertEquals(true, pongFrame.fin());
+
+        int payloadOffset = pongFrame.payloadOffset();
+        int payloadLength = pongFrame.payloadLength();
+        byte[] payloadBytes = new byte[payloadLength];
+
+        for (int i = 0; i < payloadLength; i++) {
+            payloadBytes[i] = pongFrame.buffer().get(payloadOffset++);
+        }
+
         assertArrayEquals(inputBytes, payloadBytes);
-        Pong pong = (Pong) frame;
-        assertEquals(payloadBytes.length, pong.getLength());
-        assertEquals(inputBytes.length, payload.limit() - payload.offset());
     }
-
-    @Theory
-    @Ignore
-    public void shouldRejectPongFrameWithFinNotSet(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("0a"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
-        }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectPongFrameWithLengthOver125(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("8a"));
-        putLengthAndMaskBit(buffer, offset + 1, 126, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
-        }
-        fail("Exception exception was not thrown");
-    }
-
 }

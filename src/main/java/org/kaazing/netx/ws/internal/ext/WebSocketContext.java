@@ -16,32 +16,25 @@
 package org.kaazing.netx.ws.internal.ext;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.ListIterator;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.ext.flyweight.Close;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
-import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
-import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
+import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
 
-public class WebSocketContext {
+/**
+ * WebSocketContext provides the extensions the ability to participate in the message flow in both directions. WebSocketContext
+ * exercises the registered hooks of all the negotiated extensions. It also provides extensions the ability to send WebSocket
+ * frames from the registered hooks.
+ *
+ */
+public abstract class WebSocketContext {
     protected final WsURLConnectionImpl connection;
-    private final ListIterator<WebSocketExtensionSpi> iterator;
     private String errorMessage;
 
-    public WebSocketContext(WsURLConnectionImpl connection, List<WebSocketExtensionSpi> extensions) {
+    public WebSocketContext(WsURLConnectionImpl connection) {
         this.connection = connection;
-        this.iterator = extensions.listIterator();
     }
 
-    public WebSocketExtensionSpi nextExtension() {
-        if (iterator.hasNext()) {
-            return iterator.next();
-        }
-
-        return null;
-    }
+    public abstract WebSocketExtensionSpi nextExtension();
 
     public String getErrorMessage() {
         return errorMessage;
@@ -52,55 +45,163 @@ public class WebSocketContext {
         nextExtension().onError.accept(this);
     }
 
-    public void onBinaryReceived(Data frame) throws IOException {
-        nextExtension().onBinaryFrameReceived.accept(this, frame);
+    /**
+     * Exercises the <code>onBinaryReceived</code> hook of a negotiated extension.
+     *
+     * @param frame incoming BINARY frame
+     * @throws IOException
+     */
+    public void onBinaryReceived(Frame frame) throws IOException {
+        nextExtension().onBinaryReceived.accept(this, frame);
     }
 
-    public void onCloseReceived(Close frame) throws IOException {
-        nextExtension().onCloseFrameReceived.accept(this, frame);
+    /**
+     * Exercises the <code>onCloseReceived</code> hook of a negotiated extension.
+     *
+     * @param frame incoming CLOSE frame
+     * @throws IOException
+     */
+    public void onCloseReceived(Frame frame) throws IOException {
+        nextExtension().onCloseReceived.accept(this, frame);
     }
 
-    public void onPingReceived(Ping frame) throws IOException {
-        nextExtension().onPingFrameReceived.accept(this, frame);
+    /**
+     * Exercises the <code>onContinuationReceived</code> hook of a negotiated extension.
+     *
+     * @param frame incoming CONTINUATION frame
+     * @throws IOException
+     */
+    public void onContinuationReceived(Frame frame) throws IOException {
+        nextExtension().onContinuationReceived.accept(this, frame);
     }
 
-    public void onPongReceived(Pong frame) throws IOException {
-        nextExtension().onPongFrameReceived.accept(this, frame);
+    /**
+     * Exercises the <code>onPingReceived</code> hook of a negotiated extension.
+     *
+     * @param frame incoming PING frame
+     * @throws IOException
+     */
+    public void onPingReceived(Frame frame) throws IOException {
+        nextExtension().onPingReceived.accept(this, frame);
     }
 
-    public void onTextReceived(Data frame) throws IOException {
-        nextExtension().onTextFrameReceived.accept(this, frame);
+    /**
+     * Exercises the <code>onPongReceived</code> hook of a negotiated extension.
+     *
+     * @param frame incoming PONG frame
+     * @throws IOException
+     */
+    public void onPongReceived(Frame frame) throws IOException {
+        nextExtension().onPongReceived.accept(this, frame);
     }
 
-    public void onBinarySent(Data frame) throws IOException {
-        nextExtension().onBinaryFrameSent.accept(this, frame);
+    /**
+     * Exercises the <code>onTextReceived</code> hook of a negotiated extension.
+     *
+     * @param frame incoming TEXT frame
+     * @throws IOException
+     */
+    public void onTextReceived(Frame frame) throws IOException {
+        nextExtension().onTextReceived.accept(this, frame);
     }
 
-    public void onCloseSent(Close frame) throws IOException {
-        nextExtension().onCloseFrameSent.accept(this, frame);
+    /**
+     * Exercises the <code>onBinarySent</code> hook of a negotiated extension.
+     *
+     * @param frame outgoing BINARY frame
+     * @throws IOException
+     */
+    public void onBinarySent(Frame frame) throws IOException {
+        nextExtension().onBinarySent.accept(this, frame);
     }
 
-    public void onPongSent(Pong frame) throws IOException {
-        nextExtension().onPongFrameSent.accept(this, frame);
+    /**
+     * Exercises the <code>onCloseSent</code> hook of a negotiated extension.
+     *
+     * @param frame outgoing CLOSE frame
+     * @throws IOException
+     */
+    public void onCloseSent(Frame frame) throws IOException {
+        nextExtension().onCloseSent.accept(this, frame);
     }
 
-    public void onTextSent(Data frame) throws IOException {
-        nextExtension().onTextFrameSent.accept(this, frame);
+    /**
+     * Exercises the <code>onContinuationSent</code> hook of a negotiated extension.
+     *
+     * @param frame outgoing CONTINUATION frame
+     * @throws IOException
+     */
+    public void onContinuationSent(Frame frame) throws IOException {
+        nextExtension().onContinuationSent.accept(this, frame);
     }
 
-    public void doSendBinary(Data dataFrame) throws IOException {
-        connection.getOutputStateMachine().processBinary(connection, dataFrame);
+    /**
+     * Exercises the <code>onPongSent</code> hook of a negotiated extension.
+     *
+     * @param frame outgoing PONG frame
+     * @throws IOException
+     */
+    public void onPongSent(Frame frame) throws IOException {
+        nextExtension().onPongSent.accept(this, frame);
     }
 
-    public void doSendClose(Close closeFrame) throws IOException {
-        connection.getOutputStateMachine().processClose(connection, closeFrame);
+    /**
+     * Exercises the <code>onTextSent</code> hook of a negotiated extension.
+     *
+     * @param frame outgoing TEXT frame
+     * @throws IOException
+     */
+    public void onTextSent(Frame frame) throws IOException {
+        nextExtension().onTextSent.accept(this, frame);
     }
 
-    public void doSendPong(Pong pongFrame) throws IOException {
-        connection.getOutputStateMachine().processPong(connection, pongFrame);
+    /**
+     * Writes out a BINARY frame on the wire.
+     *
+     * @param frame outgoing BINARY frame
+     * @throws IOException
+     */
+    public void doSendBinary(Frame dataFrame) throws IOException {
+        connection.processOutgoingFrame(dataFrame);
     }
 
-    public void doSendText(Data dataFrame) throws IOException {
-        connection.getOutputStateMachine().processText(connection, dataFrame);
+    /**
+     * Writes out a CLOSE frame on the wire.
+     *
+     * @param frame outgoing CLOSE frame
+     * @throws IOException
+     */
+    public void doSendClose(Frame closeFrame) throws IOException {
+        connection.processOutgoingFrame(closeFrame);
+    }
+
+    /**
+     * Writes out a CONTINUATION frame on the wire.
+     *
+     * @param frame outgoing CONTINUATION frame
+     * @throws IOException
+     */
+    public void doSendContinuation(Frame dataFrame) throws IOException {
+        connection.processOutgoingFrame(dataFrame);
+    }
+
+    /**
+     * Writes out a PONG frame on the wire.
+     *
+     * @param frame outgoing PONG frame
+     * @throws IOException
+     */
+    public void doSendPong(Frame pongFrame) throws IOException {
+        connection.processOutgoingFrame(pongFrame);
+    }
+
+    /**
+     * Writes out a TEXT frame on the wire.
+     *
+     * @param frame outgoing TEXT frame
+     * @throws IOException
+     */
+    public void doSendText(Frame dataFrame) throws IOException {
+        connection.processOutgoingFrame(dataFrame);
     }
 }

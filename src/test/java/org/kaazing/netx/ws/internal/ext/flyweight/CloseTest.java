@@ -18,158 +18,83 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
-import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.toHex;
+import static org.junit.Assert.assertTrue;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CLOSE;
 
-import org.junit.Ignore;
+import java.nio.ByteBuffer;
+
 import org.junit.experimental.theories.Theory;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class CloseTest extends FrameTest {
 
     @Theory
-    public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("88"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.CLOSE, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        assertEquals(payload.offset(), payload.limit());
-        Close close = (Close) frame;
-        assertEquals(0, close.getLength());
-//        assertEquals(1005, close.getStatusCode());
-        Payload reason = close.getReason();
-        assertEquals(reason.offset(), reason.limit());
+    public void shouldDecodeWithEmptyPayload(int offset) throws Exception {
+        FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
+
+        closeFrame.fin(true);
+        closeFrame.opcode(CLOSE);
+
+        assertEquals(Opcode.CLOSE, closeFrame.opcode());
+        assertEquals(0, closeFrame.payloadLength());
+        assertTrue(closeFrame.fin());
     }
 
     @Theory
-    public void shouldDecodeWithStatusCode1000(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("88"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, "03e8", masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.CLOSE, frame.getOpCode());
-        byte[] payloadBytes = new byte[2];
-        Payload payload = frame.getPayload();
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        assertArrayEquals(fromHex("03e8"), payloadBytes);
-        Close close = (Close) frame;
-        assertEquals(2, close.getLength());
-        assertEquals(1000, close.getStatusCode());
-        Payload reason = close.getReason();
-        assertEquals(reason.offset(), reason.limit());
+    public void shouldDecodeWithStatusCode1000(int offset) throws Exception {
+        FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
+        byte[] inputPayload = new byte[] { 0x03, (byte) 0xe8 };
+
+        closeFrame.fin(true);
+        closeFrame.opcode(CLOSE);
+
+        closeFrame.payloadPut(inputPayload, 0, inputPayload.length);
+
+        assertEquals(Opcode.CLOSE, closeFrame.opcode());
+        assertEquals(2, closeFrame.payloadLength());
+        assertTrue(closeFrame.fin());
+
+        int payloadOffset = closeFrame.payloadOffset();
+        int payloadLength = closeFrame.payloadLength();
+        ClosePayloadRO closePayload = new ClosePayloadRO();
+        closePayload.wrap(buffer, payloadOffset, payloadOffset + payloadLength);
+
+        assertEquals(1000, closePayload.statusCode());
+        assertEquals(0, closePayload.reasonLength());
     }
 
     @Theory
-    public void shouldDecodeWithStatusCodeAndReason(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("88"));
-        String reasonString = "Something bad happened";
-        putLengthMaskAndHexPayload(buffer, offset + 1, "0" + Integer.toHexString(1001) + toHex(reasonString.getBytes(UTF_8)),
-                masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.CLOSE, frame.getOpCode());
-        assertEquals(frame.offset(), offset);
-        assertEquals(offset + 2 + (masked ? 4 : 0), frame.getLength(), frame.limit());
-        byte[] payloadBytes = new byte[2];
-        Payload payload = frame.getPayload();
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
-        Close close = (Close) frame;
-        assertEquals(2 + reasonString.length(), close.getLength());
-        assertEquals(1001, close.getStatusCode());
-        Payload reason = close.getReason();
-        assertEquals(reasonString.length(), reason.limit() - reason.offset());
-        String reasonResult = new String(reason.buffer().array(), reason.offset(), reason.limit() - reason.offset());
-        assertEquals(reasonString, reasonResult);
-    }
+    public void shouldDecodeWithStatusCodeAndReason(int offset) throws Exception {
+        FrameRW closeFrame = new FrameRW().wrap(buffer, offset);
+        int statusCode = 1001;
+        byte[] reason = "Something bad happened".getBytes(UTF_8);
+        ByteBuffer buf = ByteBuffer.allocate(reason.length + 2);
 
-    @Theory
-    @Ignore
-    public void shouldRejectCloseFrameWithFinNotSet(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("08"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
+        buf.putShort((short) statusCode);
+        buf.put(reason);
+        buf.flip();
+
+        closeFrame.fin(true);
+        closeFrame.opcode(CLOSE);
+        closeFrame.payloadPut(buf, 0, reason.length + 2);
+
+        int payloadOffset = closeFrame.payloadOffset();
+        int payloadLength = closeFrame.payloadLength();
+
+        ClosePayloadRO closePayload = new ClosePayloadRO();
+        closePayload.wrap(buffer, payloadOffset, payloadOffset + payloadLength);
+
+        assertEquals(Opcode.CLOSE, closeFrame.opcode());
+        assertEquals(2 + reason.length, closeFrame.payloadLength());
+        assertTrue(closeFrame.fin());
+
+        assertEquals(1001, closePayload.statusCode());
+        assertEquals(reason.length, closePayload.reasonLength());
+
+        int reasonOffset = closePayload.reasonOffset();
+        byte[] closeReason = new byte[closePayload.reasonLength()];
+        for (int i = 0; i < closePayload.reasonLength(); i++) {
+            closeReason[i] = closePayload.buffer().get(reasonOffset++);
         }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectCloseFrameWithLength1(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("88"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, "01", masked);
-        try {
-            Close frame = (Close) frameFactory.wrap(buffer, offset);
-            frame.getLength();
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
-        }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectCloseFrameWithLengthOver125(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("88"));
-        putLengthAndMaskBit(buffer, offset + 1, 126, masked);
-        try {
-            Close frame = (Close) frameFactory.wrap(buffer, offset);
-            frame.getPayload();
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
-        }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectCloseFrameWithStatusCode1023(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("88"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, "0" + Integer.toHexString(1023), masked);
-        Close close = (Close) frameFactory.wrap(buffer, offset);
-        try {
-            close.getStatusCode();
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
-        }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectCloseFrameWithStatusCodeFFFF(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("88"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, "ffff", masked);
-        Close close = (Close) frameFactory.wrap(buffer, offset);
-        try {
-            close.getStatusCode();
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
-        }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectCloseFrameWithReasonNotValidUTF8(int offset, boolean masked) throws Exception {
-        String validMultibyteCharEuroSign = "e282ac";
-        String invalidUTF8 = toHex("valid text".getBytes(UTF_8)) + validMultibyteCharEuroSign + "ff";
-        FrameUtil.putBytes(buffer, offset, fromHex("88"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, "03ff" + invalidUTF8, masked);
-        Close frame = (Close) frameFactory.wrap(buffer, offset);
-        try {
-            frame.getReason();
-        } catch (Exception e) {
-            return;
-        }
-        fail("Exception was not thrown");
+        assertArrayEquals(reason, closeReason);
     }
 }

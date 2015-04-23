@@ -34,6 +34,8 @@ import javax.annotation.Resource;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.URLConnectionHelperSpi;
 import org.kaazing.netx.ws.internal.WebSocketExtensionFactory;
+import org.kaazing.netx.ws.internal.WebSocketInputStateMachine;
+import org.kaazing.netx.ws.internal.WebSocketOutputStateMachine;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public final class WssURLConnectionHelper extends URLConnectionHelperSpi {
@@ -41,6 +43,8 @@ public final class WssURLConnectionHelper extends URLConnectionHelperSpi {
     private final Map<String, String> supportedProtocols;
     private final WebSocketExtensionFactory extensionFactory;
     private final Random random;
+    private final WebSocketInputStateMachine inputStateMachine;
+    private final WebSocketOutputStateMachine outputStateMachine;
 
     private URLConnectionHelper helper;
 
@@ -52,6 +56,8 @@ public final class WssURLConnectionHelper extends URLConnectionHelperSpi {
         this.supportedProtocols = unmodifiableMap(supportedProtocols);
         this.extensionFactory = WebSocketExtensionFactory.newInstance();
         this.random = new SecureRandom();
+        this.inputStateMachine = new WebSocketInputStateMachine();
+        this.outputStateMachine = new WebSocketOutputStateMachine();
     }
 
     @Resource
@@ -71,12 +77,25 @@ public final class WssURLConnectionHelper extends URLConnectionHelperSpi {
         String httpScheme = supportedProtocols.get(scheme);
         URI httpLocation = changeScheme(URI.create(location.toString()), httpScheme);
         assert helper != null;
-        return new WsURLConnectionImpl(helper, location, httpLocation, random, extensionFactory);
+        return new WsURLConnectionImpl(
+                helper,
+                location,
+                httpLocation,
+                random,
+                extensionFactory,
+                inputStateMachine,
+                outputStateMachine);
     }
 
     @Override
     public URLStreamHandler newStreamHandler() throws IOException {
         assert helper != null;
-        return new WssURLStreamHandlerImpl(helper, supportedProtocols, random, extensionFactory);
+        return new WssURLStreamHandlerImpl(
+                helper,
+                supportedProtocols,
+                random,
+                extensionFactory,
+                inputStateMachine,
+                outputStateMachine);
     }
 }

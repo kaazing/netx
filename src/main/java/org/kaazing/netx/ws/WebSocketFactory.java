@@ -75,8 +75,7 @@ public final class WebSocketFactory {
 
     /**
      * Uses the specified comma(,) separated string as a list of enabled extensions that would be negotiated with the server
-     * during the opening handshake. The string representation for each for each of the comma(,) delimited section
-     * must be as per RFC-3864. The format of specified string is shown below:
+     * during the opening handshake.  The HTTP request header format of specified string is shown below:
      *
      * {@code}
      *      extension-name1[;param11=value11;param12;param13=value13, extension-name2;param21=value21;..]
@@ -84,7 +83,7 @@ public final class WebSocketFactory {
      *
      * All the WebSockets created using this factory will inherit the enabled extensions.
      *
-     * @param extensions comma(,) separated string containing RFC-3864 formatted extension representation
+     * @param extensions comma(,) separated string representation of multiple extensions
      */
     public void addDefaultEnabledExtensions(String... extensions) {
         if (extensions == null) {
@@ -219,7 +218,7 @@ public final class WebSocketFactory {
      * @param connectTimeout    timeout value in milliseconds
      */
     public void setDefaultConnectTimeout(int connectTimeout) {
-        defaultConnectTimeout = connectTimeout;
+        this.defaultConnectTimeout = connectTimeout;
      }
 
     /**
@@ -229,6 +228,6 @@ public final class WebSocketFactory {
      * @param redirectPolicy     HttpRedirectPolicy to be enforced during redirects
      */
     public void setDefaultRedirectPolicy(HttpRedirectPolicy redirectPolicy) {
-        defaultRedirectPolicy = redirectPolicy;
+        this.defaultRedirectPolicy = redirectPolicy;
     }
 }

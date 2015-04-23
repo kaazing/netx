@@ -17,70 +17,47 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.kaazing.netx.ws.internal.ext.flyweight.FrameTestUtil.fromHex;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PING;
 
-import org.junit.Ignore;
 import org.junit.experimental.theories.Theory;
-import org.kaazing.netx.ws.internal.ext.flyweight.Frame.Payload;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 
 public class PingTest extends FrameTest {
 
     @Theory
-    public void shouldDecodeWithEmptyPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("89"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.PING, frame.getOpCode());
-        Payload payload = frame.getPayload();
-        assertEquals(payload.offset(), payload.limit());
-        Ping ping = (Ping) frame;
-        assertEquals(0, ping.getLength());
+    public void shouldDecodeWithEmptyPayload(int offset) throws Exception {
+        FrameRW pingFrame = new FrameRW().wrap(buffer, offset);
+
+        pingFrame.fin(true);
+        pingFrame.opcode(PING);
+        pingFrame.payloadPut((byte[]) null, offset, 0);
+
+        assertEquals(Opcode.PING, pingFrame.opcode());
+        assertEquals(0, pingFrame.payloadLength());
+        assertEquals(true, pingFrame.fin());
+
     }
 
     @Theory
-    public void shouldDecodeWithPayload(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("89"));
+    public void shouldDecodeWithPayload(int offset) throws Exception {
+        FrameRW pingFrame = new FrameRW().wrap(buffer, offset);
         byte[] inputBytes = fromHex("03e8ff01");
-        putLengthMaskAndPayload(buffer, offset + 1, inputBytes, masked);
-        Frame frame = frameFactory.wrap(buffer, offset);
-        assertEquals(OpCode.PING, frame.getOpCode());
-        byte[] payloadBytes = new byte[inputBytes.length];
-        Payload payload = frame.getPayload();
-        FrameUtil.getBytes(payload.buffer(), payload.offset(), payloadBytes);
+
+        pingFrame.fin(true);
+        pingFrame.opcode(PING);
+        pingFrame.payloadPut(inputBytes, 0, inputBytes.length);
+
+        assertEquals(Opcode.PING, pingFrame.opcode());
+        assertEquals(inputBytes.length, pingFrame.payloadLength());
+        assertEquals(true, pingFrame.fin());
+
+        int payloadOffset = pingFrame.payloadOffset();
+        int payloadLength = pingFrame.payloadLength();
+        byte[] payloadBytes = new byte[payloadLength];
+
+        for (int i = 0; i < payloadLength; i++) {
+            payloadBytes[i] = pingFrame.buffer().get(payloadOffset++);
+        }
         assertArrayEquals(inputBytes, payloadBytes);
-        Ping ping = (Ping) frame;
-        assertEquals(payloadBytes.length, ping.getLength());
-        assertEquals(inputBytes.length, payload.limit() - payload.offset());
     }
-
-    @Theory
-    @Ignore
-    public void shouldRejectPingFrameWithFinNotSet(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("09"));
-        putLengthMaskAndHexPayload(buffer, offset + 1, null, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
-        }
-        fail("Exception exception was not thrown");
-    }
-
-    @Theory
-    @Ignore
-    public void shouldRejectPingFrameWithLengthOver125(int offset, boolean masked) throws Exception {
-        FrameUtil.putBytes(buffer, offset, fromHex("89"));
-        putLengthAndMaskBit(buffer, offset + 1, 126, masked);
-        try {
-            frameFactory.wrap(buffer, offset);
-        } catch (Exception e) {
-            System.out.println(e);
-            return;
-        }
-        fail("Exception exception was not thrown");
-    }
-
 }

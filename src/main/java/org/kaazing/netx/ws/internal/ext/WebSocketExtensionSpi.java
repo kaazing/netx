@@ -18,11 +18,7 @@ package org.kaazing.netx.ws.internal.ext;
 
 import java.io.IOException;
 
-import org.kaazing.netx.ws.internal.ext.flyweight.Close;
-import org.kaazing.netx.ws.internal.ext.flyweight.Data;
 import org.kaazing.netx.ws.internal.ext.flyweight.Frame;
-import org.kaazing.netx.ws.internal.ext.flyweight.Ping;
-import org.kaazing.netx.ws.internal.ext.flyweight.Pong;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketConsumer;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
@@ -38,10 +34,14 @@ import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
  * When an enabled extension is successfully negotiated, an instance of this class is created using the corresponding
  * {@link WebSocketExtensionFactorySpi} that is registered through META-INF/services. This class is used to instantiate the
  * hooks that can be exercised as the state machine transitions from one state to another while
- * handling the WebSocket traffic. Based on the functionality of the extension, the developer can decide which hooks to code.
+ * handling the WebSocket traffic. Based on the functionality of the extension, the extension developer can decide which
+ * hooks to code.
  */
 public abstract class WebSocketExtensionSpi {
 
+    /**
+     * onInitialized hook is exercised when an extension is successfully negotiated.
+     */
     public WebSocketConsumer onInitialized = new WebSocketConsumer() {
 
         @Override
@@ -50,6 +50,9 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
+    /**
+     * onError hook is exercised in case of an error.
+     */
     public WebSocketConsumer onError = new WebSocketConsumer() {
 
         @Override
@@ -58,75 +61,124 @@ public abstract class WebSocketExtensionSpi {
         }
     };
 
-    public WebSocketFrameConsumer onBinaryFrameReceived = new WebSocketFrameConsumer() {
+    /**
+     * onBinaryReceived hook is exercised when a BINARY frame is received.
+     */
+    public WebSocketFrameConsumer onBinaryReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onBinaryReceived((Data) frame);
+            context.onBinaryReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onBinaryFrameSent = new WebSocketFrameConsumer() {
+    /**
+     * onBinarySent hook is exercised when sending a BINARY frame.
+     */
+    public WebSocketFrameConsumer onBinarySent = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onBinarySent((Data) frame);
+            context.onBinarySent(frame);
         }
     };
 
-    public WebSocketFrameConsumer onCloseFrameReceived = new WebSocketFrameConsumer() {
+    /**
+     * onContinuationReceived hook is exercised when a CONTINUATION frame is being received.
+     */
+    public WebSocketFrameConsumer onContinuationReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onCloseReceived((Close) frame);
+            context.onContinuationReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onCloseFrameSent = new WebSocketFrameConsumer() {
+    /**
+     * onContinuationSent hook is exercised when sending a CONTINUATION frame.
+     */
+    public WebSocketFrameConsumer onContinuationSent = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onCloseSent((Close) frame);
+            context.onContinuationSent(frame);
         }
     };
 
-    public WebSocketFrameConsumer onPingFrameReceived = new WebSocketFrameConsumer() {
+    /**
+     * onCloseReceived hook is exercised when a CLOSE frame is received.
+     */
+    public WebSocketFrameConsumer onCloseReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onPingReceived((Ping) frame);
+            context.onCloseReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onPongFrameReceived = new WebSocketFrameConsumer() {
+    /**
+     * onCloseSent hook is exercised when sending a CLOSE frame.
+     */
+    public WebSocketFrameConsumer onCloseSent = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onPongReceived((Pong) frame);
+            context.onCloseSent(frame);
         }
     };
 
-    public WebSocketFrameConsumer onPongFrameSent = new WebSocketFrameConsumer() {
+    /**
+     * onPingReceived hook is exercised when a PING frame is received.
+     */
+    public WebSocketFrameConsumer onPingReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onPongSent((Pong) frame);
+            context.onPingReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onTextFrameReceived = new WebSocketFrameConsumer() {
+    /**
+     * onPongReceived hook is exercised when a PONG frame is received.
+     */
+    public WebSocketFrameConsumer onPongReceived = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onTextReceived((Data) frame);
+            context.onPongReceived(frame);
         }
     };
 
-    public WebSocketFrameConsumer onTextFrameSent = new WebSocketFrameConsumer() {
+    /**
+     * onPongSent hook is exercised when sending a PONG frame.
+     */
+    public WebSocketFrameConsumer onPongSent = new WebSocketFrameConsumer() {
 
         @Override
         public void accept(WebSocketContext context, Frame frame) throws IOException {
-            context.onTextSent((Data) frame);
+            context.onPongSent(frame);
+        }
+    };
+
+    /**
+     * onTextReceived hook is exercised when a TEXT frame is received.
+     */
+    public WebSocketFrameConsumer onTextReceived = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onTextReceived(frame);
+        }
+    };
+
+    /**
+     * onTextSent hook is exercised when sending a TEXT frame.
+     */
+    public WebSocketFrameConsumer onTextSent = new WebSocketFrameConsumer() {
+
+        @Override
+        public void accept(WebSocketContext context, Frame frame) throws IOException {
+            context.onTextSent(frame);
         }
     };
 }

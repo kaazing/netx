@@ -15,16 +15,27 @@
  */
 package org.kaazing.netx.ws.internal.ext.flyweight;
 
-import java.nio.ByteBuffer;
+/**
+ * ClosePayload provides convenience APIs to access the payload of WebSocket CLOSE frame.
+ *
+ */
+public abstract class ClosePayload extends Flyweight {
+    /**
+     * Returns the status code in the WebSocket CLOSE payload.
+     *
+     * @return code
+     */
+    public abstract int statusCode();
 
-public class Ping extends Frame {
-    Ping() {
+    /**
+     * Returns the reason offset in the WebSocket CLOSE payload.
+     * @return
+     */
+    public abstract int reasonOffset();
 
-    }
-
-    @Override
-    public Ping wrap(ByteBuffer buffer, int offset) {
-        super.wrap(buffer, offset);
-        return this;
-    }
+    /**
+     * Returns the length of the reason in the WebSocket CLOSE payload.
+     * @return
+     */
+    public abstract int reasonLength();
 }

@@ -17,134 +17,62 @@ package org.kaazing.netx.ws.internal.ext.flyweight;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Abstract class representing a WebSocket Frame as per RFC 6544.
+ */
 public abstract class Frame extends Flyweight {
-    private static final byte FIN_MASK = (byte) 0x80;
-    private static final byte OP_CODE_MASK = 0x0F;
-    private static final byte MASKED_MASK = (byte) 0x80;
-    private static final byte LENGTH_BYTE_1_MASK = 0x7F;
-
-    private static final int LENGTH_OFFSET = 1;
-    private static final int MASK_OFFSET = 1;
-
-    private ByteBuffer unmaskedPayload;
-    private final Payload payload;
-    private final byte[] mask;
-
     Frame() {
-        payload = new Payload();
-        this.mask = new byte[4];
-    }
-
-    @Override
-    public int limit() {
-        return getDataOffset() + getLength();
     }
 
     @Override
     protected Flyweight wrap(final ByteBuffer buffer, final int offset) {
         super.wrap(buffer, offset);
-        payload.wrap(null, offset, 0);
         return this;
     }
 
-    public int getDataOffset() {
-        int index = offset() + LENGTH_OFFSET;
-        int lengthByte1 = uint8Get(buffer(), index) & LENGTH_BYTE_1_MASK;
-        index += 1;
+    /**
+     * Indicates whether this is a final frame by examining the FIN bit.
+     *
+     * @return true if the FIN bit is set, otherwise false
+     */
+    public abstract boolean fin();
 
-        switch (lengthByte1) {
-        case 126:
-            index += 2;
-            break;
-        case 127:
-            index += 8;
-            break;
-        default:
-            break;
-        }
+    /**
+     * Returns the reserved flags in the higher nibble of the leading byte of a WebSocket frame.
+     *
+     * @return values between 0-7
+     */
+    public abstract int flags();
 
-        if (isMasked()) {
-            index += 4;
-        }
-        return index;
-    }
+    /**
+     * Returns the opcode of the WebSocket frame.
+     *
+     * @return OpCode
+     */
+    public abstract Opcode opcode();
 
-    public int getLength() {
-        int length = uint8Get(buffer(), offset() + LENGTH_OFFSET) & LENGTH_BYTE_1_MASK;
+    /**
+     * Returns the length of the WebSocket frame. The maximum length of a WebSocket frame can be Integer.MAX_VALUE.
+     *
+     * ### TODO: long vs int.
+     *
+     * @return the length of the frame
+     */
+    public abstract int length();
 
-        switch (length) {
-        case 126:
-            return uint16Get(buffer(), offset() + LENGTH_OFFSET + 1);
-        case 127:
-            return (int) int64Get(buffer(), offset() + LENGTH_OFFSET + 1);
-        default:
-            return length;
-        }
-    }
+    /**
+     * Returns the payload's length. The maximum length of the payload can be Integer.MAX_VALUE - 10.
+     *
+     * ### TODO: long vs int
+     *
+     * @return payload's length
+     */
+    public abstract int payloadLength();
 
-    public int getMaskOffset() {
-        if (!isMasked()) {
-            return getDataOffset();
-        }
-
-        return getDataOffset() - 4;
-    }
-
-    public OpCode getOpCode() {
-        short byte0 = uint8Get(buffer(), offset());
-        return OpCode.fromInt(byte0 & OP_CODE_MASK);
-    }
-
-    public Payload getPayload() {
-        if (!isMasked()) {
-            payload.wrap(buffer(), getDataOffset(), limit());
-        }
-        else {
-            int len = getLength();
-            if (len == 0) {
-                payload.wrap(buffer(), getDataOffset(),  getDataOffset());
-            }
-            else {
-                int maskOff = getMaskOffset();
-                for (int i = 0; i < mask.length; i++) {
-                    mask[i] = (byte) uint8Get(buffer(), maskOff + i);
-                }
-
-                if (unmaskedPayload == null) {
-                    unmaskedPayload = ByteBuffer.wrap(new byte[getLength()]);
-                }
-
-                for (int i = 0; i < len; i++) {
-                    byte b = (byte) (uint8Get(buffer(), getDataOffset() + i) ^ mask[i % mask.length]);
-                    unmaskedPayload.put(i, b);
-                }
-
-                payload.wrap(unmaskedPayload, 0, len);
-            }
-        }
-        return payload;
-    }
-
-    public boolean isFin() {
-        return (uint8Get(buffer(), offset()) & FIN_MASK) != 0;
-    }
-
-    public boolean isMasked() {
-        return (uint8Get(buffer(), offset() + MASK_OFFSET) & MASKED_MASK) != 0;
-    }
-
-    public static class Payload extends Flyweight {
-        private int limit;
-
-        protected Payload wrap(ByteBuffer buffer, int offset, int limit) {
-            super.wrap(buffer, offset);
-            this.limit = limit;
-            return this;
-        }
-
-        @Override
-        public int limit() {
-            return limit;
-        }
-    }
+    /**
+     * Returns the payload's offset in the underlying buffer.
+     *
+     * @return payload offset
+     */
+    public abstract int payloadOffset();
 }
