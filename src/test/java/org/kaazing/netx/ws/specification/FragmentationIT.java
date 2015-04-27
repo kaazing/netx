@@ -82,7 +82,7 @@ public class FragmentationIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -115,7 +115,7 @@ public class FragmentationIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
         assertArrayEquals(writeBytes, readBytes);
     }
 
@@ -137,7 +137,7 @@ public class FragmentationIT {
         assertEquals(array.length, length);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -157,7 +157,7 @@ public class FragmentationIT {
         assertEquals(array.length, length);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -177,7 +177,7 @@ public class FragmentationIT {
         assertEquals(array.length, length);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -197,7 +197,7 @@ public class FragmentationIT {
         assertEquals(array.length, length);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -217,7 +217,7 @@ public class FragmentationIT {
         assertEquals(array.length, length);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -237,7 +237,7 @@ public class FragmentationIT {
         assertEquals(array.length, length);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -257,7 +257,7 @@ public class FragmentationIT {
         assertEquals(array.length, length);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -277,7 +277,7 @@ public class FragmentationIT {
         assertEquals(array.length, length);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -296,7 +296,7 @@ public class FragmentationIT {
         int length = reader.read(array);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -315,7 +315,7 @@ public class FragmentationIT {
         int length = reader.read(array);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -334,7 +334,7 @@ public class FragmentationIT {
         int length = reader.read(array);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -353,7 +353,7 @@ public class FragmentationIT {
         int length = reader.read(array);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -372,7 +372,7 @@ public class FragmentationIT {
         int length = reader.read(array);
         writer.write(array, 0, length);
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -390,7 +390,7 @@ public class FragmentationIT {
             input.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -410,7 +410,7 @@ public class FragmentationIT {
             reader.read(readChars);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -430,7 +430,7 @@ public class FragmentationIT {
             reader.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -449,7 +449,7 @@ public class FragmentationIT {
             input.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -468,7 +468,7 @@ public class FragmentationIT {
             reader.read(readChars);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -487,7 +487,7 @@ public class FragmentationIT {
             reader.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -506,7 +506,7 @@ public class FragmentationIT {
             input.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -525,7 +525,7 @@ public class FragmentationIT {
             reader.read(readChars);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -545,7 +545,7 @@ public class FragmentationIT {
             reader.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -564,7 +564,7 @@ public class FragmentationIT {
             input.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -584,7 +584,7 @@ public class FragmentationIT {
             reader.read(readChars);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -604,7 +604,7 @@ public class FragmentationIT {
             reader.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -623,7 +623,7 @@ public class FragmentationIT {
             input.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -642,7 +642,7 @@ public class FragmentationIT {
             reader.read(readChars);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -661,7 +661,7 @@ public class FragmentationIT {
             reader.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -680,7 +680,7 @@ public class FragmentationIT {
             input.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -699,7 +699,7 @@ public class FragmentationIT {
             reader.read(readChars);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -718,7 +718,7 @@ public class FragmentationIT {
             reader.read(readBytes);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 

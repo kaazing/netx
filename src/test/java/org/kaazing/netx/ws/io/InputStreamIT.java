@@ -86,7 +86,7 @@ public class InputStreamIT {
             output.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -136,7 +136,7 @@ public class InputStreamIT {
             output.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -186,7 +186,7 @@ public class InputStreamIT {
             output.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -236,7 +236,7 @@ public class InputStreamIT {
             output.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
 
     }

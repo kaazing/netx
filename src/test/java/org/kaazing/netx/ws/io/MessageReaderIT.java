@@ -65,7 +65,7 @@ public class MessageReaderIT {
             writer.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -94,7 +94,7 @@ public class MessageReaderIT {
             writer.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -123,7 +123,7 @@ public class MessageReaderIT {
             writer.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -152,7 +152,7 @@ public class MessageReaderIT {
             writer.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -189,7 +189,7 @@ public class MessageReaderIT {
             writer.write(charBuf, 0, charsRead);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -226,7 +226,7 @@ public class MessageReaderIT {
             writer.write(charBuf, 0, charsRead);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -263,7 +263,7 @@ public class MessageReaderIT {
             writer.write(charBuf, 0, charsRead);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
 
     }
@@ -302,7 +302,7 @@ public class MessageReaderIT {
             writer.write(charBuf, 0, charsRead);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 }

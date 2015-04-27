@@ -59,17 +59,17 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public synchronized void close() throws IOException {
+    public void close() throws IOException {
         close(0, null);
     }
 
     @Override
-    public synchronized void close(int code) throws IOException {
+    public void close(int code) throws IOException {
         close(code, null);
     }
 
     @Override
-    public synchronized void close(int code, String reason) throws IOException {
+    public void close(int code, String reason) throws IOException {
         connection.close(code, reason);
     }
 

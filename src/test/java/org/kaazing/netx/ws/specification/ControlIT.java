@@ -60,7 +60,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.connect();
         connection.close();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -75,7 +75,7 @@ public class ControlIT {
 
         connection.connect();
         connection.close(1000, reason);
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -93,7 +93,7 @@ public class ControlIT {
             connection.close(1000, reason);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -107,7 +107,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         input.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -120,7 +120,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -145,7 +145,7 @@ public class ControlIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -158,7 +158,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         input.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -171,7 +171,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -197,7 +197,7 @@ public class ControlIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -214,7 +214,7 @@ public class ControlIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -232,7 +232,7 @@ public class ControlIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -260,7 +260,7 @@ public class ControlIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -274,7 +274,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         input.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -287,7 +287,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -312,7 +312,7 @@ public class ControlIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -325,7 +325,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         input.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -338,7 +338,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -363,7 +363,7 @@ public class ControlIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -380,7 +380,7 @@ public class ControlIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -398,7 +398,7 @@ public class ControlIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -426,7 +426,7 @@ public class ControlIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -441,7 +441,7 @@ public class ControlIT {
         InputStream input = connection.getInputStream();
 
         input.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -455,7 +455,7 @@ public class ControlIT {
         Reader reader = connection.getReader();
 
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -479,7 +479,7 @@ public class ControlIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -492,7 +492,7 @@ public class ControlIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream input = connection.getInputStream();
         input.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -505,7 +505,7 @@ public class ControlIT {
         Reader reader = connection.getReader();
 
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -529,7 +529,7 @@ public class ControlIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -546,7 +546,7 @@ public class ControlIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -564,7 +564,7 @@ public class ControlIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -592,7 +592,7 @@ public class ControlIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -610,7 +610,7 @@ public class ControlIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -628,7 +628,7 @@ public class ControlIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -656,7 +656,7 @@ public class ControlIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -674,7 +674,7 @@ public class ControlIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -692,7 +692,7 @@ public class ControlIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -720,7 +720,7 @@ public class ControlIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -738,7 +738,7 @@ public class ControlIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -756,7 +756,7 @@ public class ControlIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -784,7 +784,7 @@ public class ControlIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -802,7 +802,7 @@ public class ControlIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -820,7 +820,7 @@ public class ControlIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -848,7 +848,7 @@ public class ControlIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -866,7 +866,7 @@ public class ControlIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -884,7 +884,7 @@ public class ControlIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -913,7 +913,7 @@ public class ControlIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 

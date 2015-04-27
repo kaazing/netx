@@ -62,7 +62,7 @@ public class OpeningHandshakeIT {
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
         conn.connect();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -83,7 +83,7 @@ public class OpeningHandshakeIT {
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
         conn.connect();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -95,7 +95,7 @@ public class OpeningHandshakeIT {
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
         conn.connect();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -107,7 +107,7 @@ public class OpeningHandshakeIT {
         WsURLConnection conn = (WsURLConnection) locationURL.openConnection();
 
         conn.connect();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -120,7 +120,7 @@ public class OpeningHandshakeIT {
 
         conn.setEnabledProtocols("primary", "secondary");
         conn.connect();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -133,9 +133,8 @@ public class OpeningHandshakeIT {
 
         conn.addEnabledExtensions("primary", "secondary");
         conn.connect();
-        k3po.join();
+        k3po.finish();
         assertEquals("primary", conn.getNegotiatedExtensions().iterator().next());
-        return;
     }
 
     @Test
@@ -151,6 +150,6 @@ public class OpeningHandshakeIT {
         WsURLConnection conn2 = (WsURLConnection) locationURL.openConnection();
         conn2.connect();
 
-        k3po.join();
+        k3po.finish();
     }
 }

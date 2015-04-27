@@ -85,7 +85,7 @@ public class ReaderIT {
             writer.write(charBuf, 0, length);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -133,7 +133,7 @@ public class ReaderIT {
             writer.write(charBuf, 0, length);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -181,7 +181,7 @@ public class ReaderIT {
             writer.write(charBuf, 0, length);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -229,7 +229,7 @@ public class ReaderIT {
             writer.write(charBuf, 0, length);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 }

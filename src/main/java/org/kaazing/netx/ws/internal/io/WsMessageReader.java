@@ -44,6 +44,7 @@ import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
+import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 
 public final class WsMessageReader extends MessageReader {
     private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
@@ -64,6 +65,7 @@ public final class WsMessageReader extends MessageReader {
     private final InputStream in;
     private final FrameRW incomingFrame;
     private final FrameRO incomingFrameRO;
+    private final OptimisticReentrantLock stateLock;
 
     private byte[] networkBuffer;
     private int networkBufferReadOffset;
@@ -193,6 +195,7 @@ public final class WsMessageReader extends MessageReader {
         this.state = State.INITIAL;
         this.incomingFrame = new FrameRW();
         this.incomingFrameRO = new FrameRO();
+        this.stateLock = new OptimisticReentrantLock();
 
         this.fragmented = false;
         this.applicationBufferWriteOffset = 0;
@@ -219,63 +222,70 @@ public final class WsMessageReader extends MessageReader {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
         }
 
-        // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
-        switch (state) {
-        case INITIAL:
-        case PROCESS_MESSAGE_TYPE:
-            readMessageType();
-            break;
-        default:
-            break;
-        }
+        try {
+            stateLock.lock();
 
-        applicationByteBuffer = buf;
-        applicationBufferWriteOffset = offset;
-
-        boolean finalFrame = false;
-
-        do {
-            switch (type) {
-            case EOS:
-                return -1;
-            case TEXT:
-                throw new IOException(MSG_NON_BINARY_FRAME);
+            // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
+            switch (state) {
+            case INITIAL:
+            case PROCESS_MESSAGE_TYPE:
+                readMessageType();
+                break;
             default:
                 break;
             }
 
-            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
-            finalFrame = incomingFrame.fin();
+            applicationByteBuffer = buf;
+            applicationBufferWriteOffset = offset;
 
-            validateOpcode();
-            DefaultWebSocketContext context = connection.getIncomingContext();
-            IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-            sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opcode());
-            connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
-            networkBufferReadOffset += incomingFrame.length();
-            state = State.PROCESS_MESSAGE_TYPE;
+            boolean finalFrame = false;
 
-            if (networkBufferReadOffset == networkBufferWriteOffset) {
-                networkBufferReadOffset = 0;
-                networkBufferWriteOffset = 0;
+            do {
+                switch (type) {
+                case EOS:
+                    return -1;
+                case TEXT:
+                    throw new IOException(MSG_NON_BINARY_FRAME);
+                default:
+                    break;
+                }
+
+                incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
+                finalFrame = incomingFrame.fin();
+
+                validateOpcode();
+                DefaultWebSocketContext context = connection.getIncomingContext();
+                IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+                sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opcode());
+                connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+                networkBufferReadOffset += incomingFrame.length();
+                state = State.PROCESS_MESSAGE_TYPE;
+
+                if (networkBufferReadOffset == networkBufferWriteOffset) {
+                    networkBufferReadOffset = 0;
+                    networkBufferWriteOffset = 0;
+                }
+
+                if (!finalFrame) {
+                    // Start reading the CONTINUATION frame for the message.
+                    assert state == State.PROCESS_MESSAGE_TYPE;
+                    readMessageType();
+                }
+            } while (!finalFrame);
+
+            state = State.INITIAL;
+
+            if ((applicationBufferWriteOffset - offset == 0) && (length > 0)) {
+                // An extension can consume the entire message and not let it surface to the app. In which case, we just try to
+                // read the next message.
+                return read(buf, offset, length);
             }
 
-            if (!finalFrame) {
-                // Start reading the CONTINUATION frame for the message.
-                assert state == State.PROCESS_MESSAGE_TYPE;
-                readMessageType();
-            }
-        } while (!finalFrame);
-
-        state = State.INITIAL;
-
-        if ((applicationBufferWriteOffset - offset == 0) && (length > 0)) {
-            // An extension can consume the entire message and not let it surface to the app. In which case, we just try to
-            // read the next message.
-            return read(buf, offset, length);
+            return applicationBufferWriteOffset - offset;
         }
-
-        return applicationBufferWriteOffset - offset;
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
@@ -293,64 +303,71 @@ public final class WsMessageReader extends MessageReader {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
         }
 
-        // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
-        switch (state) {
-        case INITIAL:
-        case PROCESS_MESSAGE_TYPE:
-            readMessageType();
-            break;
-        default:
-            break;
-        }
+        try {
+            stateLock.lock();
 
-        applicationCharBuffer = buf;
-        applicationBufferWriteOffset = offset;
-        applicationBufferLength = length;
-
-        boolean finalFrame = false;
-
-        do {
-            switch (type) {
-            case EOS:
-                return -1;
-            case BINARY:
-                throw new IOException(MSG_NON_TEXT_FRAME);
+            // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
+            switch (state) {
+            case INITIAL:
+            case PROCESS_MESSAGE_TYPE:
+                readMessageType();
+                break;
             default:
                 break;
             }
 
-            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
-            finalFrame = incomingFrame.fin();
+            applicationCharBuffer = buf;
+            applicationBufferWriteOffset = offset;
+            applicationBufferLength = length;
 
-            validateOpcode();
-            DefaultWebSocketContext context = connection.getIncomingContext();
-            IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-            sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opcode());
-            connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
-            networkBufferReadOffset += incomingFrame.length();
-            state = State.PROCESS_MESSAGE_TYPE;
+            boolean finalFrame = false;
 
-            if (networkBufferReadOffset == networkBufferWriteOffset) {
-                networkBufferReadOffset = 0;
-                networkBufferWriteOffset = 0;
+            do {
+                switch (type) {
+                case EOS:
+                    return -1;
+                case BINARY:
+                    throw new IOException(MSG_NON_TEXT_FRAME);
+                default:
+                    break;
+                }
+
+                incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
+                finalFrame = incomingFrame.fin();
+
+                validateOpcode();
+                DefaultWebSocketContext context = connection.getIncomingContext();
+                IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+                sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opcode());
+                connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+                networkBufferReadOffset += incomingFrame.length();
+                state = State.PROCESS_MESSAGE_TYPE;
+
+                if (networkBufferReadOffset == networkBufferWriteOffset) {
+                    networkBufferReadOffset = 0;
+                    networkBufferWriteOffset = 0;
+                }
+
+                if (!finalFrame) {
+                    // Start reading the CONTINUATION frame for the message.
+                    assert state == State.PROCESS_MESSAGE_TYPE;
+                    readMessageType();
+                }
+            } while (!finalFrame);
+
+            state = State.INITIAL;
+
+            if ((applicationBufferWriteOffset - offset == 0) && (length > 0)) {
+                // An extension can consume the entire message and not let it surface to the app. In which case, we just try to
+                // read the next message.
+                return read(buf, offset, length);
             }
 
-            if (!finalFrame) {
-                // Start reading the CONTINUATION frame for the message.
-                assert state == State.PROCESS_MESSAGE_TYPE;
-                readMessageType();
-            }
-        } while (!finalFrame);
-
-        state = State.INITIAL;
-
-        if ((applicationBufferWriteOffset - offset == 0) && (length > 0)) {
-            // An extension can consume the entire message and not let it surface to the app. In which case, we just try to
-            // read the next message.
-            return read(buf, offset, length);
+            return applicationBufferWriteOffset - offset;
         }
-
-        return applicationBufferWriteOffset - offset;
+        finally {
+            stateLock.lock();
+        }
     }
 
     @Override
@@ -360,22 +377,35 @@ public final class WsMessageReader extends MessageReader {
 
     @Override
     public MessageType next() throws IOException {
-        switch (state) {
-        case INITIAL:
-        case PROCESS_MESSAGE_TYPE:
-            readMessageType();
-            break;
-        default:
-            break;
-        }
+        try {
+            stateLock.lock();
 
-        return type;
+            switch (state) {
+            case INITIAL:
+            case PROCESS_MESSAGE_TYPE:
+                readMessageType();
+                break;
+            default:
+                break;
+            }
+
+            return type;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     public void close() throws IOException {
-        in.close();
-        type = null;
-        state = null;
+        try {
+            stateLock.lock();
+            in.close();
+            type = null;
+            state = null;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     private int readMessageType() throws IOException {
@@ -518,12 +548,13 @@ public final class WsMessageReader extends MessageReader {
         return leadByte;
     }
 
-    private int utf8BytesToChars(ByteBuffer src,
-                                 int srcOffset,
-                                 long srcLength,
-                                 char[] dest,
-                                 int destOffset,
-                                 int destLength) throws IOException {
+    private int utf8BytesToChars(
+            ByteBuffer src,
+            int srcOffset,
+            long srcLength,
+            char[] dest,
+            int destOffset,
+            int destLength) throws IOException {
         int destMark = destOffset;
         int index = 0;
 

@@ -75,7 +75,7 @@ public class BaseFramingIT {
         byte[] readBytes = new byte[0];
         in.read(readBytes);
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -108,7 +108,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -140,7 +140,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -173,7 +173,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -205,7 +205,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -238,7 +238,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -270,7 +270,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -303,7 +303,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -335,7 +335,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -368,7 +368,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -400,7 +400,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -433,7 +433,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -465,7 +465,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -498,7 +498,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -531,7 +531,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -565,7 +565,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -598,7 +598,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -680,7 +680,7 @@ public class BaseFramingIT {
         StringBuilder sb = new StringBuilder().append(cbuf1).append(cbuf2).append(cbuf3).append(cbuf4).append(cbuf5);
 
         String readString = sb.toString();
-        k3po.join();
+        k3po.finish();
         assertEquals(writeString, readString);
     }
 
@@ -740,7 +740,7 @@ public class BaseFramingIT {
         StringBuilder sb = new StringBuilder().append(cbuf1).append(cbuf2).append(cbuf3, 0, offset3);
 
         String readString = sb.toString();
-        k3po.join();
+        k3po.finish();
         assertEquals(writeString, readString);
     }
 
@@ -772,7 +772,7 @@ public class BaseFramingIT {
         }
 
         String readString = String.valueOf(cbuf);
-        k3po.join();
+        k3po.finish();
         assertEquals(writeString, readString);
     }
 
@@ -804,7 +804,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -838,7 +838,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -871,7 +871,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -905,7 +905,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -938,7 +938,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -972,7 +972,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -1006,7 +1006,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -1040,7 +1040,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -1074,7 +1074,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -1108,7 +1108,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }

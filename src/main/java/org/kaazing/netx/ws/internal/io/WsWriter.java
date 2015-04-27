@@ -28,6 +28,7 @@ import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.util.FrameUtil;
+import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 import org.kaazing.netx.ws.internal.util.Utf8Util;
 
 public class WsWriter extends Writer {
@@ -36,8 +37,9 @@ public class WsWriter extends Writer {
     private final WsURLConnectionImpl connection;
     private final FrameRW outgoingFrame;
     private final FrameRO outgoingFrameRO;
-    private ByteBuffer payload;
+    private final OptimisticReentrantLock stateLock;
 
+    private ByteBuffer payload;
     private ByteBuffer heapBuffer;
     private ByteBuffer heapBufferRO;
 
@@ -45,6 +47,7 @@ public class WsWriter extends Writer {
         this.connection = connection;
         this.outgoingFrame = new FrameRW();
         this.outgoingFrameRO = new FrameRO();
+        this.stateLock = new OptimisticReentrantLock();
     }
 
     @Override
@@ -60,28 +63,36 @@ public class WsWriter extends Writer {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, cbuf.length));
         }
 
-        int payloadLength = Utf8Util.byteCountUTF8(cbuf, offset, length);
-        int capacity = FrameUtil.calculateCapacity(false, payloadLength);
+        try {
+            stateLock.lock();
 
-        if ((payload == null) || (payload.capacity() < payloadLength)) {
-            payload = ByteBuffer.allocate(payloadLength);
+            int payloadLength = Utf8Util.byteCountUTF8(cbuf, offset, length);
+            int capacity = FrameUtil.calculateCapacity(false, payloadLength);
+
+            if ((payload == null) || (payload.capacity() < payloadLength)) {
+                payload = ByteBuffer.allocate(payloadLength);
+            }
+
+            int byteCount = Utf8Util.charstoUTF8Bytes(cbuf, offset, length, payload, 0);
+            assert payloadLength == byteCount;
+
+            if ((outgoingFrame.buffer() == null) || (outgoingFrame.buffer().capacity() < capacity)) {
+                heapBuffer = ByteBuffer.allocate(capacity);
+                heapBufferRO = heapBuffer.asReadOnlyBuffer();
+                outgoingFrame.wrap(heapBuffer,  0);
+            }
+
+            outgoingFrame.fin(true);
+            outgoingFrame.opcode(TEXT);
+            outgoingFrame.payloadPut(payload, 0, byteCount);
+
+            outgoingFrameRO.wrap(heapBufferRO, outgoingFrame.offset());
+            connection.processOutgoingFrame(outgoingFrameRO);
+        }
+        finally {
+            stateLock.unlock();
         }
 
-        int byteCount = Utf8Util.charstoUTF8Bytes(cbuf, offset, length, payload, 0);
-        assert payloadLength == byteCount;
-
-        if ((outgoingFrame.buffer() == null) || (outgoingFrame.buffer().capacity() < capacity)) {
-            heapBuffer = ByteBuffer.allocate(capacity);
-            heapBufferRO = heapBuffer.asReadOnlyBuffer();
-            outgoingFrame.wrap(heapBuffer,  0);
-        }
-
-        outgoingFrame.fin(true);
-        outgoingFrame.opcode(TEXT);
-        outgoingFrame.payloadPut(payload, 0, byteCount);
-
-        outgoingFrameRO.wrap(heapBufferRO, outgoingFrame.offset());
-        connection.processOutgoingFrame(outgoingFrameRO);
     }
 
     @Override

@@ -61,7 +61,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.connect();
         connection.close();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -74,7 +74,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.connect();
         connection.close(1000);
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -88,7 +88,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.connect();
         connection.close(1000, reason);
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -101,7 +101,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
         in.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -114,7 +114,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -138,7 +138,7 @@ public class ClosingHandshakeIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -151,7 +151,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
         in.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -164,7 +164,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -188,7 +188,7 @@ public class ClosingHandshakeIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -201,7 +201,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
         in.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -214,7 +214,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -238,7 +238,7 @@ public class ClosingHandshakeIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -255,7 +255,7 @@ public class ClosingHandshakeIT {
             in.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -274,7 +274,7 @@ public class ClosingHandshakeIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -304,7 +304,7 @@ public class ClosingHandshakeIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -318,7 +318,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
         in.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -331,7 +331,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -355,7 +355,7 @@ public class ClosingHandshakeIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -372,7 +372,7 @@ public class ClosingHandshakeIT {
             in.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -390,7 +390,7 @@ public class ClosingHandshakeIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -419,7 +419,7 @@ public class ClosingHandshakeIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -437,7 +437,7 @@ public class ClosingHandshakeIT {
             in.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -455,7 +455,7 @@ public class ClosingHandshakeIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -484,7 +484,7 @@ public class ClosingHandshakeIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -502,7 +502,7 @@ public class ClosingHandshakeIT {
             in.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -520,7 +520,7 @@ public class ClosingHandshakeIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -549,7 +549,7 @@ public class ClosingHandshakeIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 

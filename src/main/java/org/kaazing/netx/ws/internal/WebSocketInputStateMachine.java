@@ -71,47 +71,53 @@ public final class WebSocketInputStateMachine {
     }
 
     public void processFrame(final WsURLConnectionImpl connection, final Frame frame) throws IOException {
-        DefaultWebSocketContext context = connection.getIncomingContext();
-        WebSocketState state = connection.getInputState();
-        Opcode opcode = frame.opcode();
+        try {
+            connection.getReadLock().lock();
 
-        context.reset();
+            DefaultWebSocketContext context = connection.getIncomingContext();
+            WebSocketState state = connection.getInputState();
+            Opcode opcode = frame.opcode();
 
-        switch (state) {
-        case OPEN:
-            switch (opcode) {
-            case BINARY:
-                transition(connection, RECEIVE_BINARY_FRAME);
-                context.onBinaryReceived(frame);
+            context.reset();
+
+            switch (state) {
+            case OPEN:
+                switch (opcode) {
+                case BINARY:
+                    transition(connection, RECEIVE_BINARY_FRAME);
+                    context.onBinaryReceived(frame);
+                    break;
+                case CLOSE:
+                    transition(connection, RECEIVE_CLOSE_FRAME);
+                    context.onCloseReceived(frame);
+                    break;
+                case CONTINUATION:
+                    transition(connection, RECEIVE_CONTINUATION_FRAME);
+                    context.onContinuationReceived(frame);
+                    break;
+                case PING:
+                    transition(connection, RECEIVE_PING_FRAME);
+                    context.onPingReceived(frame);
+                    break;
+                case PONG:
+                    transition(connection, RECEIVE_PONG_FRAME);
+                    context.onPongReceived(frame);
+                    break;
+                case TEXT:
+                    transition(connection, RECEIVE_TEXT_FRAME);
+                    context.onTextReceived(frame);
+                    break;
+                }
                 break;
-            case CLOSE:
-                transition(connection, RECEIVE_CLOSE_FRAME);
-                context.onCloseReceived(frame);
-                break;
-            case CONTINUATION:
-                transition(connection, RECEIVE_CONTINUATION_FRAME);
-                context.onContinuationReceived(frame);
-                break;
-            case PING:
-                transition(connection, RECEIVE_PING_FRAME);
-                context.onPingReceived(frame);
-                break;
-            case PONG:
-                transition(connection, RECEIVE_PONG_FRAME);
-                context.onPongReceived(frame);
-                break;
-            case TEXT:
-                transition(connection, RECEIVE_TEXT_FRAME);
-                context.onTextReceived(frame);
+            default:
+                transition(connection, ERROR);
+                context.onError(format("Invalid state %s to be receiving a BINARY frame", state));
                 break;
             }
-            break;
-        default:
-            transition(connection, ERROR);
-            context.onError(format("Invalid state %s to be receiving a BINARY frame", state));
-            break;
         }
-
+        finally {
+            connection.getReadLock().unlock();
+        }
     }
 
     private static void transition(WsURLConnectionImpl connection, WebSocketTransition transition) {

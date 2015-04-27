@@ -65,7 +65,7 @@ public class DataFramingIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -83,7 +83,7 @@ public class DataFramingIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -111,7 +111,7 @@ public class DataFramingIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -129,7 +129,7 @@ public class DataFramingIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -147,7 +147,7 @@ public class DataFramingIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -175,7 +175,7 @@ public class DataFramingIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -193,7 +193,7 @@ public class DataFramingIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -211,7 +211,7 @@ public class DataFramingIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -239,7 +239,7 @@ public class DataFramingIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -257,7 +257,7 @@ public class DataFramingIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -275,7 +275,7 @@ public class DataFramingIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -303,7 +303,7 @@ public class DataFramingIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -321,7 +321,7 @@ public class DataFramingIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -339,7 +339,7 @@ public class DataFramingIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -367,7 +367,7 @@ public class DataFramingIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 

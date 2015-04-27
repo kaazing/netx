@@ -65,7 +65,7 @@ public class MaskingIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -93,7 +93,7 @@ public class MaskingIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -111,7 +111,7 @@ public class MaskingIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -139,7 +139,7 @@ public class MaskingIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 }

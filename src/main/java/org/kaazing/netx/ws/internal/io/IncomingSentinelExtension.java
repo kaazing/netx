@@ -22,6 +22,7 @@ import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 public final class IncomingSentinelExtension extends WebSocketExtensionSpi {
     private final WebSocketFrameConsumer cachedOnBinaryReceived;
     private final WebSocketFrameConsumer cachedOnContinuationReceived;
+    private final WebSocketFrameConsumer cachedOnCloseReceived;
     private final WebSocketFrameConsumer cachedOnPingReceived;
     private final WebSocketFrameConsumer cachedOnPongReceived;
     private final WebSocketFrameConsumer cachedOnTextReceived;
@@ -29,6 +30,7 @@ public final class IncomingSentinelExtension extends WebSocketExtensionSpi {
     public IncomingSentinelExtension() {
         this.cachedOnBinaryReceived = super.onBinaryReceived;
         this.cachedOnContinuationReceived = super.onContinuationReceived;
+        this.cachedOnCloseReceived = super.onCloseReceived;
         this.cachedOnPingReceived = super.onPingReceived;
         this.cachedOnPongReceived = super.onPongReceived;
         this.cachedOnTextReceived = super.onTextReceived;
@@ -62,6 +64,7 @@ public final class IncomingSentinelExtension extends WebSocketExtensionSpi {
     private void restoreConsumers() {
         super.onBinaryReceived = this.cachedOnBinaryReceived;
         super.onContinuationReceived = this.cachedOnContinuationReceived;
+        super.onCloseReceived = this.cachedOnCloseReceived;
         super.onPingReceived = this.cachedOnPingReceived;
         super.onPongReceived = this.cachedOnPongReceived;
         super.onTextReceived = this.cachedOnTextReceived;

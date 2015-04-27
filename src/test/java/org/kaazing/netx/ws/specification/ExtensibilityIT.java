@@ -63,7 +63,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -81,7 +81,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -99,7 +99,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -117,7 +117,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -135,7 +135,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -153,7 +153,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -171,7 +171,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -189,7 +189,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -207,7 +207,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -225,7 +225,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -253,7 +253,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -281,7 +281,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -309,7 +309,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -337,7 +337,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -365,7 +365,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -383,7 +383,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -401,7 +401,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -419,7 +419,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -437,7 +437,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -455,7 +455,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -473,7 +473,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -491,7 +491,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -509,7 +509,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -527,7 +527,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -545,7 +545,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -573,7 +573,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -601,7 +601,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -629,7 +629,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -657,7 +657,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -685,7 +685,7 @@ public class ExtensibilityIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -703,7 +703,7 @@ public class ExtensibilityIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -721,7 +721,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -739,7 +739,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -757,7 +757,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -775,7 +775,7 @@ public class ExtensibilityIT {
             input.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
