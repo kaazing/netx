@@ -18,15 +18,14 @@ package org.kaazing.netx.ws.internal.util;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-// ### TODO: happens-before relationship should be established between the thread that releases the lock and the next thread that
-//           acquires the lock.
+// ### TODO: 1. happens-before relationship should be established between the thread that releases the lock and the next thread
+//              that acquires the lock.
+//           2. Evaluate using Martin's sun.misc.Unsafe based AtomicSequence implementation.
 public class OptimisticReentrantLock {
-//    private final AtomicStampedReference<Thread> lock;
     private final AtomicReference<Thread> reference;
     private final AtomicInteger stamp;
 
     public OptimisticReentrantLock() {
-//        lock = new AtomicStampedReference<Thread>(null, 0);
         this.reference = new AtomicReference<Thread>(null);
         this.stamp = new AtomicInteger(0);
     }
@@ -34,58 +33,38 @@ public class OptimisticReentrantLock {
     public void lock() {
         boolean lockObtained = false;
 
-        while (!lockObtained) {
-            if (Thread.currentThread() == getOwner()) {
-                stamp.incrementAndGet();
-                lockObtained = true;
-                break;
-            }
+        if (Thread.currentThread() == getOwner()) {
+            stamp.incrementAndGet();
+            return;
+        }
 
-            if (reference.compareAndSet(null, Thread.currentThread()) && stamp.compareAndSet(0, 1)) {
+        while (!lockObtained) {
+            if (reference.compareAndSet(null, Thread.currentThread())) {
+                stamp.set(1);
                 lockObtained = true;
-                break;
             }
         }
-//      Thread currentOwner = getOwner();
-//      int currentStamp = getStamp();
-//
-//        while (!lock.compareAndSet((currentOwner != Thread.currentThread() ? null : currentOwner),
-//                                   Thread.currentThread(),
-//                                   (currentOwner != Thread.currentThread() ? 0 : currentStamp),
-//                                   (currentOwner != Thread.currentThread() ? 1 : currentStamp + 1)));
     }
 
     public void unlock() {
         if (Thread.currentThread() == getOwner()) {
             int currentStamp = stamp.get();
             if (currentStamp == 1) {
+                // Order in which atomics are reset is important. First, reset the stamp and then the reference.
                 stamp.set(0);
-                reference.compareAndSet(Thread.currentThread(), null);
+                reference.set(null);
             }
             else if (currentStamp > 1) {
                 stamp.decrementAndGet();
             }
         }
-//        Thread currentOwner = getOwner();
-//        int currentStamp = getStamp();
-//
-//        if (currentOwner != Thread.currentThread()) {
-//            return;
-//        }
-//
-//        lock.compareAndSet(currentOwner,
-//                           (currentStamp > 1 ? Thread.currentThread() : null),
-//                           currentStamp,
-//                           (currentStamp > 0 ? currentStamp - 1 : 0));
     }
 
     public Thread getOwner() {
-//        return lock.getReference();
         return reference.get();
     }
 
     public int getStamp() {
-//        return lock.getStamp();
         return stamp.get();
     }
 }
