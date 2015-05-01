@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 
-import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 public class WsMessageWriter extends MessageWriter {

@@ -23,6 +23,7 @@ import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.Lock;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
@@ -37,7 +38,7 @@ public class WsWriter extends Writer {
     private final WsURLConnectionImpl connection;
     private final FrameRW outgoingFrame;
     private final FrameRO outgoingFrameRO;
-    private final OptimisticReentrantLock stateLock;
+    private final Lock stateLock;
 
     private ByteBuffer payload;
     private ByteBuffer heapBuffer;
@@ -92,7 +93,6 @@ public class WsWriter extends Writer {
         finally {
             stateLock.unlock();
         }
-
     }
 
     @Override

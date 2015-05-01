@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws;
+package org.kaazing.netx.ws.internal.io;
+
 
 /**
  * {@link MessageType} represents the types of the messages that are received by the {@link MessageReader}.

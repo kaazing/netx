@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.locks.Lock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -95,6 +96,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
+    private static final int MAX_PAYLOAD_LENGTH = 8192;
 
     private final Random random;
     private final HttpURLConnection connection;
@@ -109,22 +111,24 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final WebSocketInputStateMachine inputStateMachine;
     private final WebSocketOutputStateMachine outputStateMachine;
     private final WebSocketExtensionFactory extensionFactory;
-    private final OptimisticReentrantLock readLock;
-    private final OptimisticReentrantLock stateLock;
-    private final OptimisticReentrantLock writeLock;
+    private final Lock readLock;
+    private final Lock stateLock;
+    private final Lock writeLock;
 
-    private String negotiatedProtocol;
-    private WsInputStream inputStream;
-    private WsOutputStream outputStream;
-    private WsReader reader;
-    private WsWriter writer;
-    private WsMessageReader messageReader;
-    private WsMessageWriter messageWriter;
+    private volatile String negotiatedProtocol;
+    private volatile WsInputStream inputStream;
+    private volatile WsOutputStream outputStream;
+    private volatile WsReader reader;
+    private volatile WsWriter writer;
+    private volatile WsMessageReader messageReader;
+    private volatile WsMessageWriter messageWriter;
 
-    private WebSocketState inputState;
-    private WebSocketState outputState;
-    private DefaultWebSocketContext incomingContext;
-    private DefaultWebSocketContext outgoingContext;
+    private volatile WebSocketState inputState;
+    private volatile WebSocketState outputState;
+    private volatile DefaultWebSocketContext incomingContext;
+    private volatile DefaultWebSocketContext outgoingContext;
+
+    private int maxPayloadLength;
 
     public WsURLConnectionImpl(
             URLConnectionHelper helper,
@@ -154,6 +158,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.readLock = new OptimisticReentrantLock();
         this.stateLock = new OptimisticReentrantLock();
         this.writeLock = new OptimisticReentrantLock();
+        this.maxPayloadLength = MAX_PAYLOAD_LENGTH;
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -185,9 +190,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             throw new IllegalArgumentException(MSG_NO_EXTENSIONS_SPEICIFIED);
         }
 
+        checkConnected();
+
         try {
             stateLock.lock();
-            enabledExtensions.clear();
 
             for (String extension : extensions) {
                 try {
@@ -290,6 +296,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
+    public int getMaxPayloadLength() {
+        return maxPayloadLength;
+    }
+
+    @Override
     public HttpRedirectPolicy getRedirectPolicy() {
         return connection.getRedirectPolicy();
     }
@@ -311,7 +322,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    @Override
     public WsMessageReader getMessageReader() throws IOException {
         if (messageReader != null) {
             return messageReader;
@@ -328,7 +338,6 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    @Override
     public WsMessageWriter getMessageWriter() throws IOException {
         if (messageWriter != null) {
             return messageWriter;
@@ -427,22 +436,19 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public void setChallengeHandler(ChallengeHandler challengeHandler) {
+        checkConnected();
         connection.setChallengeHandler(challengeHandler);
     }
 
     @Override
     public void setConnectTimeout(int timeout) {
+        checkConnected();
         connection.setConnectTimeout(timeout);
     }
 
     @Override
     public void setEnabledProtocols(String... enabledProtocols) {
-        switch (inputState) {
-        case START:
-            break;
-        default:
-            throw new IllegalStateException(MSG_ALREADY_CONNECTED);
-        }
+        checkConnected();
 
         try {
             stateLock.lock();
@@ -455,7 +461,23 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
+    public void setMaxPayloadLength(int maxPayloadLength) {
+        checkConnected();
+
+        if (maxPayloadLength > Integer.MAX_VALUE - 14) {
+            throw new IllegalArgumentException(format("Maximim payload length must not exceed %d", Integer.MAX_VALUE - 14));
+        }
+
+        if (maxPayloadLength <= 0) {
+            throw new IllegalArgumentException("Maximum payload length must be positive integer value");
+        }
+
+        this.maxPayloadLength = maxPayloadLength;
+    }
+
+    @Override
     public void setRedirectPolicy(HttpRedirectPolicy redirectPolicy) {
+        checkConnected();
         connection.setRedirectPolicy(redirectPolicy);
     }
 
@@ -573,11 +595,15 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
-    public OptimisticReentrantLock getReadLock() {
+    public Random getRandom() {
+        return random;
+    }
+
+    public Lock getReadLock() {
         return readLock;
     }
 
-    public OptimisticReentrantLock getWriteLock() {
+    public Lock getWriteLock() {
         return writeLock;
     }
 
@@ -698,6 +724,14 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
 
     ///////////////////////////////////////////////////////////////////////////
+    private void checkConnected() {
+        switch (inputState) {
+        case START:
+            break;
+        default:
+            throw new IllegalStateException(MSG_ALREADY_CONNECTED);
+        }
+    }
 
     private void ensureConnected() throws IOException {
         switch (inputState) {

@@ -30,12 +30,11 @@ import java.util.Collection;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WebSocket;
+import org.kaazing.netx.ws.internal.io.MessageReader;
+import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 public class WebSocketImpl extends WebSocket {
-
     private final WsURLConnectionImpl connection;
 
     public WebSocketImpl(URI location, WebSocketExtensionFactory extensionFactory) throws URISyntaxException {
@@ -109,11 +108,14 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
+    public int getMaxPayloadLength() {
+        return connection.getMaxPayloadLength();
+    }
+
     public MessageReader getMessageReader() throws IOException {
         return connection.getMessageReader();
     }
 
-    @Override
     public MessageWriter getMessageWriter() throws IOException {
         return connection.getMessageWriter();
     }
@@ -166,5 +168,10 @@ public class WebSocketImpl extends WebSocket {
     @Override
     public void setRedirectPolicy(HttpRedirectPolicy policy) {
         connection.setRedirectPolicy(policy);
+    }
+
+    @Override
+    public void setMaxPayloadLength(int maxPayloadLength) {
+        connection.setMaxPayloadLength(maxPayloadLength);
     }
 }

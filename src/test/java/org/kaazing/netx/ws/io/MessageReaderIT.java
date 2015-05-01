@@ -28,9 +28,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.io.MessageReader;
+import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 public class MessageReaderIT {
     private final K3poRule k3po = new K3poRule().setScriptRoot("org/kaazing/netx/ws/io");
@@ -48,9 +49,10 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
-        MessageWriter writer = connection.getMessageWriter();
+        connection.setMaxPayloadLength(8188);
 
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
         try {
             byte[] readBytes1 = new byte[8185];
             byte[] readBytes2 = new byte[150];
@@ -77,8 +79,10 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
-        MessageWriter writer = connection.getMessageWriter();
+        connection.setMaxPayloadLength(8188);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         try {
             byte[] readBytes1 = new byte[8186];
@@ -106,8 +110,10 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
-        MessageWriter writer = connection.getMessageWriter();
+        connection.setMaxPayloadLength(8188);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         try {
             byte[] readBytes1 = new byte[8184];
@@ -135,9 +141,10 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
-        MessageWriter writer = connection.getMessageWriter();
+        connection.setMaxPayloadLength(8188);
 
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
         try {
             byte[] readBytes1 = new byte[8187];
             byte[] readBytes2 = new byte[150];
@@ -164,8 +171,10 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
-        MessageWriter writer = connection.getMessageWriter();
+        connection.setMaxPayloadLength(8188);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         try {
             char[] charBuf = new char[8500];
@@ -201,8 +210,10 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
-        MessageWriter writer = connection.getMessageWriter();
+        connection.setMaxPayloadLength(8188);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         try {
             char[] charBuf = new char[8500];
@@ -238,8 +249,10 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
-        MessageWriter writer = connection.getMessageWriter();
+        connection.setMaxPayloadLength(8188);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         try {
             char[] charBuf = new char[8500];
@@ -276,8 +289,10 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
-        MessageWriter writer = connection.getMessageWriter();
+        connection.setMaxPayloadLength(8188);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         try {
             char[] charBuf = new char[8500];

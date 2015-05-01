@@ -121,7 +121,8 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
 
     /**
      * Uses the specified comma(,) separated string as a list of enabled extensions that would be negotiated with the server
-     * during the opening handshake. The HTTP request header format of specified string is shown below:
+     * during the opening handshake. This method must be invoked before {@link #connect} is called. The HTTP request header
+     * format of specified string is shown below:
      *
      * {@code}
      *      extension-name1[;param11=value11;param12;param13=value13, extension-name2;param21=value21;..]
@@ -208,20 +209,11 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract InputStream getInputStream() throws IOException;
 
     /**
-     * Returns a {@link MessageReader} that can be used to receive <b>binary</b> and/or <b>text</b> messages.
-     * <p>
-     * @return WebSocketMessageReader   to receive binary and text messages
-     * @throws IOException if an I/O error occurs when connecting or connection is closed
-     */
-    public abstract MessageReader getMessageReader() throws IOException;
-
-    /**
-     * Returns a {@link MessageWriter} that can be used to send <b>binary</b> and/or <b>text</b> messages.
+     * Returns the maximum payload length that this connection will support. The default maximum payload length is 8192bytes.
      *
-     * @return WebSocketMessageWriter   to send binary and/or text messages
-     * @throws IOException if an I/O error occurs when connecting or connection is closed
+     * @return maximum payload length for the connection
      */
-    public abstract MessageWriter getMessageWriter() throws IOException;
+    public abstract int getMaxPayloadLength();
 
     /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
@@ -309,7 +301,19 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract void setEnabledProtocols(String... protocols) throws IllegalStateException;
 
     /**
-     * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx).
+     * Sets the maximum payload length that this connection can handle. This method must be invoked before {@link #connect}
+     * is called. The maximum payload length can be Integer.MAX_VALUE - 14.
+     * <p>
+     * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
+     * If the maxPayloadLength <= 0 or maxPayloadLength > Integer.MAX_VALUE - 14, an IllegalArgumentException is thrown.
+     * <p>
+     * @param maxPayloadLength  maximum payload length for the connection
+     */
+    public abstract void setMaxPayloadLength(int maxPayloadLength);
+
+    /**
+     * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx). This method must be invoked
+     * before {@link #connect()} is called
      *
      * @param policy the redirect policy applied to HTTP redirect responses
      */

@@ -32,9 +32,8 @@ import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.Lock;
 
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.DefaultWebSocketContext;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
@@ -44,6 +43,7 @@ import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
+import org.kaazing.netx.ws.internal.util.FrameUtil;
 import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 
 public final class WsMessageReader extends MessageReader {
@@ -58,16 +58,17 @@ public final class WsMessageReader extends MessageReader {
     private static final String MSG_UNEXPECTED_OPCODE = "Protocol Violation: Opcode 0x%02X expected only in the initial frame";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
-
-    private static final int BUFFER_CHUNK_SIZE = 8192;
+    private static final String MSG_MAX_PAYLOAD_LENGTH = "Payload length %d is greater than the maximum payload allowed %d";
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
     private final FrameRW incomingFrame;
     private final FrameRO incomingFrameRO;
-    private final OptimisticReentrantLock stateLock;
+    private final ByteBuffer heapBuffer;
+    private final ByteBuffer heapBufferRO;
+    private final byte[] networkBuffer;
+    private final Lock stateLock;
 
-    private byte[] networkBuffer;
     private int networkBufferReadOffset;
     private int networkBufferWriteOffset;
     private byte[] applicationByteBuffer;
@@ -79,8 +80,6 @@ public final class WsMessageReader extends MessageReader {
     private MessageType type;
     private State state;
     private boolean fragmented;
-    private ByteBuffer heapBuffer;
-    private ByteBuffer heapBufferRO;
 
     private enum State {
         INITIAL, PROCESS_MESSAGE_TYPE, PROCESS_FRAME;
@@ -190,6 +189,8 @@ public final class WsMessageReader extends MessageReader {
             throw new NullPointerException(MSG_NULL_CONNECTION);
         }
 
+        int maxFrameLength = FrameUtil.calculateCapacity(false, connection.getMaxPayloadLength());
+
         this.connection = connection;
         this.in = connection.getTcpInputStream();
         this.state = State.INITIAL;
@@ -202,7 +203,7 @@ public final class WsMessageReader extends MessageReader {
         this.applicationBufferLength = 0;
         this.networkBufferReadOffset = 0;
         this.networkBufferWriteOffset = 0;
-        this.networkBuffer = new byte[BUFFER_CHUNK_SIZE];
+        this.networkBuffer = new byte[maxFrameLength];
         this.heapBuffer = ByteBuffer.wrap(networkBuffer);
         this.heapBufferRO = heapBuffer.asReadOnlyBuffer();
     }
@@ -282,6 +283,9 @@ public final class WsMessageReader extends MessageReader {
             }
 
             return applicationBufferWriteOffset - offset;
+        }
+        catch (IOException ex) {
+            throw ex;
         }
         finally {
             stateLock.unlock();
@@ -365,6 +369,9 @@ public final class WsMessageReader extends MessageReader {
 
             return applicationBufferWriteOffset - offset;
         }
+        catch (IOException ex) {
+            throw ex;
+        }
         finally {
             stateLock.lock();
         }
@@ -390,6 +397,9 @@ public final class WsMessageReader extends MessageReader {
             }
 
             return type;
+        }
+        catch (IOException ex) {
+            throw ex;
         }
         finally {
             stateLock.unlock();
@@ -432,19 +442,9 @@ public final class WsMessageReader extends MessageReader {
         int payloadLength = incomingFrame.payloadLength();
 
         if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
-            // We have an incomplete frame. Let's read it fully. Ensure that the buffer has adequate space.
             if (payloadLength > networkBuffer.length) {
-                // networkBuffer needs to be resized.
-                int additionalBytes = Math.max(BUFFER_CHUNK_SIZE, payloadLength);
-                byte[] netBuffer = new byte[networkBuffer.length + additionalBytes];
-                int len = networkBufferWriteOffset - networkBufferReadOffset;
-
-                System.arraycopy(networkBuffer, networkBufferReadOffset, netBuffer, 0, len);
-                networkBuffer = netBuffer;
-                heapBuffer = ByteBuffer.wrap(networkBuffer);
-                heapBufferRO = heapBuffer.asReadOnlyBuffer();
-                networkBufferReadOffset = 0;
-                networkBufferWriteOffset = len;
+                int maxPayloadLength = connection.getMaxPayloadLength();
+                throw new IOException(format(MSG_MAX_PAYLOAD_LENGTH, payloadLength, maxPayloadLength));
             }
             else {
                 // Enough space. But may need shifting the frame to the beginning to be able to fit the payload.

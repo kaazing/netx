@@ -39,7 +39,6 @@ import static org.kaazing.netx.ws.internal.util.Utf8Util.validBytesUTF8;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
@@ -55,11 +54,9 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
 
     private final ClosePayloadRO closePayload;
     private final byte[] mask;
-    private final AtomicInteger maskInt;
 
     public OutgoingSentinelExtension(final WsURLConnectionImpl connection) {
         this.closePayload = new ClosePayloadRO();
-        this.maskInt = new AtomicInteger(1);
         this.mask = new byte[4];
 
         super.onBinarySent = new WebSocketFrameConsumer() {
@@ -112,7 +109,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         byte[] maskBuf = EMPTY_MASK;
 
         if (payloadLength > 0) {
-            createMask(mask);
+            createMask(connection, mask);
             maskBuf = mask;
         }
         out.write(buf.get(offset));
@@ -265,7 +262,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
 
             int reasonOffset = closePayload.reasonOffset();
 
-            createMask(mask);
+            createMask(connection, mask);
             out.write(mask);
 
             for (int i = 0; i < len; i++) {
@@ -291,14 +288,8 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         }
     }
 
-    private void createMask(byte[] maskBuf) {
-        int m = maskInt.incrementAndGet();
-
-        if (m < 0) {
-            // Deal with wrap around to Integer.MIN_VALUE.
-            maskInt.set(1);
-            m = maskInt.incrementAndGet();
-        }
+    private void createMask(WsURLConnectionImpl connection, byte[] maskBuf) {
+        int m = 1 + connection.getRandom().nextInt(Integer.MAX_VALUE);
 
         maskBuf[0] = (byte) ((m >> 24) & 0xFF);
         maskBuf[1] = (byte) ((m >> 16) & 0xFF);

@@ -25,6 +25,7 @@ import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PONG;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.Lock;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
@@ -41,7 +42,7 @@ public final class WsOutputStream extends FilterOutputStream {
     private final FrameRW outgoingControlFrame;
     private final FrameRO outgoingFrameRO;
     private final ByteBuffer heapBufferControlFrameRO;
-    private final OptimisticReentrantLock stateLock;
+    private final Lock stateLock;
 
     private ByteBuffer heapBuffer;
     private ByteBuffer heapBufferRO;

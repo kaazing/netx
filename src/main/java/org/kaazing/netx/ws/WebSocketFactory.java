@@ -16,6 +16,7 @@
 
 package org.kaazing.netx.ws;
 
+import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
 
 import java.net.URI;
@@ -39,6 +40,8 @@ import org.kaazing.netx.ws.internal.WebSocketImpl;
  * developers can override these characteristics at the individual {@link WebSocket} level, if needed.
  */
 public final class WebSocketFactory {
+    private static final int DEFAULT_MAX_PAYLOAD_LENGTH = 8192;
+
     private final List<String> defaultEnabledExtensions;
     private final List<String> defaultEnabledExtensionsRO;
     private final WebSocketExtensionFactory extensionFactory;
@@ -46,12 +49,14 @@ public final class WebSocketFactory {
     private HttpRedirectPolicy defaultRedirectPolicy;
     private ChallengeHandler defaultChallengeHandler;
     private int defaultConnectTimeout; // milliseconds
+    private int maxPayloadLength;
 
     private WebSocketFactory(WebSocketExtensionFactory extensionFactory) {
         this.defaultEnabledExtensions = new ArrayList<String>();
         this.defaultEnabledExtensionsRO = unmodifiableList(defaultEnabledExtensions);
         this.extensionFactory = extensionFactory;
         this.defaultRedirectPolicy = HttpRedirectPolicy.ORIGIN;
+        this.maxPayloadLength = DEFAULT_MAX_PAYLOAD_LENGTH;
     }
 
     /**
@@ -179,6 +184,15 @@ public final class WebSocketFactory {
     }
 
     /**
+     * Returns the maximum payload length that this connection will support. The default maximum payload length is 8192bytes.
+     *
+     * @return maximum payload length for the connection
+     */
+    public int getDefaultMaxPayloadLength() {
+        return maxPayloadLength;
+    }
+
+    /**
      * Returns the default {@link HttpRedirectPolicy} that was specified at on the factory. The default redirect policy
      * is {@link HttpRedirectPolicy.ORIGIN}.
      *
@@ -220,6 +234,27 @@ public final class WebSocketFactory {
     public void setDefaultConnectTimeout(int connectTimeout) {
         this.defaultConnectTimeout = connectTimeout;
      }
+
+    /**
+     * Sets the maximum payload length that is inherited by all the @{link WebSocket}s created using this factory.
+     * The maximum payload length can be Integer.MAX_VALUE - 14.
+     * <p>
+     * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
+     * If the maxPayloadLength <= 0 or maxPayloadLength > Integer.MAX_VALUE - 14, an IllegalArgumentException is thrown.
+     * <p>
+     * @param maxPayloadLength  maximum payload length for the connection
+     */
+    public void setMaxPayloadLength(int maxPayloadLength) {
+        if (maxPayloadLength > Integer.MAX_VALUE - 14) {
+            throw new IllegalArgumentException(format("Maximim payload length must not exceed %d", Integer.MAX_VALUE - 14));
+        }
+
+        if (maxPayloadLength <= 0) {
+            throw new IllegalArgumentException("Maximum payload length must be positive integer value");
+        }
+
+        this.maxPayloadLength = maxPayloadLength;
+    }
 
     /**
      * Sets the default {@link HttpRedirectPolicy} that is to be inherited by all the {@link WebSocket}s created using this

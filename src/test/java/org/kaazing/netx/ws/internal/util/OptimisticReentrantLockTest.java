@@ -153,4 +153,59 @@ public class OptimisticReentrantLockTest {
         assertEquals(null, sl.getOwner());
         assertEquals(0, sl.getStamp());
     }
+
+    @Test
+    public void testTryLock() throws Exception {
+        final OptimisticReentrantLock sl = new OptimisticReentrantLock();
+        final Semaphore semaphore  = new Semaphore(0);
+
+        sl.tryLock();
+        assertEquals(Thread.currentThread(), sl.getOwner());
+        assertEquals(1, sl.getStamp());
+
+        sl.tryLock();
+        assertEquals(Thread.currentThread(), sl.getOwner());
+        assertEquals(2, sl.getStamp());
+
+        sl.tryLock();
+        assertEquals(Thread.currentThread(), sl.getOwner());
+        assertEquals(3, sl.getStamp());
+
+        Thread t1 = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                while (!sl.tryLock()) {
+                    // Keep spinning till the lock is acquired.
+                }
+
+                assertEquals(Thread.currentThread(), sl.getOwner());
+                assertEquals(1, sl.getStamp());
+
+                sl.unlock();
+                semaphore.release(1);
+            }
+        });
+
+        t1.start();
+
+        Thread.sleep(50);
+
+        sl.unlock();
+        assertEquals(Thread.currentThread(), sl.getOwner());
+        assertEquals(2, sl.getStamp());
+
+        sl.unlock();
+        assertEquals(Thread.currentThread(), sl.getOwner());
+        assertEquals(1, sl.getStamp());
+
+        // This should unblock the child thread to take ownership of the lock.
+        sl.unlock();
+
+        semaphore.acquire(1);
+
+        assertEquals(null, sl.getOwner());
+        assertEquals(0, sl.getStamp());
+
+    }
 }
