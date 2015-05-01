@@ -242,9 +242,6 @@ public final class WsInputStream extends InputStream {
 
                 return 0;
             }
-            catch (IOException ex) {
-                throw ex;
-            }
             finally {
                 stateLock.unlock();
             }
@@ -279,9 +276,6 @@ public final class WsInputStream extends InputStream {
                 }
 
                 return offset - mark;
-            }
-            catch (IOException ex) {
-                throw ex;
             }
             finally {
                 stateLock.unlock();

@@ -248,9 +248,6 @@ public class WsReader extends Reader {
 
                 return 0;
             }
-            catch (IOException ex) {
-                throw ex;
-            }
             finally {
                 stateLock.unlock();
             }
@@ -261,7 +258,13 @@ public class WsReader extends Reader {
 
     @Override
     public void close() throws IOException {
-        in.close();
+        try {
+            stateLock.lock();
+            in.close();
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
