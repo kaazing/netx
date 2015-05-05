@@ -214,105 +214,100 @@ public final class WsInputStream extends InputStream {
     }
 
     private int readInternal() throws IOException {
-        try {
-            if (applicationBufferReadOffset < applicationBufferWriteOffset) {
-                return applicationBuffer[applicationBufferReadOffset++];
-            }
+        if (applicationBufferReadOffset < applicationBufferWriteOffset) {
+            return applicationBuffer[applicationBufferReadOffset++];
+        }
 
-            if (applicationBufferReadOffset == applicationBufferWriteOffset) {
-                applicationBufferReadOffset = 0;
-                applicationBufferWriteOffset = 0;
-            }
+        if (applicationBufferReadOffset == applicationBufferWriteOffset) {
+            applicationBufferReadOffset = 0;
+            applicationBufferWriteOffset = 0;
+        }
 
-            if (networkBufferWriteOffset > networkBufferReadOffset) {
-                int leftOverBytes = networkBufferWriteOffset - networkBufferReadOffset;
-                System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, leftOverBytes);
+        if (networkBufferWriteOffset > networkBufferReadOffset) {
+            int leftOverBytes = networkBufferWriteOffset - networkBufferReadOffset;
+            System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, leftOverBytes);
+            networkBufferReadOffset = 0;
+            networkBufferWriteOffset = leftOverBytes;
+        }
+
+        while (true) {
+            if (networkBufferReadOffset == networkBufferWriteOffset) {
                 networkBufferReadOffset = 0;
-                networkBufferWriteOffset = leftOverBytes;
-            }
+                networkBufferWriteOffset = 0;
 
-            while (true) {
-                if (networkBufferReadOffset == networkBufferWriteOffset) {
-                    networkBufferReadOffset = 0;
-                    networkBufferWriteOffset = 0;
-
-                    int remainingLength = networkBuffer.length - networkBufferWriteOffset;
-                    int bytesRead = 0;
-                    try {
-                        bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingLength);
-                        if (bytesRead == -1) {
-                            return -1;
-                        }
-                    }
-                    catch (SocketException ex) {
+                int remainingLength = networkBuffer.length - networkBufferWriteOffset;
+                int bytesRead = 0;
+                try {
+                    bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingLength);
+                    if (bytesRead == -1) {
                         return -1;
                     }
-
-                    networkBufferReadOffset = 0;
-                    networkBufferWriteOffset = bytesRead;
                 }
-
-                // Before wrapping the networkBuffer in a flyweight, ensure that it has the metadata(opcode, payload-length)
-                // information.
-                int numBytes = ensureFrameMetadata();
-                if (numBytes == -1) {
+                catch (SocketException ex) {
                     return -1;
                 }
 
-                // At this point, we should have sufficient bytes to figure out whether the frame has been read completely.
-                // Ensure that we have at least one complete frame. Figure out the payload length and see how much more
-                // we need to read to be frame-aligned.
-                incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
-                int payloadLength = incomingFrame.payloadLength();
-
-                if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
-                    if (payloadLength > networkBuffer.length) {
-                        int maxPayloadLength = connection.getMaxMessageLength();
-                        throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, payloadLength, maxPayloadLength));
-                    }
-                    else {
-                        // Enough space. But may need shifting the frame to the beginning to be able to fit the payload.
-                        if (incomingFrame.offset() + payloadLength > networkBuffer.length) {
-                            int len = networkBufferWriteOffset - networkBufferReadOffset;
-                            System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, len);
-                            networkBufferReadOffset = 0;
-                            networkBufferWriteOffset = len;
-                        }
-                    }
-
-                    int frameLength = connection.getFrameLength(false, payloadLength);
-                    int remainingBytes = networkBufferReadOffset + frameLength - networkBufferWriteOffset;
-                    while (remainingBytes > 0) {
-                        int bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);
-                        if (bytesRead == -1) {
-                            return -1;
-                        }
-
-                        remainingBytes -= bytesRead;
-                        networkBufferWriteOffset += bytesRead;
-                    }
-
-                    incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
-                }
-
-                validateOpcode();
-                DefaultWebSocketContext context = connection.getIncomingContext();
-                IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-                sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opcode());
-                connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
-                networkBufferReadOffset += incomingFrame.length();
-
-                if (!isControlFrame()) {
-                    break;
-                }
+                networkBufferReadOffset = 0;
+                networkBufferWriteOffset = bytesRead;
             }
 
-            assert applicationBufferReadOffset < applicationBufferWriteOffset;
-            return applicationBuffer[applicationBufferReadOffset++];
+            // Before wrapping the networkBuffer in a flyweight, ensure that it has the metadata(opcode, payload-length)
+            // information.
+            int numBytes = ensureFrameMetadata();
+            if (numBytes == -1) {
+                return -1;
+            }
+
+            // At this point, we should have sufficient bytes to figure out whether the frame has been read completely.
+            // Ensure that we have at least one complete frame. Figure out the payload length and see how much more
+            // we need to read to be frame-aligned.
+            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
+            int payloadLength = incomingFrame.payloadLength();
+
+            if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
+                if (payloadLength > networkBuffer.length) {
+                    int maxPayloadLength = connection.getMaxMessageLength();
+                    throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, payloadLength, maxPayloadLength));
+                }
+                else {
+                    // Enough space. But may need shifting the frame to the beginning to be able to fit the payload.
+                    if (incomingFrame.offset() + payloadLength > networkBuffer.length) {
+                        int len = networkBufferWriteOffset - networkBufferReadOffset;
+                        System.arraycopy(networkBuffer, networkBufferReadOffset, networkBuffer, 0, len);
+                        networkBufferReadOffset = 0;
+                        networkBufferWriteOffset = len;
+                    }
+                }
+
+                int frameLength = connection.getFrameLength(false, payloadLength);
+                int remainingBytes = networkBufferReadOffset + frameLength - networkBufferWriteOffset;
+                while (remainingBytes > 0) {
+                    int bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);
+                    if (bytesRead == -1) {
+                        return -1;
+                    }
+
+                    remainingBytes -= bytesRead;
+                    networkBufferWriteOffset += bytesRead;
+                }
+
+                incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
+            }
+
+            validateOpcode();
+            DefaultWebSocketContext context = connection.getIncomingContext();
+            IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+            sentinel.setTerminalConsumer(terminalFrameConsumer, incomingFrame.opcode());
+            connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+            networkBufferReadOffset += incomingFrame.length();
+
+            if (!isControlFrame()) {
+                break;
+            }
         }
-        finally {
-            stateLock.unlock();
-        }
+
+        assert applicationBufferReadOffset < applicationBufferWriteOffset;
+        return applicationBuffer[applicationBufferReadOffset++];
     }
 
     private boolean isControlFrame() {

@@ -19,7 +19,7 @@ important characteristics:
 * Garbage-free
 * Wait-free
 
-> Using the following maven dependency, developers can include netx.ws to develop and run web applications:
+Using the following maven dependency, developers can include netx.ws to develop and run web applications:
 
 ```xml
 <dependency>
