@@ -23,7 +23,6 @@ import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CONTINUATION;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
-import static org.kaazing.netx.ws.internal.util.FrameUtil.calculateCapacity;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.initialDecodeUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingBytesUTF8;
 import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
@@ -31,6 +30,7 @@ import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.locks.Lock;
 
@@ -43,7 +43,6 @@ import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
 import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 
 public class WsReader extends Reader {
@@ -53,7 +52,7 @@ public class WsReader extends Reader {
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
     private static final String MSG_INVALID_OPCODE = "Protocol Violation: Invalid opcode = 0x%02X";
     private static final String MSG_UNSUPPORTED_OPERATION = "Unsupported Operation";
-    private static final String MSG_MAX_PAYLOAD_LENGTH = "Payload length %d is greater than the maximum payload allowed %d";
+    private static final String MSG_MAX_MESSAGE_LENGTH = "Message length %d is greater than the maximum allowed %d";
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
@@ -122,7 +121,7 @@ public class WsReader extends Reader {
             throw new NullPointerException(MSG_NULL_CONNECTION);
         }
 
-        int maxFrameLength = FrameUtil.calculateCapacity(false, connection.getMaxPayloadLength());
+        int maxFrameLength = connection.getMaxFrameLength();
 
         this.connection = connection;
         this.in = connection.getTcpInputStream();
@@ -168,23 +167,26 @@ public class WsReader extends Reader {
                     networkBufferReadOffset = 0;
                     networkBufferWriteOffset = leftOverBytes;
                 }
-                else if (networkBufferReadOffset == networkBufferWriteOffset) {
-                    networkBufferReadOffset = 0;
-                    networkBufferWriteOffset = 0;
-
-                    int remainingLength = networkBuffer.length - networkBufferWriteOffset;
-                    int bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingLength);
-                    if (bytesRead == -1) {
-                        return -1;
-                    }
-
-                    networkBufferReadOffset = 0;
-                    networkBufferWriteOffset = bytesRead;
-                }
 
                 while (true) {
                     if (networkBufferReadOffset == networkBufferWriteOffset) {
-                        break;
+                        networkBufferReadOffset = 0;
+                        networkBufferWriteOffset = 0;
+
+                        int remainingLength = networkBuffer.length - networkBufferWriteOffset;
+                        int bytesRead = 0;
+                        try {
+                            bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingLength);
+                            if (bytesRead == -1) {
+                                return -1;
+                            }
+                        }
+                        catch (SocketException ex) {
+                            return -1;
+                        }
+
+                        networkBufferReadOffset = 0;
+                        networkBufferWriteOffset = bytesRead;
                     }
 
                     // Before wrapping the networkBuffer in a flyweight, ensure that it has the metadata(opcode, payload-length)
@@ -202,8 +204,8 @@ public class WsReader extends Reader {
 
                     if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
                         if (payloadLength > networkBuffer.length) {
-                            int maxPayloadLength = connection.getMaxPayloadLength();
-                            throw new IOException(format(MSG_MAX_PAYLOAD_LENGTH, payloadLength, maxPayloadLength));
+                            int maxPayloadLength = connection.getMaxMessageLength();
+                            throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, payloadLength, maxPayloadLength));
                         }
                         else {
                             // Enough space. But may need shifting the frame to the beginning to be able to fit the payload.
@@ -215,7 +217,7 @@ public class WsReader extends Reader {
                             }
                         }
 
-                        int frameLength = calculateCapacity(false, payloadLength);
+                        int frameLength = connection.getFrameLength(false, payloadLength);
                         int remainingBytes = networkBufferReadOffset + frameLength - networkBufferWriteOffset;
                         while (remainingBytes > 0) {
                             int bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);
@@ -242,11 +244,8 @@ public class WsReader extends Reader {
                     }
                 }
 
-                if (applicationBufferReadOffset < applicationBufferWriteOffset) {
-                    return copyCharsFromApplicationBuffer(cbuf, offset, length);
-                }
-
-                return 0;
+                assert applicationBufferReadOffset < applicationBufferWriteOffset;
+                return copyCharsFromApplicationBuffer(cbuf, offset, length);
             }
             finally {
                 stateLock.unlock();

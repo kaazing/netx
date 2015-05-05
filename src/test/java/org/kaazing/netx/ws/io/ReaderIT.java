@@ -49,7 +49,7 @@ public class ReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         Reader reader = connection.getReader();
         Writer writer = connection.getWriter();
@@ -99,7 +99,8 @@ public class ReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8335);
+//        connection.setMaxMessageLength(8188);
 
         Reader reader = connection.getReader();
         Writer writer = connection.getWriter();
@@ -149,7 +150,7 @@ public class ReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         Reader reader = connection.getReader();
         Writer writer = connection.getWriter();
@@ -199,7 +200,7 @@ public class ReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         Reader reader = connection.getReader();
         Writer writer = connection.getWriter();

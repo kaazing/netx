@@ -128,7 +128,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private volatile DefaultWebSocketContext incomingContext;
     private volatile DefaultWebSocketContext outgoingContext;
 
-    private int maxPayloadLength;
+    private int maxMessageLength;
+    private int maxFrameLength;
 
     public WsURLConnectionImpl(
             URLConnectionHelper helper,
@@ -158,7 +159,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.readLock = new OptimisticReentrantLock();
         this.stateLock = new OptimisticReentrantLock();
         this.writeLock = new OptimisticReentrantLock();
-        this.maxPayloadLength = MAX_PAYLOAD_LENGTH;
+        this.maxMessageLength = MAX_PAYLOAD_LENGTH;
+        this.maxFrameLength = getFrameLength(false, maxMessageLength);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -190,7 +192,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             throw new IllegalArgumentException(MSG_NO_EXTENSIONS_SPEICIFIED);
         }
 
-        checkConnected();
+        ensureReconfigurable();
 
         try {
             stateLock.lock();
@@ -296,8 +298,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public int getMaxPayloadLength() {
-        return maxPayloadLength;
+    public int getMaxMessageLength() {
+        return maxMessageLength;
     }
 
     @Override
@@ -314,6 +316,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         try {
             stateLock.lock();
             ensureConnected();
+
+            if (inputStream != null) {
+                return inputStream;
+            }
+
             inputStream = new WsInputStream(this);
             return inputStream;
         }
@@ -330,6 +337,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         try {
             stateLock.lock();
             ensureConnected();
+
+            if (messageReader != null) {
+                return messageReader;
+            }
+
             messageReader = new WsMessageReader(this);
             return messageReader;
         }
@@ -346,6 +358,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         try {
             stateLock.lock();
             ensureConnected();
+
+            if (messageWriter != null) {
+                return messageWriter;
+            }
+
             messageWriter = new WsMessageWriter(this);
             return messageWriter;
         }
@@ -387,6 +404,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         try {
             stateLock.lock();
             ensureConnected();
+
+            if (outputStream != null) {
+                return outputStream;
+            }
+
             outputStream = new WsOutputStream(this);
             return outputStream;
         }
@@ -404,6 +426,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         try {
             stateLock.lock();
             ensureConnected();
+
+            if (reader != null) {
+                return reader;
+            }
+
             reader = new WsReader(this);
             return reader;
         }
@@ -426,6 +453,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         try {
             stateLock.lock();
             ensureConnected();
+
+            if (writer != null) {
+                return writer;
+            }
+
             writer = new WsWriter(this);
             return writer;
         }
@@ -436,19 +468,19 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public void setChallengeHandler(ChallengeHandler challengeHandler) {
-        checkConnected();
+        ensureReconfigurable();
         connection.setChallengeHandler(challengeHandler);
     }
 
     @Override
     public void setConnectTimeout(int timeout) {
-        checkConnected();
+        ensureReconfigurable();
         connection.setConnectTimeout(timeout);
     }
 
     @Override
     public void setEnabledProtocols(String... enabledProtocols) {
-        checkConnected();
+        ensureReconfigurable();
 
         try {
             stateLock.lock();
@@ -461,8 +493,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public void setMaxPayloadLength(int maxPayloadLength) {
-        checkConnected();
+    public void setMaxMessageLength(int maxPayloadLength) {
+        ensureReconfigurable();
 
         if (maxPayloadLength > Integer.MAX_VALUE - 14) {
             throw new IllegalArgumentException(format("Maximim payload length must not exceed %d", Integer.MAX_VALUE - 14));
@@ -472,12 +504,13 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             throw new IllegalArgumentException("Maximum payload length must be positive integer value");
         }
 
-        this.maxPayloadLength = maxPayloadLength;
+        this.maxMessageLength = maxPayloadLength;
+        this.maxFrameLength = getFrameLength(false, maxMessageLength);
     }
 
     @Override
     public void setRedirectPolicy(HttpRedirectPolicy redirectPolicy) {
-        checkConnected();
+        ensureReconfigurable();
         connection.setRedirectPolicy(redirectPolicy);
     }
 
@@ -593,6 +626,29 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         finally {
             stateLock.unlock();
         }
+    }
+
+    public int getFrameLength(boolean masked, int messageLength) {
+        int frameLength = 1; // opcode
+
+        if (messageLength < 126) {
+            frameLength++;
+        } else if (messageLength <= 0xFFFF) {
+            frameLength += 3;
+        } else {
+            frameLength += 9;
+        }
+
+        if (masked) {
+            frameLength += 4;
+        }
+
+        frameLength += messageLength;
+        return frameLength;
+    }
+
+    public int getMaxFrameLength() {
+        return maxFrameLength;
     }
 
     public Random getRandom() {
@@ -724,7 +780,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
 
     ///////////////////////////////////////////////////////////////////////////
-    private void checkConnected() {
+    private void ensureReconfigurable() {
         switch (inputState) {
         case START:
             break;

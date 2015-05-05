@@ -45,6 +45,11 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
  */
 public abstract class WsURLConnection extends URLConnection implements Closeable {
     /**
+     * Maximum message length that can be handled by the connection. 14 bytes would be needed for framing the payload.
+     */
+    public static final int MAX_MESSAGE_LENGTH_LIMIT = Integer.MAX_VALUE - 14;
+
+    /**
      * Connection has been closed normally.
      */
     public static final int WS_NORMAL_CLOSE = 1000;
@@ -209,11 +214,11 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract InputStream getInputStream() throws IOException;
 
     /**
-     * Returns the maximum payload length that this connection will support. The default maximum payload length is 8192bytes.
+     * Returns the maximum message length that this connection will support. The default maximum message length is 8192 bytes.
      *
-     * @return maximum payload length for the connection
+     * @return maximum message length for the connection
      */
-    public abstract int getMaxPayloadLength();
+    public abstract int getMaxMessageLength();
 
     /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
@@ -301,15 +306,15 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract void setEnabledProtocols(String... protocols) throws IllegalStateException;
 
     /**
-     * Sets the maximum payload length that this connection can handle. This method must be invoked before {@link #connect}
-     * is called. The maximum payload length can be Integer.MAX_VALUE - 14.
+     * Sets the maximum message length that this connection can handle. This method must be invoked before {@link #connect}
+     * is called. The maximum message length can be {@link MAX_MESSAGE_LENGTH_LIMIT}.
      * <p>
      * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
-     * If the maxPayloadLength <= 0 or maxPayloadLength > Integer.MAX_VALUE - 14, an IllegalArgumentException is thrown.
+     * If maxMessageLength <= 0 or maxMessageLength > {@link MAX_MESSAGE_LENGTH_LIMIT}, an IllegalArgumentException is thrown.
      * <p>
-     * @param maxPayloadLength  maximum payload length for the connection
+     * @param maxMessageLength  maximum message length for the connection
      */
-    public abstract void setMaxPayloadLength(int maxPayloadLength);
+    public abstract void setMaxMessageLength(int maxMessageLength);
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx). This method must be invoked

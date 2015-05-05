@@ -108,8 +108,8 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public int getMaxPayloadLength() {
-        return connection.getMaxPayloadLength();
+    public int getMaxMessageLength() {
+        return connection.getMaxMessageLength();
     }
 
     public MessageReader getMessageReader() throws IOException {
@@ -171,7 +171,7 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public void setMaxPayloadLength(int maxPayloadLength) {
-        connection.setMaxPayloadLength(maxPayloadLength);
+    public void setMaxMessageLength(int maxPayloadLength) {
+        connection.setMaxMessageLength(maxPayloadLength);
     }
 }

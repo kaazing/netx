@@ -11,8 +11,7 @@ important characteristics:
 
 * Target JVM Version - Java SE 1.6
 * `java.net.Socket` and `java.net.URLConnection` style APIs
-* API for streaming binary and text payloads across WebSocket frames
-* API for sending and receiving text and binary messages
+* API for streaming binary and text payloads
 * Extension SPI for extension developers
 * Authentication
 * HTTP Redirect Policies
@@ -34,7 +33,7 @@ important characteristics:
 
 ### Minimum requirements for building the project
 
-* Java SE Development Kit (JDK) 7 or higher
+* Java SE Development Kit (JDK) 6 or higher
 * maven 3.0.5 or higher
 
 ### Steps for building this project
@@ -74,16 +73,11 @@ URLConnectionHelper helper = URLConnectionHelper.newInstance();
 WsURLConnection connection = (WsURLConnection) helper.openConnection(URI.create("ws://echo.websocket.org"));
 ```
 
-## Stream Binary and Text Payloads Across WebSocket Frames
+## Stream Binary and Text Payloads
 
 Both `org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection` support APIs for streaming both binary and text
-payloads by filtering out
-
-* specific bits related to WebSocket framing such as opcode, mask, length, etc.
-* WebSocket Control Frames such as `CLOSE`, `PING`, or `PONG` in their entirety.
-
-Note that the WebSocket frame boundaries are ignored during streaming. This implies that if an application is streaming binary
-payload, then the incoming message traffic must **not** contain any text frames and vice-versa.
+payloads. Note that the WebSocket frame boundaries are ignored during streaming. This implies that if an application is
+streaming binary payload, then the incoming message traffic must **not** contain any text frames and vice-versa.
 
 ### Streaming Binary Payload Using java.io.InputStream
 
@@ -118,15 +112,15 @@ The following code illustrates streaming text payloads using `org.kaazing.netx.w
 ``` java
 URLConnectionHelper helper = URLConnectionHelper.newInstance();
 WsURLConnection connection = (WsURLConnection) helper.openConnection(URI.create("ws://echo.websocket.org"));
-InputStream in = connection.getReader();
+Reader reader = connection.getReader();
 
 char[] cbuf = new char[125];
 int offset = 0;
 int length = cbuf.length;
 int charsRead = 0;
 
-while ((bytesRead != -1) && (length > 0)) {
-    charsRead = in.read(cbuf, offset, length);
+while ((charsRead != -1) && (length > 0)) {
+    charsRead = reader.read(cbuf, offset, length);
     if (charsRead != -1) {
        offset += charsRead;
        length -= charsRead;
@@ -135,7 +129,8 @@ while ((bytesRead != -1) && (length > 0)) {
 ```
 
 `org.kaazing.netx.ws.WebSocket` also supports `getReader()` API. So, an app can stream text payload using both
-`org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection`.
+`org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection`. Also, netx.ws handles multi-byte UTF-8 characters
+that may be split across WebSocket frames properly.
 
 ## Send Messages
 
@@ -148,7 +143,7 @@ The following code illustrates sending a binary message using `org.kaazing.netx.
 
 ``` java
 WebSocketFactory factory = WebSocketFactory.newInstance();
-WebSocket connection = factory.createWebSocket(URI.toString("http://echo.websocket.org"));
+WebSocket connection = factory.createWebSocket(URI.create("http://echo.websocket.org"));
 OutputStream out = connection.getOutputStream();
 byte[] bytes = new byte[125];
 Random random = new Random();

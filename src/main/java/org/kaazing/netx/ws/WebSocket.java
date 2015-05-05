@@ -132,11 +132,11 @@ public abstract class WebSocket implements Closeable {
     public abstract InputStream getInputStream() throws IOException;
 
     /**
-     * Returns the maximum payload length that this connection will support. The default maximum payload length is 8192 bytes.
+     * Returns the maximum message length that this connection will support. The default maximum message length is 8192 bytes.
      *
-     * @return maximum payload length for the connection
+     * @return maximum message length for the connection
      */
-    public abstract int getMaxPayloadLength();
+    public abstract int getMaxMessageLength();
 
     /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
@@ -232,15 +232,16 @@ public abstract class WebSocket implements Closeable {
     public abstract void setEnabledProtocols(String... protocols);
 
     /**
-     * Sets the maximum payload length that this connection can handle. This method must be invoked before {@link #connect}
-     * is called. The maximum payload length can be Integer.MAX_VALUE - 14.
+     * Sets the maximum message length that this connection can handle. This method must be invoked before {@link #connect}
+     * is called. The maximum message length can be {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}.
      * <p>
      * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
-     * If the maxPayloadLength <= 0 or maxPayloadLength > Integer.MAX_VALUE - 14, an IllegalArgumentException is thrown.
+     * If the maxMessageLength <= 0 or maxMessageLength > {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}, an
+     * IllegalArgumentException is thrown.
      * <p>
-     * @param maxPayloadLength  maximum payload length for the connection
+     * @param maxMessageLength  maximum message length for the connection
      */
-    public abstract void setMaxPayloadLength(int maxPayloadLength);
+    public abstract void setMaxMessageLength(int maxMessageLength);
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx).

@@ -30,11 +30,11 @@ import java.util.concurrent.locks.Lock;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 
 public final class WsOutputStream extends FilterOutputStream {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
+    private static final String MSG_MAX_MESSAGE_LENGTH = "Message length %d is greater than the maximum allowed %d";
 
     private final WsURLConnectionImpl connection;
     private final byte[] controlFramePayload;
@@ -42,14 +42,15 @@ public final class WsOutputStream extends FilterOutputStream {
     private final FrameRW outgoingControlFrame;
     private final FrameRO outgoingFrameRO;
     private final ByteBuffer heapBufferControlFrameRO;
+    private final ByteBuffer heapBuffer;
+    private final ByteBuffer heapBufferRO;
     private final Lock stateLock;
-
-    private ByteBuffer heapBuffer;
-    private ByteBuffer heapBufferRO;
 
     public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
         super(connection.getTcpOutputStream());
         this.connection = connection;
+        this.heapBuffer = ByteBuffer.allocate(connection.getMaxFrameLength());
+        this.heapBufferRO = heapBuffer.asReadOnlyBuffer();
         this.outgoingDataFrame = new FrameRW();
         this.outgoingControlFrame = new FrameRW();
         this.controlFramePayload = new byte[150]; // To handle negative tests. Have some extra bytes.
@@ -91,13 +92,12 @@ public final class WsOutputStream extends FilterOutputStream {
         try {
             stateLock.lock();
 
-            int capacity = FrameUtil.calculateCapacity(false, length);
-
-            if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
-                heapBuffer = ByteBuffer.allocate(capacity);
-                heapBufferRO = heapBuffer.asReadOnlyBuffer();
-                outgoingDataFrame.wrap(heapBuffer,  0);
+            int maxPayloadLength = connection.getMaxMessageLength();
+            if (length > maxPayloadLength) {
+                throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, length, maxPayloadLength));
             }
+
+            outgoingDataFrame.wrap(heapBuffer,  0);
             outgoingDataFrame.fin(true);
             outgoingDataFrame.opcode(BINARY);
             outgoingDataFrame.payloadPut(buf, offset, length);
@@ -125,13 +125,12 @@ public final class WsOutputStream extends FilterOutputStream {
         try {
             stateLock.lock();
 
-            int capacity = FrameUtil.calculateCapacity(false, length);
-
-            if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
-                heapBuffer = ByteBuffer.allocate(capacity);
-                heapBufferRO = heapBuffer.asReadOnlyBuffer();
-                outgoingDataFrame.wrap(heapBuffer,  0);
+            int maxPayloadLength = connection.getMaxMessageLength();
+            if (length > maxPayloadLength) {
+                throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, length, maxPayloadLength));
             }
+
+            outgoingDataFrame.wrap(heapBuffer,  0);
             outgoingDataFrame.fin(true);
             outgoingDataFrame.opcode(BINARY);
             outgoingDataFrame.payloadPut(buf, offset, length);

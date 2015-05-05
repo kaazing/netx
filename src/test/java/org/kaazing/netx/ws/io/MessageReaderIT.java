@@ -49,7 +49,7 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -79,7 +79,7 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -110,7 +110,7 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -141,7 +141,7 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -171,7 +171,7 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -210,7 +210,7 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -249,7 +249,7 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -289,7 +289,7 @@ public class MessageReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(8188);
+        connection.setMaxMessageLength(8188);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();

@@ -28,7 +28,6 @@ import java.util.concurrent.locks.Lock;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
 import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 import org.kaazing.netx.ws.internal.util.Utf8Util;
 
@@ -68,7 +67,7 @@ public class WsWriter extends Writer {
             stateLock.lock();
 
             int payloadLength = Utf8Util.byteCountUTF8(cbuf, offset, length);
-            int capacity = FrameUtil.calculateCapacity(false, payloadLength);
+            int capacity = connection.getFrameLength(false, payloadLength);
 
             if ((payload == null) || (payload.capacity() < payloadLength)) {
                 payload = ByteBuffer.allocate(payloadLength);
@@ -83,6 +82,7 @@ public class WsWriter extends Writer {
                 outgoingFrame.wrap(heapBuffer,  0);
             }
 
+            outgoingFrame.wrap(heapBuffer,  0);
             outgoingFrame.fin(true);
             outgoingFrame.opcode(TEXT);
             outgoingFrame.payloadPut(payload, 0, byteCount);

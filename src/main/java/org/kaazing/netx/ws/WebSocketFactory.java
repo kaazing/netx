@@ -18,6 +18,7 @@ package org.kaazing.netx.ws;
 
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
+import static org.kaazing.netx.ws.WsURLConnection.MAX_MESSAGE_LENGTH_LIMIT;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -49,14 +50,14 @@ public final class WebSocketFactory {
     private HttpRedirectPolicy defaultRedirectPolicy;
     private ChallengeHandler defaultChallengeHandler;
     private int defaultConnectTimeout; // milliseconds
-    private int maxPayloadLength;
+    private int defaultMaxMessageLength;
 
     private WebSocketFactory(WebSocketExtensionFactory extensionFactory) {
         this.defaultEnabledExtensions = new ArrayList<String>();
         this.defaultEnabledExtensionsRO = unmodifiableList(defaultEnabledExtensions);
         this.extensionFactory = extensionFactory;
         this.defaultRedirectPolicy = HttpRedirectPolicy.ORIGIN;
-        this.maxPayloadLength = DEFAULT_MAX_PAYLOAD_LENGTH;
+        this.defaultMaxMessageLength = DEFAULT_MAX_PAYLOAD_LENGTH;
     }
 
     /**
@@ -184,12 +185,12 @@ public final class WebSocketFactory {
     }
 
     /**
-     * Returns the maximum payload length that this connection will support. The default maximum payload length is 8192bytes.
+     * Returns the maximum message length that this connection will support. The default maximum message length is 8192 bytes.
      *
-     * @return maximum payload length for the connection
+     * @return maximum message length for the connection
      */
-    public int getDefaultMaxPayloadLength() {
-        return maxPayloadLength;
+    public int getDefaultMaxMessageLength() {
+        return defaultMaxMessageLength;
     }
 
     /**
@@ -236,24 +237,25 @@ public final class WebSocketFactory {
      }
 
     /**
-     * Sets the maximum payload length that is inherited by all the @{link WebSocket}s created using this factory.
-     * The maximum payload length can be Integer.MAX_VALUE - 14.
+     * Sets the maximum message length that is inherited by all the @{link WebSocket}s created using this factory.
+     * The maximum message length can be {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}.
      * <p>
      * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
-     * If the maxPayloadLength <= 0 or maxPayloadLength > Integer.MAX_VALUE - 14, an IllegalArgumentException is thrown.
+     * If the maxMessageLength <= 0 or maxMessageLength > {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}, an
+     * IllegalArgumentException is thrown.
      * <p>
-     * @param maxPayloadLength  maximum payload length for the connection
+     * @param maxMessageLength  maximum message length for the connection
      */
-    public void setMaxPayloadLength(int maxPayloadLength) {
-        if (maxPayloadLength > Integer.MAX_VALUE - 14) {
-            throw new IllegalArgumentException(format("Maximim payload length must not exceed %d", Integer.MAX_VALUE - 14));
+    public void setMaxMessageLength(int maxMessageLength) {
+        if (maxMessageLength > MAX_MESSAGE_LENGTH_LIMIT) {
+            throw new IllegalArgumentException(format("Maximim message length must not exceed %d", MAX_MESSAGE_LENGTH_LIMIT));
         }
 
-        if (maxPayloadLength <= 0) {
-            throw new IllegalArgumentException("Maximum payload length must be positive integer value");
+        if (maxMessageLength <= 0) {
+            throw new IllegalArgumentException("Maximum message length must be positive integer value");
         }
 
-        this.maxPayloadLength = maxPayloadLength;
+        this.defaultMaxMessageLength = maxMessageLength;
     }
 
     /**

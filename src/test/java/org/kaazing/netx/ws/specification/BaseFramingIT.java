@@ -382,7 +382,7 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(65536);
+        connection.setMaxMessageLength(65536);
 
         OutputStream out = connection.getOutputStream();
         InputStream in = connection.getInputStream();
@@ -416,7 +416,7 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(65536);
+        connection.setMaxMessageLength(65536);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -451,7 +451,7 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(65536);
+        connection.setMaxMessageLength(65536);
 
         OutputStream out = connection.getOutputStream();
         InputStream in = connection.getInputStream();
@@ -485,7 +485,7 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(65536);
+        connection.setMaxMessageLength(65536);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -994,7 +994,7 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(65536);
+        connection.setMaxMessageLength(65536);
 
         Writer writer = connection.getWriter();
         Reader reader = connection.getReader();
@@ -1030,7 +1030,7 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(65536);
+        connection.setMaxMessageLength(65536);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
@@ -1066,7 +1066,7 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(65536);
+        connection.setMaxMessageLength(65536);
 
         Writer writer = connection.getWriter();
         Reader reader = connection.getReader();
@@ -1102,7 +1102,7 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxPayloadLength(65536);
+        connection.setMaxMessageLength(65536);
 
         MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
