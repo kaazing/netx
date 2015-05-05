@@ -33,7 +33,7 @@ Using the following maven dependency, developers can include netx.ws to develop 
 
 ### Minimum requirements for building the project
 
-* Java SE Development Kit (JDK) 6 or higher
+* Java SE Development Kit (JDK) 7 or higher
 * maven 3.0.5 or higher
 
 ### Steps for building this project
