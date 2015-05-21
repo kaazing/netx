@@ -21,7 +21,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.kaazing.netx.ws.MessageType.BINARY;
+import static org.kaazing.netx.ws.internal.io.MessageType.BINARY;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -38,10 +38,11 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageType;
-import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.io.MessageReader;
+import org.kaazing.netx.ws.internal.io.MessageType;
+import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 /**
  * RFC-6455, section 5.2 "Base Framing Protocol"
@@ -75,7 +76,7 @@ public class BaseFramingIT {
         byte[] readBytes = new byte[0];
         in.read(readBytes);
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -88,8 +89,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         byte[] writeBytes = new byte[0];
         random.nextBytes(writeBytes);
@@ -108,7 +109,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -140,7 +141,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -153,8 +154,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         byte[] writeBytes = new byte[125];
         random.nextBytes(writeBytes);
@@ -173,7 +174,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -205,7 +206,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -218,8 +219,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         byte[] writeBytes = new byte[126];
         random.nextBytes(writeBytes);
@@ -238,7 +239,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -270,7 +271,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -283,8 +284,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         byte[] writeBytes = new byte[127];
         random.nextBytes(writeBytes);
@@ -303,7 +304,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -335,7 +336,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -348,8 +349,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         byte[] writeBytes = new byte[128];
         random.nextBytes(writeBytes);
@@ -368,7 +369,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -381,6 +382,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(65536);
+
         OutputStream out = connection.getOutputStream();
         InputStream in = connection.getInputStream();
 
@@ -400,7 +403,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -413,8 +416,10 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        connection.setMaxMessageLength(65536);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         byte[] writeBytes = new byte[65535];
         random.nextBytes(writeBytes);
@@ -433,7 +438,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -446,6 +451,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(65536);
+
         OutputStream out = connection.getOutputStream();
         InputStream in = connection.getInputStream();
 
@@ -465,7 +472,7 @@ public class BaseFramingIT {
                 length -= bytesRead;
             }
         }
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -478,8 +485,10 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        connection.setMaxMessageLength(65536);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         byte[] writeBytes = new byte[65536];
         random.nextBytes(writeBytes);
@@ -498,7 +507,7 @@ public class BaseFramingIT {
             }
         }
 
-        k3po.join();
+        k3po.finish();
 
         assertArrayEquals(writeBytes, readBytes);
     }
@@ -531,7 +540,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -544,8 +553,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = "";
         writer.write(writeString.toCharArray());
@@ -565,7 +574,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -598,7 +607,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -680,7 +689,7 @@ public class BaseFramingIT {
         StringBuilder sb = new StringBuilder().append(cbuf1).append(cbuf2).append(cbuf3).append(cbuf4).append(cbuf5);
 
         String readString = sb.toString();
-        k3po.join();
+        k3po.finish();
         assertEquals(writeString, readString);
     }
 
@@ -740,7 +749,7 @@ public class BaseFramingIT {
         StringBuilder sb = new StringBuilder().append(cbuf1).append(cbuf2).append(cbuf3, 0, offset3);
 
         String readString = sb.toString();
-        k3po.join();
+        k3po.finish();
         assertEquals(writeString, readString);
     }
 
@@ -752,8 +761,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(125).nextString();
         writer.write(writeString.toCharArray());
@@ -772,7 +781,7 @@ public class BaseFramingIT {
         }
 
         String readString = String.valueOf(cbuf);
-        k3po.join();
+        k3po.finish();
         assertEquals(writeString, readString);
     }
 
@@ -804,7 +813,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -817,8 +826,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(126).nextString();
         writer.write(writeString.toCharArray());
@@ -838,7 +847,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -871,7 +880,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -884,8 +893,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(127).nextString();
         writer.write(writeString.toCharArray());
@@ -905,7 +914,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -938,7 +947,7 @@ public class BaseFramingIT {
         }
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -951,8 +960,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(128).nextString();
         writer.write(writeString.toCharArray());
@@ -972,7 +981,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -985,6 +994,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(65536);
+
         Writer writer = connection.getWriter();
         Reader reader = connection.getReader();
 
@@ -1006,7 +1017,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -1019,8 +1030,10 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        connection.setMaxMessageLength(65536);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(65535).nextString();
         writer.write(writeString.toCharArray());
@@ -1040,7 +1053,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -1053,6 +1066,8 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(65536);
+
         Writer writer = connection.getWriter();
         Reader reader = connection.getReader();
 
@@ -1074,7 +1089,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }
@@ -1087,8 +1102,10 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageWriter writer = connection.getMessageWriter();
-        MessageReader reader = connection.getMessageReader();
+        connection.setMaxMessageLength(65536);
+
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(65533).nextString() + "\u1FFF";
         writer.write(writeString.toCharArray());
@@ -1108,7 +1125,7 @@ public class BaseFramingIT {
 
         String readString = String.valueOf(cbuf);
 
-        k3po.join();
+        k3po.finish();
 
         assertEquals(writeString, readString);
     }

@@ -14,30 +14,27 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.internal.util;
+package org.kaazing.netx.ws.internal.io;
 
 
-public final class FrameUtil {
-    private FrameUtil() {
+/**
+ * {@link MessageType} represents the types of the messages that are received by the {@link MessageReader}.
+ * {@link MessageType#EOS} represents end-of-stream.
+ */
+public enum MessageType {
 
-    }
+    /**
+     * End of stream.
+     */
+    EOS,
 
-    public static int calculateCapacity(boolean masked, long payloadLength) {
-        int capacity = 1; // opcode
+    /**
+     * Text message type.
+     */
+    TEXT,
 
-        if (payloadLength < 126) {
-            capacity++;
-        } else if (payloadLength <= 0xFFFF) {
-            capacity += 3;
-        } else {
-            capacity += 9;
-        }
-
-        if (masked) {
-            capacity += 4;
-        }
-
-        capacity += payloadLength;
-        return capacity;
-    }
+    /**
+     * Binary message type.
+     */
+    BINARY;
 }

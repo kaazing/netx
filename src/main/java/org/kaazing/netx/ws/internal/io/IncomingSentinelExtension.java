@@ -20,18 +20,20 @@ import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public final class IncomingSentinelExtension extends WebSocketExtensionSpi {
-    private final WebSocketFrameConsumer cachedOnBinaryReceived;
-    private final WebSocketFrameConsumer cachedOnContinuationReceived;
-    private final WebSocketFrameConsumer cachedOnPingReceived;
-    private final WebSocketFrameConsumer cachedOnPongReceived;
-    private final WebSocketFrameConsumer cachedOnTextReceived;
+    private final WebSocketFrameConsumer defaultOnBinaryReceived;
+    private final WebSocketFrameConsumer defaultOnContinuationReceived;
+    private final WebSocketFrameConsumer defaultOnCloseReceived;
+    private final WebSocketFrameConsumer defaultOnPingReceived;
+    private final WebSocketFrameConsumer defaultOnPongReceived;
+    private final WebSocketFrameConsumer defaultOnTextReceived;
 
     public IncomingSentinelExtension() {
-        this.cachedOnBinaryReceived = super.onBinaryReceived;
-        this.cachedOnContinuationReceived = super.onContinuationReceived;
-        this.cachedOnPingReceived = super.onPingReceived;
-        this.cachedOnPongReceived = super.onPongReceived;
-        this.cachedOnTextReceived = super.onTextReceived;
+        this.defaultOnBinaryReceived = super.onBinaryReceived;
+        this.defaultOnContinuationReceived = super.onContinuationReceived;
+        this.defaultOnCloseReceived = super.onCloseReceived;
+        this.defaultOnPingReceived = super.onPingReceived;
+        this.defaultOnPongReceived = super.onPongReceived;
+        this.defaultOnTextReceived = super.onTextReceived;
     }
 
     public void setTerminalConsumer(WebSocketFrameConsumer terminalConsumer, Opcode opcode) {
@@ -60,10 +62,11 @@ public final class IncomingSentinelExtension extends WebSocketExtensionSpi {
     }
 
     private void restoreConsumers() {
-        super.onBinaryReceived = this.cachedOnBinaryReceived;
-        super.onContinuationReceived = this.cachedOnContinuationReceived;
-        super.onPingReceived = this.cachedOnPingReceived;
-        super.onPongReceived = this.cachedOnPongReceived;
-        super.onTextReceived = this.cachedOnTextReceived;
+        super.onBinaryReceived = this.defaultOnBinaryReceived;
+        super.onContinuationReceived = this.defaultOnContinuationReceived;
+        super.onCloseReceived = this.defaultOnCloseReceived;
+        super.onPingReceived = this.defaultOnPingReceived;
+        super.onPongReceived = this.defaultOnPongReceived;
+        super.onTextReceived = this.defaultOnTextReceived;
     }
 }

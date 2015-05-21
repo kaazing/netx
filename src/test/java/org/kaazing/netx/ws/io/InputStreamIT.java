@@ -48,6 +48,8 @@ public class InputStreamIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(8188);
+
         InputStream input = connection.getInputStream();
         OutputStream output = connection.getOutputStream();
 
@@ -86,7 +88,7 @@ public class InputStreamIT {
             output.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -98,6 +100,8 @@ public class InputStreamIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(8188);
+
         InputStream input = connection.getInputStream();
         OutputStream output = connection.getOutputStream();
 
@@ -136,7 +140,7 @@ public class InputStreamIT {
             output.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -148,6 +152,8 @@ public class InputStreamIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(8188);
+
         InputStream input = connection.getInputStream();
         OutputStream output = connection.getOutputStream();
 
@@ -186,7 +192,7 @@ public class InputStreamIT {
             output.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -198,6 +204,8 @@ public class InputStreamIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(8188);
+
         InputStream input = connection.getInputStream();
         OutputStream output = connection.getOutputStream();
 
@@ -236,9 +244,7 @@ public class InputStreamIT {
             output.write(readBytes2);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
-
     }
-
 }

@@ -49,6 +49,8 @@ public class ReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(8188);
+
         Reader reader = connection.getReader();
         Writer writer = connection.getWriter();
         Charset UTF_8 = Charset.forName("UTF-8");
@@ -85,7 +87,7 @@ public class ReaderIT {
             writer.write(charBuf, 0, length);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -97,6 +99,9 @@ public class ReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(8335);
+//        connection.setMaxMessageLength(8188);
+
         Reader reader = connection.getReader();
         Writer writer = connection.getWriter();
         Charset UTF_8 = Charset.forName("UTF-8");
@@ -133,7 +138,7 @@ public class ReaderIT {
             writer.write(charBuf, 0, length);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -145,6 +150,8 @@ public class ReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(8188);
+
         Reader reader = connection.getReader();
         Writer writer = connection.getWriter();
         Charset UTF_8 = Charset.forName("UTF-8");
@@ -181,7 +188,7 @@ public class ReaderIT {
             writer.write(charBuf, 0, length);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -193,6 +200,8 @@ public class ReaderIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+        connection.setMaxMessageLength(8188);
+
         Reader reader = connection.getReader();
         Writer writer = connection.getWriter();
         Charset UTF_8 = Charset.forName("UTF-8");
@@ -229,7 +238,7 @@ public class ReaderIT {
             writer.write(charBuf, 0, length);
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 }

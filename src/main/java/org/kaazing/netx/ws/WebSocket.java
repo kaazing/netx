@@ -132,20 +132,11 @@ public abstract class WebSocket implements Closeable {
     public abstract InputStream getInputStream() throws IOException;
 
     /**
-     * Returns a {@link MessageReader} that can be used to receive <b>binary</b> and/or <b>text</b> messages.
-     * <p>
-     * @return WebSocketMessageReader   to receive binary and text messages
-     * @throws IOException if an I/O error occurs when connecting or connection is closed
-     */
-    public abstract MessageReader getMessageReader() throws IOException;
-
-    /**
-     * Returns a {@link MessageWriter} that can be used to send <b>binary</b> and/or <b>text</b> messages.
+     * Returns the maximum message length that this connection will support. The default maximum message length is 8192 bytes.
      *
-     * @return WebSocketMessageWriter   to send binary and/or text messages
-     * @throws IOException if an I/O error occurs when connecting or connection is closed
+     * @return maximum message length for the connection
      */
-    public abstract MessageWriter getMessageWriter() throws IOException;
+    public abstract int getMaxMessageLength();
 
     /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
@@ -239,6 +230,18 @@ public abstract class WebSocket implements Closeable {
      * @param protocols  protocols to be negotiated with the server during the opening handshake
      */
     public abstract void setEnabledProtocols(String... protocols);
+
+    /**
+     * Sets the maximum message length that this connection can handle. This method must be invoked before {@link #connect}
+     * is called. The maximum message length can be {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}.
+     * <p>
+     * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
+     * If the maxMessageLength <= 0 or maxMessageLength > {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}, an
+     * IllegalArgumentException is thrown.
+     * <p>
+     * @param maxMessageLength  maximum message length for the connection
+     */
+    public abstract void setMaxMessageLength(int maxMessageLength);
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx).

@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.locks.Lock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +64,7 @@ import org.kaazing.netx.ws.internal.io.WsOutputStream;
 import org.kaazing.netx.ws.internal.io.WsReader;
 import org.kaazing.netx.ws.internal.io.WsWriter;
 import org.kaazing.netx.ws.internal.util.Base64Util;
+import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 
 public final class WsURLConnectionImpl extends WsURLConnection {
     private static final Pattern PATTERN_EXTENSION_FORMAT = Pattern.compile("([a-zA-Z0-9]*)(;?(.*))");
@@ -94,6 +96,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
+    private static final int MAX_PAYLOAD_LENGTH = 8192;
 
     private final Random random;
     private final HttpURLConnection connection;
@@ -108,19 +111,25 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private final WebSocketInputStateMachine inputStateMachine;
     private final WebSocketOutputStateMachine outputStateMachine;
     private final WebSocketExtensionFactory extensionFactory;
+    private final Lock readLock;
+    private final Lock stateLock;
+    private final Lock writeLock;
 
-    private String negotiatedProtocol;
-    private WsInputStream inputStream;
-    private WsOutputStream outputStream;
-    private WsReader reader;
-    private WsWriter writer;
-    private WsMessageReader messageReader;
-    private WsMessageWriter messageWriter;
+    private volatile String negotiatedProtocol;
+    private volatile WsInputStream inputStream;
+    private volatile WsOutputStream outputStream;
+    private volatile WsReader reader;
+    private volatile WsWriter writer;
+    private volatile WsMessageReader messageReader;
+    private volatile WsMessageWriter messageWriter;
 
-    private WebSocketState inputState;
-    private WebSocketState outputState;
-    private DefaultWebSocketContext incomingContext;
-    private DefaultWebSocketContext outgoingContext;
+    private volatile WebSocketState inputState;
+    private volatile WebSocketState outputState;
+    private volatile DefaultWebSocketContext incomingContext;
+    private volatile DefaultWebSocketContext outgoingContext;
+
+    private int maxMessageLength;
+    private int maxFrameLength;
 
     public WsURLConnectionImpl(
             URLConnectionHelper helper,
@@ -147,6 +156,11 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.commandFramePayload = new byte[MAX_COMMAND_FRAME_PAYLOAD];
         this.inputStateMachine = inputStateMachine;
         this.outputStateMachine = outputStateMachine;
+        this.readLock = new OptimisticReentrantLock();
+        this.stateLock = new OptimisticReentrantLock();
+        this.writeLock = new OptimisticReentrantLock();
+        this.maxMessageLength = MAX_PAYLOAD_LENGTH;
+        this.maxFrameLength = getFrameLength(false, maxMessageLength);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -178,20 +192,27 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             throw new IllegalArgumentException(MSG_NO_EXTENSIONS_SPEICIFIED);
         }
 
-        enabledExtensions.clear();
+        ensureReconfigurable();
 
-        for (String extension : extensions) {
-            try {
-                // Validate the string representation of the extension.
-                extensionFactory.validateExtension(extension);
-                enabledExtensions.add(extension);
-            }
-            catch (IOException ex) {
-                // The string representation of the extension was deemed invalid by the extension.
-                // So, it will not be negotiated during the opening handshake.
+        try {
+            stateLock.lock();
 
-                // #### TODO: Log to indicate why the enabled extension was not negotiated.
+            for (String extension : extensions) {
+                try {
+                    // Validate the string representation of the extension.
+                    extensionFactory.validateExtension(extension);
+                    enabledExtensions.add(extension);
+                }
+                catch (IOException ex) {
+                    // The string representation of the extension was deemed invalid by the extension.
+                    // So, it will not be negotiated during the opening handshake.
+
+                    // #### TODO: Log to indicate why the enabled extension was not negotiated.
+                }
             }
+        }
+        finally {
+            stateLock.unlock();
         }
     }
 
@@ -207,31 +228,52 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public void close(int code, String reason) throws IOException {
-        byte[] reasonBytes = null;
-
-        if (code != 0) {
-            // Verify code and reason against RFC 6455.
-            // If code is present, it must equal to 1000 or in range 3000 to 4999
-            if (code != 1000 && (code < 3000 || code > 4999)) {
-                throw new IOException(MSG_INVALID_CLOSE_CODE);
-            }
-
-            if (reason != null && reason.length() > 0) {
-                reasonBytes = reason.getBytes(UTF_8);
-            }
+        if (outputState == CLOSED) {
+            return;
         }
 
-        sendClose(code, reasonBytes, 0, reasonBytes == null ? 0 : reasonBytes.length);
+        try {
+            stateLock.lock();
+
+            if (outputState == CLOSED) {
+                return;
+            }
+
+            byte[] reasonBytes = null;
+
+            if (code != 0) {
+                // Verify code and reason against RFC 6455.
+                // If code is present, it must equal to 1000 or in range 3000 to 4999
+                if (code != 1000 && (code < 3000 || code > 4999)) {
+                    throw new IOException(MSG_INVALID_CLOSE_CODE);
+                }
+
+                if (reason != null && reason.length() > 0) {
+                    reasonBytes = reason.getBytes(UTF_8);
+                }
+            }
+
+            sendClose(code, reasonBytes, 0, reasonBytes == null ? 0 : reasonBytes.length);
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
     public void connect() throws IOException {
-        switch (inputState) {
-        case START:
-            doConnect();
-            break;
-        default:
-            throw new IOException(MSG_ALREADY_CONNECTED);
+        try {
+            stateLock.lock();
+            switch (inputState) {
+            case START:
+                doConnect();
+                break;
+            default:
+                throw new IOException(MSG_ALREADY_CONNECTED);
+            }
+        }
+        finally {
+            stateLock.unlock();
         }
     }
 
@@ -256,70 +298,145 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
+    public int getMaxMessageLength() {
+        return maxMessageLength;
+    }
+
+    @Override
     public HttpRedirectPolicy getRedirectPolicy() {
         return connection.getRedirectPolicy();
     }
 
     @Override
     public WsInputStream getInputStream() throws IOException {
-        if (inputStream == null) {
+        if (inputStream != null) {
+            return inputStream;
+        }
+
+        try {
+            stateLock.lock();
             ensureConnected();
+
+            if (inputStream != null) {
+                return inputStream;
+            }
+
             inputStream = new WsInputStream(this);
+            return inputStream;
         }
-
-        return inputStream;
+        finally {
+            stateLock.unlock();
+        }
     }
 
-    @Override
     public WsMessageReader getMessageReader() throws IOException {
-        if (messageReader == null) {
-            ensureConnected();
-            messageReader = new WsMessageReader(this);
+        if (messageReader != null) {
+            return messageReader;
         }
 
-        return messageReader;
+        try {
+            stateLock.lock();
+            ensureConnected();
+
+            if (messageReader != null) {
+                return messageReader;
+            }
+
+            messageReader = new WsMessageReader(this);
+            return messageReader;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
-    @Override
     public WsMessageWriter getMessageWriter() throws IOException {
-        if (messageWriter == null) {
-            ensureConnected();
-            messageWriter = new WsMessageWriter(this);
+        if (messageWriter != null) {
+            return messageWriter;
         }
 
-        return messageWriter;
+        try {
+            stateLock.lock();
+            ensureConnected();
+
+            if (messageWriter != null) {
+                return messageWriter;
+            }
+
+            messageWriter = new WsMessageWriter(this);
+            return messageWriter;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
     public Collection<String> getNegotiatedExtensions() throws IOException {
-        ensureConnected();
-        return negotiatedExtensionsRO;
+        try {
+            stateLock.lock();
+            ensureConnected();
+            return negotiatedExtensionsRO;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
-    public String getNegotiatedProtocol() throws IOException {
-        ensureConnected();
-        return negotiatedProtocol;
+    public  String getNegotiatedProtocol() throws IOException {
+        try {
+            stateLock.lock();
+            ensureConnected();
+            return negotiatedProtocol;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
     public WsOutputStream getOutputStream() throws IOException {
-        if (outputStream == null) {
-            ensureConnected();
-            outputStream = new WsOutputStream(this);
+        if (outputStream != null) {
+            return outputStream;
         }
 
-        return outputStream;
+        try {
+            stateLock.lock();
+            ensureConnected();
+
+            if (outputStream != null) {
+                return outputStream;
+            }
+
+            outputStream = new WsOutputStream(this);
+            return outputStream;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
     public WsReader getReader() throws IOException {
-        if (reader == null) {
-            ensureConnected();
-            reader = new WsReader(this);
+        if (reader != null) {
+            return reader;
         }
 
-        return reader;
+        try {
+            stateLock.lock();
+            ensureConnected();
+
+            if (reader != null) {
+                return reader;
+            }
+
+            reader = new WsReader(this);
+            return reader;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
@@ -329,39 +446,71 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     @Override
     public Writer getWriter() throws IOException {
-        if (writer == null) {
-            ensureConnected();
-            writer = new WsWriter(this);
+        if (writer != null) {
+            return writer;
         }
 
-        return writer;
+        try {
+            stateLock.lock();
+            ensureConnected();
+
+            if (writer != null) {
+                return writer;
+            }
+
+            writer = new WsWriter(this);
+            return writer;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
     public void setChallengeHandler(ChallengeHandler challengeHandler) {
+        ensureReconfigurable();
         connection.setChallengeHandler(challengeHandler);
     }
 
     @Override
     public void setConnectTimeout(int timeout) {
+        ensureReconfigurable();
         connection.setConnectTimeout(timeout);
     }
 
     @Override
     public void setEnabledProtocols(String... enabledProtocols) {
-        switch (inputState) {
-        case START:
-            break;
-        default:
-            throw new IllegalStateException(MSG_ALREADY_CONNECTED);
+        ensureReconfigurable();
+
+        try {
+            stateLock.lock();
+            this.enabledProtocols.clear();
+            this.enabledProtocols.addAll(Arrays.asList(enabledProtocols));
+        }
+        finally {
+            stateLock.unlock();
+        }
+    }
+
+    @Override
+    public void setMaxMessageLength(int maxPayloadLength) {
+        ensureReconfigurable();
+
+        if (maxPayloadLength > Integer.MAX_VALUE - 14) {
+            throw new IllegalArgumentException(format("Maximim payload length must not exceed %d", Integer.MAX_VALUE - 14));
         }
 
-        this.enabledProtocols.clear();
-        this.enabledProtocols.addAll(Arrays.asList(enabledProtocols));
+        if (maxPayloadLength <= 0) {
+            throw new IllegalArgumentException("Maximum payload length must be positive integer value");
+        }
+
+        this.maxMessageLength = maxPayloadLength;
+        this.maxFrameLength = getFrameLength(false, maxMessageLength);
     }
 
     @Override
     public void setRedirectPolicy(HttpRedirectPolicy redirectPolicy) {
+        ensureReconfigurable();
         connection.setRedirectPolicy(redirectPolicy);
     }
 
@@ -447,10 +596,17 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             return incomingContext;
         }
 
-        List<WebSocketExtensionSpi> extensions = new ArrayList<WebSocketExtensionSpi>(this.negotiatedExtensionSpis);
-        extensions.add(new IncomingSentinelExtension());
-        incomingContext = new DefaultWebSocketContext(this, unmodifiableList(extensions));
-        return incomingContext;
+        try {
+            stateLock.lock();
+
+            List<WebSocketExtensionSpi> extensions = new ArrayList<WebSocketExtensionSpi>(this.negotiatedExtensionSpis);
+            extensions.add(new IncomingSentinelExtension());
+            incomingContext = new DefaultWebSocketContext(this, unmodifiableList(extensions));
+            return incomingContext;
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     public DefaultWebSocketContext getOutgoingContext() {
@@ -458,15 +614,53 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             return outgoingContext;
         }
 
-        List<WebSocketExtensionSpi> extensions = new ArrayList<WebSocketExtensionSpi>(this.negotiatedExtensionSpis);
-        Collections.reverse(extensions);
-        extensions.add(new OutgoingSentinelExtension(this));
-        outgoingContext = new DefaultWebSocketContext(this, unmodifiableList(extensions));
-        return outgoingContext;
+        try {
+            stateLock.lock();
+
+            List<WebSocketExtensionSpi> extensions = new ArrayList<WebSocketExtensionSpi>(this.negotiatedExtensionSpis);
+            Collections.reverse(extensions);
+            extensions.add(new OutgoingSentinelExtension(this));
+            outgoingContext = new DefaultWebSocketContext(this, unmodifiableList(extensions));
+            return outgoingContext;
+        }
+        finally {
+            stateLock.unlock();
+        }
+    }
+
+    public int getFrameLength(boolean masked, int messageLength) {
+        int frameLength = 1; // opcode
+
+        if (messageLength < 126) {
+            frameLength++;
+        } else if (messageLength <= 0xFFFF) {
+            frameLength += 3;
+        } else {
+            frameLength += 9;
+        }
+
+        if (masked) {
+            frameLength += 4;
+        }
+
+        frameLength += messageLength;
+        return frameLength;
+    }
+
+    public int getMaxFrameLength() {
+        return maxFrameLength;
     }
 
     public Random getRandom() {
         return random;
+    }
+
+    public Lock getReadLock() {
+        return readLock;
+    }
+
+    public Lock getWriteLock() {
+        return writeLock;
     }
 
     public InputStream getTcpInputStream() throws IOException {
@@ -586,6 +780,14 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
 
     ///////////////////////////////////////////////////////////////////////////
+    private void ensureReconfigurable() {
+        switch (inputState) {
+        case START:
+            break;
+        default:
+            throw new IllegalStateException(MSG_ALREADY_CONNECTED);
+        }
+    }
 
     private void ensureConnected() throws IOException {
         switch (inputState) {
@@ -672,14 +874,18 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         disconnect();
     }
 
-    private void negotiateProtocol(Collection<String> enabledProtocols, String negotiatedProtocol) throws IOException {
+    private void negotiateProtocol(
+            Collection<String> enabledProtocols,
+            String negotiatedProtocol) throws IOException {
         if (negotiatedProtocol != null && !enabledProtocols.contains(negotiatedProtocol)) {
             throw new IOException(format(MSG_INVALID_PROTOCOL_NEGOTIATED, negotiatedProtocol));
         }
         this.negotiatedProtocol = negotiatedProtocol;
     }
 
-    private void negotiateExtensions(List<String> enabledExtensions, String formattedExtensions) throws IOException {
+    private void negotiateExtensions(
+            List<String> enabledExtensions,
+            String formattedExtensions) throws IOException {
         negotiatedExtensions.clear();
         negotiatedExtensionSpis.clear();
 
@@ -711,9 +917,9 @@ public final class WsURLConnectionImpl extends WsURLConnection {
                 }
             }
             catch (IOException ex) {
-                // The string representation of the negotiated extension was deemed invalid by the extension.
+                // The string representation of the negotiated extension was deemed invalid by the extension-factory.
                 // So, it will not be activated. This means, the extension-hooks will not be exercised when the messages
-                //  are being sent or received.
+                // are being sent or received.
 
                 // ### TODO: Log to indicate why a negotiated extension was not activated.
             }

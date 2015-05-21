@@ -65,43 +65,50 @@ public final class WebSocketOutputStateMachine {
     }
 
     public void processFrame(final WsURLConnectionImpl connection, final Frame frame) throws IOException {
-        DefaultWebSocketContext context = connection.getOutgoingContext();
-        WebSocketState state = connection.getOutputState();
-        Opcode opcode = frame.opcode();
+        try {
+            connection.getWriteLock().lock();
 
-        context.reset();
+            DefaultWebSocketContext context = connection.getOutgoingContext();
+            WebSocketState state = connection.getOutputState();
+            Opcode opcode = frame.opcode();
 
-        switch (state) {
-        case OPEN:
-            switch (opcode) {
-            case BINARY:
-                transition(connection, SEND_BINARY_FRAME);
-                context.onBinarySent(frame);
-                break;
-            case CLOSE:
-                context.onCloseSent(frame);
-                transition(connection, SEND_CLOSE_FRAME);
-                break;
-            case CONTINUATION:
-                transition(connection, SEND_CONTINUATION_FRAME);
-                context.onContinuationSent(frame);
-                break;
-            case PONG:
-                transition(connection, SEND_PONG_FRAME);
-                context.onPongSent(frame);
-                break;
-            case TEXT:
-                transition(connection, SEND_TEXT_FRAME);
-                context.onTextSent(frame);
+            context.reset();
+
+            switch (state) {
+            case OPEN:
+                switch (opcode) {
+                case BINARY:
+                    transition(connection, SEND_BINARY_FRAME);
+                    context.onBinarySent(frame);
+                    break;
+                case CLOSE:
+                    context.onCloseSent(frame);
+                    transition(connection, SEND_CLOSE_FRAME);
+                    break;
+                case CONTINUATION:
+                    transition(connection, SEND_CONTINUATION_FRAME);
+                    context.onContinuationSent(frame);
+                    break;
+                case PONG:
+                    transition(connection, SEND_PONG_FRAME);
+                    context.onPongSent(frame);
+                    break;
+                case TEXT:
+                    transition(connection, SEND_TEXT_FRAME);
+                    context.onTextSent(frame);
+                    break;
+                default:
+                    break;
+                }
                 break;
             default:
+                transition(connection, ERROR);
+                context.onError(format("Invalid state %s to be sending a %s frame", state, opcode));
                 break;
             }
-            break;
-        default:
-            transition(connection, ERROR);
-            context.onError(format("Invalid state %s to be sending a %s frame", state, opcode));
-            break;
+        }
+        finally {
+            connection.getWriteLock().unlock();
         }
     }
 

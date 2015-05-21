@@ -19,7 +19,7 @@ package org.kaazing.netx.ws.specification;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.kaazing.netx.ws.MessageType.BINARY;
+import static org.kaazing.netx.ws.internal.io.MessageType.BINARY;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,9 +35,10 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.WsURLConnection;
+import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
+import org.kaazing.netx.ws.internal.io.MessageReader;
+import org.kaazing.netx.ws.internal.io.MessageType;
 
 /**
  * RFC-6455, section 7 "Closing the Connection"
@@ -61,7 +62,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.connect();
         connection.close();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -74,7 +75,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.connect();
         connection.close(1000);
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -88,7 +89,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.connect();
         connection.close(1000, reason);
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -101,7 +102,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
         in.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -114,7 +115,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -125,7 +126,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
         while ((type = reader.next()) != MessageType.EOS) {
@@ -138,7 +139,7 @@ public class ClosingHandshakeIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -151,7 +152,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
         in.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -164,7 +165,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -175,7 +176,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
         while ((type = reader.next()) != MessageType.EOS) {
@@ -188,7 +189,7 @@ public class ClosingHandshakeIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -201,7 +202,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
         in.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -214,7 +215,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -225,7 +226,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
         while ((type = reader.next()) != MessageType.EOS) {
@@ -238,7 +239,7 @@ public class ClosingHandshakeIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -255,7 +256,7 @@ public class ClosingHandshakeIT {
             in.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -274,7 +275,7 @@ public class ClosingHandshakeIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -287,7 +288,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
 
@@ -304,7 +305,7 @@ public class ClosingHandshakeIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -318,7 +319,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         InputStream in = connection.getInputStream();
         in.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -331,7 +332,7 @@ public class ClosingHandshakeIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         Reader reader = connection.getReader();
         reader.read();
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -342,7 +343,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
         while ((type = reader.next()) != MessageType.EOS) {
@@ -355,7 +356,7 @@ public class ClosingHandshakeIT {
                 break;
             }
         }
-        k3po.join();
+        k3po.finish();
     }
 
     @Test(expected = IOException.class)
@@ -372,7 +373,7 @@ public class ClosingHandshakeIT {
             in.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -390,7 +391,7 @@ public class ClosingHandshakeIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -402,7 +403,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
 
@@ -419,7 +420,7 @@ public class ClosingHandshakeIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -437,7 +438,7 @@ public class ClosingHandshakeIT {
             in.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -455,7 +456,7 @@ public class ClosingHandshakeIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -467,7 +468,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
 
@@ -484,7 +485,7 @@ public class ClosingHandshakeIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -502,7 +503,7 @@ public class ClosingHandshakeIT {
             in.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -520,7 +521,7 @@ public class ClosingHandshakeIT {
             reader.read();
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 
@@ -532,7 +533,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = connection.getMessageReader();
+        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         byte[] readBytes = new byte[0];
         MessageType type = null;
 
@@ -549,7 +550,7 @@ public class ClosingHandshakeIT {
             }
         }
         finally {
-            k3po.join();
+            k3po.finish();
         }
     }
 

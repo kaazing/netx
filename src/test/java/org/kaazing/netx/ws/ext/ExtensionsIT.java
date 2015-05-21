@@ -77,8 +77,8 @@ public class ExtensionsIT {
 
         String expectedString = "nuqneH, " + randomString;   // Klingon translated.
         String readString = String.valueOf(cbuf, 0, offset);
-        k3po.join();
         assertEquals(expectedString, readString);
+        k3po.finish();
     }
 
     private static class RandomString {

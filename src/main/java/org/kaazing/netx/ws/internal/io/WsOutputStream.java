@@ -25,14 +25,16 @@ import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PONG;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.Lock;
 
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
-import org.kaazing.netx.ws.internal.util.FrameUtil;
+import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 
 public final class WsOutputStream extends FilterOutputStream {
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
+    private static final String MSG_MAX_MESSAGE_LENGTH = "Message length %d is greater than the maximum allowed %d";
 
     private final WsURLConnectionImpl connection;
     private final byte[] controlFramePayload;
@@ -40,24 +42,33 @@ public final class WsOutputStream extends FilterOutputStream {
     private final FrameRW outgoingControlFrame;
     private final FrameRO outgoingFrameRO;
     private final ByteBuffer heapBufferControlFrameRO;
-
-    private ByteBuffer heapBuffer;
-    private ByteBuffer heapBufferRO;
+    private final ByteBuffer heapBuffer;
+    private final ByteBuffer heapBufferRO;
+    private final Lock stateLock;
 
     public WsOutputStream(WsURLConnectionImpl connection) throws IOException {
         super(connection.getTcpOutputStream());
         this.connection = connection;
+        this.heapBuffer = ByteBuffer.allocate(connection.getMaxFrameLength());
+        this.heapBufferRO = heapBuffer.asReadOnlyBuffer();
         this.outgoingDataFrame = new FrameRW();
         this.outgoingControlFrame = new FrameRW();
         this.controlFramePayload = new byte[150]; // To handle negative tests. Have some extra bytes.
         this.outgoingControlFrame.wrap(ByteBuffer.allocate(150), 0);
         this.heapBufferControlFrameRO = outgoingControlFrame.buffer().asReadOnlyBuffer();
         this.outgoingFrameRO = new FrameRO();
+        this.stateLock = new OptimisticReentrantLock();
     }
 
     @Override
     public void close() throws IOException {
-        out.close();
+        try {
+            stateLock.lock();
+            out.close();
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     @Override
@@ -66,7 +77,7 @@ public final class WsOutputStream extends FilterOutputStream {
     }
 
     @Override
-    public void write(byte[] buf, int offset, int length) throws IOException {
+    public  void write(byte[] buf, int offset, int length) throws IOException {
         if (connection.getOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
@@ -78,19 +89,25 @@ public final class WsOutputStream extends FilterOutputStream {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
         }
 
-        int capacity = FrameUtil.calculateCapacity(false, length);
+        try {
+            stateLock.lock();
 
-        if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
-            heapBuffer = ByteBuffer.allocate(capacity);
-            heapBufferRO = heapBuffer.asReadOnlyBuffer();
+            int maxPayloadLength = connection.getMaxMessageLength();
+            if (length > maxPayloadLength) {
+                throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, length, maxPayloadLength));
+            }
+
             outgoingDataFrame.wrap(heapBuffer,  0);
-        }
-        outgoingDataFrame.fin(true);
-        outgoingDataFrame.opcode(BINARY);
-        outgoingDataFrame.payloadPut(buf, offset, length);
+            outgoingDataFrame.fin(true);
+            outgoingDataFrame.opcode(BINARY);
+            outgoingDataFrame.payloadPut(buf, offset, length);
 
-        outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
-        connection.processOutgoingFrame(outgoingFrameRO);
+            outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
+            connection.processOutgoingFrame(outgoingFrameRO);
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     public void writeContinuation(byte[] buf, int offset, int length) throws IOException {
@@ -105,19 +122,25 @@ public final class WsOutputStream extends FilterOutputStream {
             throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
         }
 
-        int capacity = FrameUtil.calculateCapacity(false, length);
+        try {
+            stateLock.lock();
 
-        if ((outgoingDataFrame.buffer() == null) || (outgoingDataFrame.buffer().capacity() < capacity)) {
-            heapBuffer = ByteBuffer.allocate(capacity);
-            heapBufferRO = heapBuffer.asReadOnlyBuffer();
+            int maxPayloadLength = connection.getMaxMessageLength();
+            if (length > maxPayloadLength) {
+                throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, length, maxPayloadLength));
+            }
+
             outgoingDataFrame.wrap(heapBuffer,  0);
-        }
-        outgoingDataFrame.fin(true);
-        outgoingDataFrame.opcode(BINARY);
-        outgoingDataFrame.payloadPut(buf, offset, length);
+            outgoingDataFrame.fin(true);
+            outgoingDataFrame.opcode(BINARY);
+            outgoingDataFrame.payloadPut(buf, offset, length);
 
-        outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
-        connection.processOutgoingFrame(outgoingFrameRO);
+            outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());
+            connection.processOutgoingFrame(outgoingFrameRO);
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 
     public void writeClose(int code, byte[] reason, int offset, int length) throws IOException {
@@ -131,25 +154,32 @@ public final class WsOutputStream extends FilterOutputStream {
             }
         }
 
-        int payloadLen = 0;
+        try {
+            stateLock.lock();
 
-        if (code > 0) {
-            payloadLen += 2;
-            payloadLen += length;
+            int payloadLen = 0;
 
-            controlFramePayload[0] = (byte) ((code >> 8) & 0xFF);
-            controlFramePayload[1] = (byte) (code & 0xFF);
-            if (reason != null) {
-                System.arraycopy(reason, offset, controlFramePayload, 2, length);
+            if (code > 0) {
+                payloadLen += 2;
+                payloadLen += length;
+
+                controlFramePayload[0] = (byte) ((code >> 8) & 0xFF);
+                controlFramePayload[1] = (byte) (code & 0xFF);
+                if (reason != null) {
+                    System.arraycopy(reason, offset, controlFramePayload, 2, length);
+                }
             }
+
+            outgoingControlFrame.fin(true);
+            outgoingControlFrame.opcode(CLOSE);
+            outgoingControlFrame.payloadPut(controlFramePayload, 0, payloadLen);
+
+            outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
+            connection.processOutgoingFrame(outgoingFrameRO);
         }
-
-        outgoingControlFrame.fin(true);
-        outgoingControlFrame.opcode(CLOSE);
-        outgoingControlFrame.payloadPut(controlFramePayload, 0, payloadLen);
-
-        outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
-        connection.processOutgoingFrame(outgoingFrameRO);
+        finally {
+            stateLock.unlock();
+        }
     }
 
     public void writePong(byte[] buf, int offset, int length) throws IOException {
@@ -157,11 +187,17 @@ public final class WsOutputStream extends FilterOutputStream {
             throw new IOException("Connection closed");
         }
 
-        outgoingControlFrame.fin(true);
-        outgoingControlFrame.opcode(PONG);
-        outgoingControlFrame.payloadPut(buf, offset, length);
+        try {
+            stateLock.lock();
+            outgoingControlFrame.fin(true);
+            outgoingControlFrame.opcode(PONG);
+            outgoingControlFrame.payloadPut(buf, offset, length);
 
-        outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
-        connection.processOutgoingFrame(outgoingFrameRO);
+            outgoingFrameRO.wrap(heapBufferControlFrameRO, outgoingControlFrame.offset());
+            connection.processOutgoingFrame(outgoingFrameRO);
+        }
+        finally {
+            stateLock.unlock();
+        }
     }
 }

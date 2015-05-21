@@ -30,12 +30,11 @@ import java.util.Collection;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
-import org.kaazing.netx.ws.MessageReader;
-import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WebSocket;
+import org.kaazing.netx.ws.internal.io.MessageReader;
+import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 public class WebSocketImpl extends WebSocket {
-
     private final WsURLConnectionImpl connection;
 
     public WebSocketImpl(URI location, WebSocketExtensionFactory extensionFactory) throws URISyntaxException {
@@ -59,17 +58,17 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public synchronized void close() throws IOException {
+    public void close() throws IOException {
         close(0, null);
     }
 
     @Override
-    public synchronized void close(int code) throws IOException {
+    public void close(int code) throws IOException {
         close(code, null);
     }
 
     @Override
-    public synchronized void close(int code, String reason) throws IOException {
+    public void close(int code, String reason) throws IOException {
         connection.close(code, reason);
     }
 
@@ -109,11 +108,14 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
+    public int getMaxMessageLength() {
+        return connection.getMaxMessageLength();
+    }
+
     public MessageReader getMessageReader() throws IOException {
         return connection.getMessageReader();
     }
 
-    @Override
     public MessageWriter getMessageWriter() throws IOException {
         return connection.getMessageWriter();
     }
@@ -166,5 +168,10 @@ public class WebSocketImpl extends WebSocket {
     @Override
     public void setRedirectPolicy(HttpRedirectPolicy policy) {
         connection.setRedirectPolicy(policy);
+    }
+
+    @Override
+    public void setMaxMessageLength(int maxPayloadLength) {
+        connection.setMaxMessageLength(maxPayloadLength);
     }
 }
