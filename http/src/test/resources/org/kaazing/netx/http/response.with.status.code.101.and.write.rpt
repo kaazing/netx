@@ -1,0 +1,19 @@
+accept http://localhost:8080/path
+
+accepted
+connected
+
+read method "GET"
+read header "Upgrade" "websocket"
+read header "Sec-WebSocket-Protocol" "13"
+
+write status "101" "Switching Protocols"
+write header "Upgrade" "websocket"
+
+write "Hello, world"
+write "Howdy, world"
+write "Wassup, world"
+
+read "Hello, world"
+
+closed

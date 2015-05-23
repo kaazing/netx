@@ -1,0 +1,16 @@
+accept http://example.com:8081/path
+
+accepted
+connected
+
+read method "POST"
+#read header "Origin" "http://localhost:8080"
+read header "X-Header" "value"
+read header "Upgrade" "anything"
+
+write status "101" "Switching Protocols"
+write header "Upgrade" "anything"
+write flush
+
+write close
+read closed

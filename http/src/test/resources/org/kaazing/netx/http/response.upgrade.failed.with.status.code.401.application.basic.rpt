@@ -1,0 +1,15 @@
+accept http://localhost:8080/path
+
+accepted
+connected
+
+read method "GET"
+read header "Upgrade" "websocket"
+read header "Sec-WebSocket-Protocol" "13"
+
+write status "401" "Not Authorized"
+write header content-length
+write header "WWW-Authenticate" "Application Basic realm=\"WallyWorld\""
+
+write close
+read closed
