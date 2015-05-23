@@ -13,6 +13,7 @@
 
     <artifactId>netx.http.bridge</artifactId>
     <packaging>jar</packaging>
+    <name>Net Extensions for HTTP (Bridge) Implementation</name>
 
     <url>https://github.com/kaazing/netx</url>
 

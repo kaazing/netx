@@ -13,6 +13,7 @@
 
     <artifactId>netx.http.bridge.itest</artifactId>
     <packaging>jar</packaging>
+    <name>Net Extensions for HTTP (Bridge) Integration Tests</name>
 
     <url>https://github.com/kaazing/netx</url>
 
@@ -21,6 +22,13 @@
         <connection>scm:git:https://github.com/kaazing/netx.git</connection>
     </scm>
 
+    <properties>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+        <require.java.version>1.7+</require.java.version>
+        <animal.sniffer.signature.artifactId>java17</animal.sniffer.signature.artifactId>
+    </properties>
+    
     <dependencies>
         <dependency>
             <groupId>org.kaazing</groupId>
