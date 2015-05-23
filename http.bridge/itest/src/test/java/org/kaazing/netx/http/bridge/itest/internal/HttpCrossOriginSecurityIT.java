@@ -60,7 +60,7 @@ public class HttpCrossOriginSecurityIT {
         int responseCode = connection.getResponseCode();
 
         assertEquals(200, responseCode);
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -70,7 +70,7 @@ public class HttpCrossOriginSecurityIT {
         "netx.http.bridge.response",
         "response.with.status.code.200" })
     public void shouldTestApplet() throws Exception {
-        k3po.join();
+        k3po.finish();
     }
 
 }

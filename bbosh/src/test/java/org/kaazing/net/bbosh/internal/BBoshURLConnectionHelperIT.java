@@ -42,10 +42,10 @@ public class BBoshURLConnectionHelperIT {
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
 
-    private final K3poRule robot = new K3poRule().setScriptRoot("org/kaazing/robotic/bbosh");
+    private final K3poRule k3po = new K3poRule().setScriptRoot("org/kaazing/robotic/bbosh");
 
     @Rule
-    public TestRule chain = outerRule(robot).around(timeout);
+    public TestRule chain = outerRule(k3po).around(timeout);
 
     @Test
     @Specification("polling/accept.echo.then.close")
@@ -66,7 +66,7 @@ public class BBoshURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
@@ -92,7 +92,7 @@ public class BBoshURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
@@ -117,7 +117,7 @@ public class BBoshURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
@@ -143,7 +143,7 @@ public class BBoshURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
@@ -168,7 +168,7 @@ public class BBoshURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
@@ -194,7 +194,7 @@ public class BBoshURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
@@ -219,7 +219,7 @@ public class BBoshURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
@@ -245,7 +245,7 @@ public class BBoshURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));

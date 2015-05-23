@@ -40,12 +40,12 @@ public class TcpURLConnectionHelperIT {
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    private final K3poRule robot = new K3poRule();
+    private final K3poRule k3po = new K3poRule();
 
     private final TestRule timeout = new DisableOnDebug(new Timeout(1, SECONDS));
 
     @Rule
-    public final TestRule chain = RuleChain.outerRule(robot).around(timeout);
+    public final TestRule chain = RuleChain.outerRule(k3po).around(timeout);
 
     @Test
     @Specification("echo.then.closed")
@@ -65,7 +65,7 @@ public class TcpURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));
@@ -90,7 +90,7 @@ public class TcpURLConnectionHelperIT {
         int len = in.read(buf);
         in.close();
 
-        robot.join();
+        k3po.finish();
 
         assertEquals(12, len);
         assertEquals("Hello, world", new String(buf, 0, 12, UTF_8));

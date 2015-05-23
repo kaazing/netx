@@ -7,28 +7,30 @@
 
     <parent>
         <groupId>org.kaazing</groupId>
-        <version>develop-SNAPSHOT</version>
         <artifactId>netx.http.bridge.parent</artifactId>
+        <version>develop-SNAPSHOT</version>
     </parent>
 
     <artifactId>netx.http.bridge</artifactId>
     <packaging>jar</packaging>
 
-    <url>https://github.com/kaazing/netx.http.bridge</url>
+    <url>https://github.com/kaazing/netx</url>
 
     <scm>
-        <url>https://github.com/kaazing/netx.http.bridge</url>
-        <connection>scm:git:https://github.com/kaazing/netx.http.bridge.git</connection>
+        <url>https://github.com/kaazing/netx</url>
+        <connection>scm:git:https://github.com/kaazing/netx.git</connection>
     </scm>
 
     <dependencies>
         <dependency>
             <groupId>org.kaazing</groupId>
             <artifactId>netx.http</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -39,12 +41,14 @@
         <dependency>
             <groupId>org.kaazing</groupId>
             <artifactId>k3po.junit</artifactId>
+            <version>${k3po.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <!-- Needed for EL only, not AST -->
             <groupId>org.kaazing</groupId>
             <artifactId>k3po.lang</artifactId>
+            <version>${k3po.lang.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
