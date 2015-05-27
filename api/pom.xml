@@ -8,38 +8,28 @@
         <version>develop-SNAPSHOT</version>
     </parent>
 
-    <artifactId>netx.data</artifactId>
+    <artifactId>netx</artifactId>
     <version>develop-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Net Data Implementation</name>
+    <name>Net Extensions Common</name>
     <url>https://github.com/kaazing/netx</url>
-    <description>Support for Data URLs</description>
+    <description>Network utility that extends java.net, including URL</description>
 
     <scm>
         <url>https://github.com/kaazing/netx</url>
         <connection>scm:git:https://github.com/kaazing/netx.git</connection>
     </scm>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.kaazing</groupId>
-            <artifactId>netx</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>[4.12,)</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

@@ -4,8 +4,8 @@
 
     <parent>
         <groupId>org.kaazing</groupId>
-        <artifactId>community</artifactId>
-        <version>2.10</version>
+        <artifactId>netx.parent</artifactId>
+        <version>develop-SNAPSHOT</version>
     </parent>
 
     <artifactId>netx.tcp</artifactId>
@@ -13,37 +13,30 @@
     <packaging>jar</packaging>
 
     <name>Net TCP Implementation</name>
-    <url>https://github.com/kaazing/netx.tcp</url>
+    <url>https://github.com/kaazing/netx</url>
     <description>Support for TCP URLs</description>
 
     <scm>
-        <url>https://github.com/kaazing/netx.tcp</url>
-        <connection>scm:git:https://github.com/kaazing/netx.tcp.git</connection>
+        <url>https://github.com/kaazing/netx</url>
+        <connection>scm:git:https://github.com/kaazing/netx.git</connection>
     </scm>
-
-    <properties>
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
-        <require.java.version>1.7+</require.java.version>
-        <animal.sniffer.signature.artifactId>java16</animal.sniffer.signature.artifactId>
-    </properties>
 
     <dependencies>
         <dependency>
             <!-- Needed for EL only, not AST -->
             <groupId>org.kaazing</groupId>
             <artifactId>k3po.lang</artifactId>
-            <version>[1.99.99.99,2.1.0.0)</version>
+            <version>${k3po.lang.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kaazing</groupId>
             <artifactId>netx</artifactId>
-            <version>[0.1,1.0]</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kaazing</groupId>
             <artifactId>k3po.junit</artifactId>
-            <version>2.0.0-alpha-3</version>
+            <version>${k3po.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -57,7 +50,7 @@
             <plugin>
                 <groupId>org.kaazing</groupId>
                 <artifactId>k3po-maven-plugin</artifactId>
-                <version>2.0.0-alpha-8</version>
+                <version>2.0.0</version>
                 <configuration>
                     <skipTests>${skipITs}</skipTests>
                 </configuration>

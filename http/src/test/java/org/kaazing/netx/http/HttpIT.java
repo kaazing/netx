@@ -67,7 +67,7 @@ public class HttpIT {
         connection.setRequestMethod("POST");
         connection.setRequestProperty("X-Header", "value");
         assertEquals(200, connection.getResponseCode());
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -79,7 +79,7 @@ public class HttpIT {
         connection.setRequestProperty("X-Header", "value");
         connection.setRedirectPolicy(NEVER);
         assertEquals(302, connection.getResponseCode());
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -90,7 +90,7 @@ public class HttpIT {
         connection.setRequestMethod("POST");
         connection.setRequestProperty("X-Header", "value");
         assertEquals(401, connection.getResponseCode());
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -113,7 +113,7 @@ public class HttpIT {
         assertEquals(101, connection.getResponseCode());
         assertEquals("Hello, world", new String(cbuf));
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -138,7 +138,7 @@ public class HttpIT {
         assertEquals(101, connection.getResponseCode());
         assertEquals("Hello, world", new String(cbuf));
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -165,7 +165,7 @@ public class HttpIT {
         assertEquals(401, connection.getResponseCode());
         assertEquals(1, authenticationCalls.get());
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -192,7 +192,7 @@ public class HttpIT {
         assertEquals(401, connection.getResponseCode());
         assertEquals(0, authenticationCalls.get());
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -219,7 +219,7 @@ public class HttpIT {
         assertEquals(101, connection.getResponseCode());
         assertEquals(1, authenticationCalls.get());
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -235,7 +235,7 @@ public class HttpIT {
         assertEquals(302, connection.getResponseCode());
         assertEquals("http://localhost:8080/different/path", connection.getHeaderField("Location"));
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -248,7 +248,7 @@ public class HttpIT {
 
         assertEquals(200, connection.getResponseCode());
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -262,7 +262,7 @@ public class HttpIT {
 
         assertEquals(200, connection.getResponseCode());
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -276,7 +276,7 @@ public class HttpIT {
 
         assertEquals(101, connection.getResponseCode());
 
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -299,7 +299,7 @@ public class HttpIT {
         connection.setRequestProperty("X-Header", "value");
         connection.setChallengeHandler(challengeHandler);
         assertEquals(200, connection.getResponseCode());
-        k3po.join();
+        k3po.finish();
     }
 
     @Test
@@ -319,6 +319,6 @@ public class HttpIT {
         connection.setRequestMethod("POST");
         connection.setRequestProperty("X-Header", "value");
         assertEquals(200, connection.getResponseCode());
-        k3po.join();
+        k3po.finish();
     }
 }
