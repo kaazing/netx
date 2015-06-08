@@ -904,12 +904,22 @@ public class WsMessageReader extends MessageReader {
 
         @Override
         public void close() throws IOException {
-            // ### TODO: Skip all the frames of the current message to the first frame of the next message.
-        }
+            if (messageReader.getCurrentOwner() == null) {
+                throw new IOException(MSG_NEXT_NOT_INVOKED);
+            }
 
-        @Override
-        public void reset() throws IOException {
-            // ### TODO:
+            if (messageReader.getCurrentOwner() != Thread.currentThread()) {
+                throw new IOException(MSG_NOT_CURRENT_OWNER);
+            }
+
+            if (!messageReader.streaming()) {
+                throw new IOException(MSG_CAN_BE_READ_FULLY);
+            }
+
+            if (!fin) {
+                messageReader.skip();
+            }
+            resetState();
         }
 
         void resetState() throws IOException {
@@ -995,8 +1005,6 @@ public class WsMessageReader extends MessageReader {
             }
 
             if (!messageReader.streaming()) {
-                // This can be relaxed if we like. Meaning -- we can allow streaming of messages that fit in a single WebSocket
-                // frame.
                 throw new IOException(MSG_CAN_BE_READ_FULLY);
             }
 
@@ -1040,12 +1048,22 @@ public class WsMessageReader extends MessageReader {
 
         @Override
         public void close() throws IOException {
-            // ### TODO: Skip all the frames of the current message to the first frame of the next message.
-        }
+            if (messageReader.getCurrentOwner() == null) {
+                throw new IOException(MSG_NEXT_NOT_INVOKED);
+            }
 
-        @Override
-        public void reset() throws IOException {
-            // ### TODO:
+            if (messageReader.getCurrentOwner() != Thread.currentThread()) {
+                throw new IOException(MSG_NOT_CURRENT_OWNER);
+            }
+
+            if (!messageReader.streaming()) {
+                throw new IOException(MSG_CAN_BE_READ_FULLY);
+            }
+
+            if (!fin) {
+                messageReader.skip();
+            }
+            resetState();
         }
 
         void resetState() throws IOException {
