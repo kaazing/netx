@@ -1019,7 +1019,7 @@ public class WsMessageReader extends MessageReader {
                 fin = messageReader.isFinalFrame();
             }
 
-            assert textBufferReadOffset < textBufferReadOffset;
+            assert textBufferReadOffset < textBufferWriteOffset;
 
             int charsRead = Math.min(length, textBufferWriteOffset - textBufferReadOffset);
             System.arraycopy(textBuffer, textBufferReadOffset, cbuf, offset, charsRead);
