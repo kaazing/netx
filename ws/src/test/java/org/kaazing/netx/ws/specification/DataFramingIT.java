@@ -17,8 +17,10 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.internal.io.MessageType.TEXT;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -96,17 +98,20 @@ public class DataFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         char[] cbuf = new char[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case TEXT:
-                    reader.read(cbuf);
+                    int charsRead = messageReader.readFully(cbuf);
+                    assertEquals(0, charsRead);
                     break;
                 default:
-                    assertSame(MessageType.TEXT, type);
+                    assertSame(TEXT, type);
                     break;
                 }
             }
@@ -160,17 +165,20 @@ public class DataFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         char[] cbuf = new char[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case TEXT:
-                    reader.read(cbuf);
+                    int charsRead = messageReader.readFully(cbuf);
+                    assertEquals(0, charsRead);
                     break;
                 default:
-                    assertSame(MessageType.TEXT, type);
+                    assertSame(TEXT, type);
                     break;
                 }
             }
@@ -224,17 +232,20 @@ public class DataFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         char[] cbuf = new char[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case TEXT:
-                    reader.read(cbuf);
+                    int charsRead = messageReader.readFully(cbuf);
+                    assertEquals(0, charsRead);
                     break;
                 default:
-                    assertSame(MessageType.TEXT, type);
+                    assertSame(TEXT, type);
                     break;
                 }
             }
@@ -288,17 +299,20 @@ public class DataFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         char[] cbuf = new char[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case TEXT:
-                    reader.read(cbuf);
+                    int charsRead = messageReader.readFully(cbuf);
+                    assertEquals(0, charsRead);
                     break;
                 default:
-                    assertSame(MessageType.TEXT, type);
+                    assertSame(TEXT, type);
                     break;
                 }
             }
@@ -352,17 +366,20 @@ public class DataFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         char[] cbuf = new char[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case TEXT:
-                    reader.read(cbuf);
+                    int charsRead = messageReader.readFully(cbuf);
+                    assertEquals(0, charsRead);
                     break;
                 default:
-                    assertSame(MessageType.TEXT, type);
+                    assertSame(TEXT, type);
                     break;
                 }
             }

@@ -842,14 +842,14 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             if (writer != null) {
                 writer.close();
             }
-            if (messageReader != null) {
-                messageReader.close();
-            }
             if (inputStream != null) {
                 inputStream.close();
             }
             if (reader != null) {
                 reader.close();
+            }
+            if (messageReader != null) {
+                messageReader.close();
             }
             if (messageWriter != null) {
                 messageWriter.close();

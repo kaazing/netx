@@ -17,8 +17,11 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.internal.io.MessageType.BINARY;
+import static org.kaazing.netx.ws.internal.io.MessageType.TEXT;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -238,17 +241,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         char[] cbuf = new char[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case TEXT:
-                    reader.read(cbuf);
+                    int charsRead = messageReader.readFully(cbuf);
+                    assertEquals(0, charsRead);
                     break;
                 default:
-                    assertSame(MessageType.TEXT, type);
+                    assertSame(TEXT, type);
                     break;
                 }
             }
@@ -266,17 +272,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -294,17 +303,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -322,17 +334,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -350,17 +365,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -558,17 +576,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         char[] cbuf = new char[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case TEXT:
-                    reader.read(cbuf);
+                    int charsRead = messageReader.readFully(cbuf);
+                    assertEquals(0, charsRead);
                     break;
                 default:
-                    assertSame(MessageType.TEXT, type);
+                    assertSame(TEXT, type);
                     break;
                 }
             }
@@ -586,17 +607,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
-                case TEXT:
-                    reader.read(readBytes);
+                case BINARY:
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -614,17 +638,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
-                case TEXT:
-                    reader.read(readBytes);
+                case BINARY:
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -642,17 +669,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
-                case TEXT:
-                    reader.read(readBytes);
+                case BINARY:
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }
@@ -670,17 +700,20 @@ public class ExtensibilityIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
-                case TEXT:
-                    reader.read(readBytes);
+                case BINARY:
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
-                    assertSame(MessageType.BINARY, type);
+                    assertSame(BINARY, type);
                     break;
                 }
             }

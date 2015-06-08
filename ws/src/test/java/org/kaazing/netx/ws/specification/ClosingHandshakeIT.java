@@ -17,6 +17,7 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
 import static org.kaazing.netx.ws.internal.io.MessageType.BINARY;
@@ -126,13 +127,17 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
-        while ((type = reader.next()) != MessageType.EOS) {
+        int bytesRead = 0;
+
+        if ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
@@ -176,13 +181,17 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
-        while ((type = reader.next()) != MessageType.EOS) {
+        int bytesRead = 0;
+
+        if ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
@@ -226,13 +235,17 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
-        while ((type = reader.next()) != MessageType.EOS) {
+        int bytesRead = 0;
+
+        if ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
@@ -288,15 +301,18 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
+        int bytesRead = 0;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            if ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -343,19 +359,24 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
-        while ((type = reader.next()) != MessageType.EOS) {
+        int bytesRead = 0;
+
+        if ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
                 break;
             }
         }
+
         k3po.finish();
     }
 
@@ -403,15 +424,18 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
+        int bytesRead = 0;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            if ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -468,15 +492,18 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
+        int bytesRead = 0;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            if ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -533,15 +560,18 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
+        int bytesRead = 0;
 
         try {
-            while ((type = reader.next()) != MessageType.EOS) {
+            if ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);

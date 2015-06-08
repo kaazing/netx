@@ -16,7 +16,10 @@
 package org.kaazing.netx.ws.io;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.internal.io.MessageType.BINARY;
 
 import java.net.URI;
 
@@ -31,6 +34,7 @@ import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.io.MessageReader;
+import org.kaazing.netx.ws.internal.io.MessageType;
 import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 public class MessageReaderIT {
@@ -51,20 +55,37 @@ public class MessageReaderIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.setMaxMessageLength(8188);
 
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+
+        byte[] readBytes1 = new byte[8185];
+        byte[] readBytes2 = new byte[150];
+        MessageType type = null;
+        int iter = 1;
+        int bytesRead = 0;
+
         try {
-            byte[] readBytes1 = new byte[8185];
-            byte[] readBytes2 = new byte[150];
+            while ((iter <= 2) && (type = messageReader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    if (iter == 1) {
+                        bytesRead = messageReader.readFully(readBytes1);
+                        assertEquals(8185, bytesRead);
+                    }
+                    else {
+                        bytesRead = messageReader.readFully(readBytes2);
+                        assertEquals(150, bytesRead);
+                    }
+                    iter++;
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
 
-            int bytesRead = reader.read(readBytes1);
-            assert bytesRead == readBytes1.length;
-
-            bytesRead = reader.read(readBytes2);
-            assert bytesRead == readBytes2.length;
-
-            writer.write(readBytes1);
-            writer.write(readBytes2);
+            messageWriter.write(readBytes1);
+            messageWriter.write(readBytes2);
         }
         finally {
             k3po.finish();
@@ -81,21 +102,37 @@ public class MessageReaderIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.setMaxMessageLength(8188);
 
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+
+        byte[] readBytes1 = new byte[8186];
+        byte[] readBytes2 = new byte[150];
+        MessageType type = null;
+        int iter = 1;
+        int bytesRead = 0;
 
         try {
-            byte[] readBytes1 = new byte[8186];
-            byte[] readBytes2 = new byte[150];
+            while ((iter <= 2) && (type = messageReader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    if (iter == 1) {
+                        bytesRead = messageReader.readFully(readBytes1);
+                        assertEquals(8186, bytesRead);
+                    }
+                    else {
+                        bytesRead = messageReader.readFully(readBytes2);
+                        assertEquals(150, bytesRead);
+                    }
+                    iter++;
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
 
-            int bytesRead = reader.read(readBytes1);
-            assert bytesRead == readBytes1.length;
-
-            bytesRead = reader.read(readBytes2);
-            assert bytesRead == readBytes2.length;
-
-            writer.write(readBytes1);
-            writer.write(readBytes2);
+            messageWriter.write(readBytes1);
+            messageWriter.write(readBytes2);
         }
         finally {
             k3po.finish();
@@ -112,21 +149,37 @@ public class MessageReaderIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.setMaxMessageLength(8188);
 
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+
+        byte[] readBytes1 = new byte[8184];
+        byte[] readBytes2 = new byte[150];
+        MessageType type = null;
+        int iter = 1;
+        int bytesRead = 0;
 
         try {
-            byte[] readBytes1 = new byte[8184];
-            byte[] readBytes2 = new byte[150];
+            while ((iter <= 2) && (type = messageReader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    if (iter == 1) {
+                        bytesRead = messageReader.readFully(readBytes1);
+                        assertEquals(8184, bytesRead);
+                    }
+                    else {
+                        bytesRead = messageReader.readFully(readBytes2);
+                        assertEquals(150, bytesRead);
+                    }
+                    iter++;
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
 
-            int bytesRead = reader.read(readBytes1);
-            assert bytesRead == readBytes1.length;
-
-            bytesRead = reader.read(readBytes2);
-            assert bytesRead == readBytes2.length;
-
-            writer.write(readBytes1);
-            writer.write(readBytes2);
+            messageWriter.write(readBytes1);
+            messageWriter.write(readBytes2);
         }
         finally {
             k3po.finish();
@@ -143,178 +196,37 @@ public class MessageReaderIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.setMaxMessageLength(8188);
 
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
-        try {
-            byte[] readBytes1 = new byte[8187];
-            byte[] readBytes2 = new byte[150];
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
-            int bytesRead = reader.read(readBytes1);
-            assert bytesRead == readBytes1.length;
-
-            bytesRead = reader.read(readBytes2);
-            assert bytesRead == readBytes2.length;
-
-            writer.write(readBytes1);
-            writer.write(readBytes2);
-        }
-        finally {
-            k3po.finish();
-        }
-    }
-
-    @Test
-    @Specification({
-    "text.frame.length.bytes.split.across.chunks/handshake.response.and.frame" })
-    public void shouldReadTextFrameWithLengthBytesSplitAcrossChunks() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxMessageLength(8188);
-
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        byte[] readBytes1 = new byte[8187];
+        byte[] readBytes2 = new byte[150];
+        MessageType type = null;
+        int iter = 1;
+        int bytesRead = 0;
 
         try {
-            char[] charBuf = new char[8500];
-            int offset = 0;
-            int length = charBuf.length;
-            int charsRead = 0;
+            while ((iter <= 2) && (type = messageReader.next()) != MessageType.EOS) {
+                switch (type) {
+                case BINARY:
+                    if (iter == 1) {
+                        bytesRead = messageReader.readFully(readBytes1);
+                        assertEquals(8187, bytesRead);
+                    }
+                    else {
+                        bytesRead = messageReader.readFully(readBytes2);
+                        assertEquals(150, bytesRead);
+                    }
+                    iter++;
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
 
-            // Read the first text frame that contains 8185 bytes as payload. Note that MessageReader honors WebSocket frame
-            // boundary. So, it will read the entire paylaod and then return. Also, note that charsRead is in terms of number of
-            // chars. But, the payload of the text frame is in terms of bytes.
-            charsRead += reader.read(charBuf, offset, length);
-
-            offset += charsRead;
-            length -= charsRead;
-
-            // Read the second text frame that contains 150 bytes as payload. The chars from the second frame are also being
-            // copied into charBuf.
-            charsRead += reader.read(charBuf, offset, length);
-
-            // Write the text frame with (8185 + 150 = 8335) bytes of payload.
-            writer.write(charBuf, 0, charsRead);
-        }
-        finally {
-            k3po.finish();
-        }
-    }
-
-    @Test
-    @Specification({
-    "text.frame.length.indicator.in.chunk1.length.bytes.in.chunk2/handshake.response.and.frame" })
-    public void shouldReadTextFrameLengthFromNextChunk() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxMessageLength(8188);
-
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
-
-        try {
-            char[] charBuf = new char[8500];
-            int offset = 0;
-            int length = charBuf.length;
-            int charsRead = 0;
-
-            // Read the first text frame that contains 8186 bytes as payload. Note that MessageReader honors WebSocket frame
-            // boundary. So, it will read the entire paylaod and then return. Also, note that charsRead is in terms of number of
-            // chars. But, the payload of the text frame is in terms of bytes.
-            charsRead += reader.read(charBuf, offset, length);
-
-            offset += charsRead;
-            length -= charsRead;
-
-            // Read the second text frame that contains 150 bytes as payload. The chars from the second frame are also being
-            // copied into charBuf.
-            charsRead += reader.read(charBuf, offset, length);
-
-            // Write the text frame with (8186 + 150 = 8336) bytes of payload.
-            writer.write(charBuf, 0, charsRead);
-        }
-        finally {
-            k3po.finish();
-        }
-    }
-
-    @Test
-    @Specification({
-    "text.frame.metadata.in.chunk1.payload.in.chunk2/handshake.response.and.frame" })
-    public void shouldReadTextFrameWithMetadataAndPayloadInDifferentChunks() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxMessageLength(8188);
-
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
-
-        try {
-            char[] charBuf = new char[8500];
-            int offset = 0;
-            int length = charBuf.length;
-            int charsRead = 0;
-
-            // Read the first text frame that contains 8184 bytes as payload. Note that MessageReader honors WebSocket frame
-            // boundary. So, it will read the entire paylaod and then return. Also, note that charsRead is in terms of number of
-            // chars. But, the payload of the text frame is in terms of bytes.
-            charsRead += reader.read(charBuf, offset, length);
-
-            offset += charsRead;
-            length -= charsRead;
-
-            // Read the second text frame that contains 150 bytes as payload. The chars from the second frame are also being
-            // copied into charBuf.
-            charsRead += reader.read(charBuf, offset, length);
-
-            // Write the text frame with (8184 + 150 = 8334) bytes of payload.
-            writer.write(charBuf, 0, charsRead);
-        }
-        finally {
-            k3po.finish();
-        }
-
-    }
-
-    @Test
-    @Specification({
-    "text.frame.opcode.in.chunk1.length.in.chunk2/handshake.response.and.frame" })
-    public void shouldReadTextFrameWithOpcodeAndLengthBytesFromDifferentChunks() throws Exception {
-        URLConnectionHelper helper = URLConnectionHelper.newInstance();
-        URI location = URI.create("ws://localhost:8080/path");
-
-        WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxMessageLength(8188);
-
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
-
-        try {
-            char[] charBuf = new char[8500];
-            int offset = 0;
-            int length = charBuf.length;
-            int charsRead = 0;
-
-            // Unlike binary frames(read using InputStream), we cannot read exact number of bytes with text frames(read using
-            // Reader) as the payload can contain multi-byte characters encoded as UTF-8 bytes. In this case, both the text
-            // frames with payload sizes of 8187 bytes and 150 bytes get read in the same char array. Also, unlike MessageReader,
-            // Reader does not honor WebSocket frame boundaries as it is used for streaming purposes.
-            charsRead += reader.read(charBuf, offset, length);
-
-            offset += charsRead;
-            length -= charsRead;
-
-            // Read the second text frame that contains 150 bytes as payload. The chars from the second frame are also being
-            // copied into charBuf.
-            charsRead += reader.read(charBuf, offset, length);
-
-            // Write the text frame with (8176 + 150 = 8337) bytes of payload.
-            writer.write(charBuf, 0, charsRead);
+            messageWriter.write(readBytes1);
+            messageWriter.write(readBytes2);
         }
         finally {
             k3po.finish();

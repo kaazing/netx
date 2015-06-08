@@ -19,7 +19,10 @@ package org.kaazing.netx.ws.specification;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
+import static org.kaazing.netx.ws.internal.io.MessageType.BINARY;
+import static org.kaazing.netx.ws.internal.io.MessageType.TEXT;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +43,7 @@ import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.io.MessageReader;
+import org.kaazing.netx.ws.internal.io.MessageType;
 import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 /**
@@ -129,15 +133,35 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
-        byte[] array = new byte[0];
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        int bytesRead = 0;
+        int count = 0;
 
-        int length = reader.read(array);
-        assertEquals(array.length, length);
-        writer.write(array, 0, length);
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
+            switch (type) {
+            case BINARY:
+                InputStream in = messageReader.getInputStream();
+                while (count != -1) {
+                    count = in.read(readBytes);
+                    if (count != -1) {
+                        bytesRead += count;
+                    }
+                }
+                assertEquals(0, bytesRead);
+                break;
+            default:
+                assertSame(BINARY, type);
+                break;
+            }
+        }
+
+        messageWriter.write(readBytes, 0, readBytes.length);
         k3po.finish();
     }
 
@@ -149,15 +173,35 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
-        byte[] array = new byte[0];
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+        int bytesRead = 0;
+        int count = 0;
 
-        int length = reader.read(array);
-        assertEquals(array.length, length);
-        writer.write(array, 0, length);
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
+            switch (type) {
+            case BINARY:
+                InputStream in = messageReader.getInputStream();
+                while (count != -1) {
+                    count = in.read(readBytes);
+                    if (count != -1) {
+                        bytesRead += count;
+                    }
+                }
+                assertEquals(0, bytesRead);
+                break;
+            default:
+                assertSame(BINARY, type);
+                break;
+            }
+        }
+
+        messageWriter.write(readBytes, 0, readBytes.length);
         k3po.finish();
     }
 
@@ -169,15 +213,37 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
-        byte[] array = new byte[125];
+        byte[] readBytes = new byte[125];
+        MessageType type = null;
+        int bytesRead = 0;
+        int count = 0;
 
-        int length = reader.read(array);
-        assertEquals(array.length, length);
-        writer.write(array, 0, length);
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
+            switch (type) {
+            case BINARY:
+                InputStream in = messageReader.getInputStream();
+                int offset = 0;
+                while ((count != -1) && (offset < readBytes.length)) {
+                    count = in.read(readBytes, offset, readBytes.length - offset);
+                    if (count != -1) {
+                        bytesRead += count;
+                        offset += count;
+                    }
+                }
+                assertEquals(125, bytesRead);
+                break;
+            default:
+                assertSame(BINARY, type);
+                break;
+            }
+        }
+
+        messageWriter.write(readBytes, 0, bytesRead);
         k3po.finish();
     }
 
@@ -189,15 +255,36 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageType type = null;
+        byte[] readBytes = new byte[125];
+        int bytesRead = 0;
+        int count = 0;
 
-        byte[] array = new byte[125];
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
-        int length = reader.read(array);
-        assertEquals(array.length, length);
-        writer.write(array, 0, length);
+            switch (type) {
+            case BINARY:
+                InputStream in = messageReader.getInputStream();
+                int offset = 0;
+                while ((count != -1) && (offset < readBytes.length)) {
+                    count = in.read(readBytes, offset, readBytes.length - offset);
+                    if (count != -1) {
+                        bytesRead += count;
+                        offset += count;
+                    }
+                }
+                assertEquals(125, bytesRead);
+                break;
+            default:
+                assertSame(BINARY, type);
+                break;
+            }
+        }
 
+        messageWriter.write(readBytes, 0, bytesRead);
         k3po.finish();
     }
 
@@ -209,15 +296,36 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageType type = null;
+        byte[] readBytes = new byte[125];
+        int bytesRead = 0;
+        int count = 0;
 
-        byte[] array = new byte[125];
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
-        int length = reader.read(array);
-        assertEquals(array.length, length);
-        writer.write(array, 0, length);
+            switch (type) {
+            case BINARY:
+                InputStream in = messageReader.getInputStream();
+                int offset = 0;
+                while ((count != -1) && (offset < readBytes.length)) {
+                    count = in.read(readBytes, offset, readBytes.length - offset);
+                    if (count != -1) {
+                        bytesRead += count;
+                        offset += count;
+                    }
+                }
+                assertEquals(125, bytesRead);
+                break;
+            default:
+                assertSame(BINARY, type);
+                break;
+            }
+        }
 
+        messageWriter.write(readBytes, 0, bytesRead);
         k3po.finish();
     }
 
@@ -229,15 +337,27 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageType type = null;
+        byte[] readBytes = new byte[125];
+        int bytesRead = 0;
 
-        byte[] array = new byte[125];
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert !messageReader.streaming();
 
-        int length = reader.read(array);
-        assertEquals(array.length, length);
-        writer.write(array, 0, length);
+            switch (type) {
+            case BINARY:
+                bytesRead = messageReader.readFully(readBytes);
+                assertEquals(125, bytesRead);
+                break;
+            default:
+                assertSame(BINARY, type);
+                break;
+            }
+        }
 
+        messageWriter.write(readBytes, 0, bytesRead);
         k3po.finish();
     }
 
@@ -249,15 +369,35 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
-        char[] array = new char[0];
+        char[] charBuf = new char[0];
+        MessageType type = null;
+        int bytesRead = 0;
+        int count = 0;
 
-        int length = reader.read(array);
-        assertEquals(array.length, length);
-        writer.write(array, 0, length);
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
+            switch (type) {
+            case TEXT:
+                Reader reader = messageReader.getReader();
+                while (count != -1) {
+                    count = reader.read(charBuf);
+                    if (count != -1) {
+                        bytesRead += count;
+                    }
+                }
+                assertEquals(0, bytesRead);
+                break;
+            default:
+                assertSame(TEXT, type);
+                break;
+            }
+        }
+
+        messageWriter.write(charBuf, 0, charBuf.length);
         k3po.finish();
     }
 
@@ -269,15 +409,35 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
-        char[] array = new char[0];
+        char[] charBuf = new char[0];
+        MessageType type = null;
+        int bytesRead = 0;
+        int count = 0;
 
-        int length = reader.read(array);
-        assertEquals(array.length, length);
-        writer.write(array, 0, length);
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
+            switch (type) {
+            case TEXT:
+                Reader reader = messageReader.getReader();
+                while (count != -1) {
+                    count = reader.read(charBuf);
+                    if (count != -1) {
+                        bytesRead += count;
+                    }
+                }
+                assertEquals(0, bytesRead);
+                break;
+            default:
+                assertSame(TEXT, type);
+                break;
+            }
+        }
+
+        messageWriter.write(charBuf, 0, charBuf.length);
         k3po.finish();
     }
 
@@ -289,14 +449,35 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageType type = null;
+        char[] charBuf = new char[125];
+        int charsRead = 0;
+        int count = 0;
 
-        char[] array = new char[125];
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
-        int length = reader.read(array);
-        writer.write(array, 0, length);
+            switch (type) {
+            case TEXT:
+                Reader reader = messageReader.getReader();
+                int offset = 0;
+                while ((count != -1) && (offset < charBuf.length)) {
+                    count = reader.read(charBuf, offset, charBuf.length - offset);
+                    if (count != -1) {
+                        charsRead += count;
+                        offset += count;
+                    }
+                }
+                break;
+            default:
+                assertSame(TEXT, type);
+                break;
+            }
+        }
 
+        messageWriter.write(charBuf, 0, charsRead);
         k3po.finish();
     }
 
@@ -308,14 +489,35 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageType type = null;
+        char[] charBuf = new char[125];
+        int charsRead = 0;
+        int count = 0;
 
-        char[] array = new char[125];
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
-        int length = reader.read(array);
-        writer.write(array, 0, length);
+            switch (type) {
+            case TEXT:
+                Reader reader = messageReader.getReader();
+                int offset = 0;
+                while ((count != -1) && (offset < charBuf.length)) {
+                    count = reader.read(charBuf, offset, charBuf.length - offset);
+                    if (count != -1) {
+                        charsRead += count;
+                        offset += count;
+                    }
+                }
+                break;
+            default:
+                assertSame(TEXT, type);
+                break;
+            }
+        }
 
+        messageWriter.write(charBuf, 0, charsRead);
         k3po.finish();
     }
 
@@ -327,14 +529,35 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageType type = null;
+        char[] charBuf = new char[125];
+        int charsRead = 0;
+        int count = 0;
 
-        char[] array = new char[125];
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
-        int length = reader.read(array);
-        writer.write(array, 0, length);
+            switch (type) {
+            case TEXT:
+                Reader reader = messageReader.getReader();
+                int offset = 0;
+                while ((count != -1) && (offset < charBuf.length)) {
+                    count = reader.read(charBuf, offset, charBuf.length - offset);
+                    if (count != -1) {
+                        charsRead += count;
+                        offset += count;
+                    }
+                }
+                break;
+            default:
+                assertSame(TEXT, type);
+                break;
+            }
+        }
 
+        messageWriter.write(charBuf, 0, charsRead);
         k3po.finish();
     }
 
@@ -346,14 +569,35 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageType type = null;
+        char[] charBuf = new char[125];
+        int charsRead = 0;
+        int count = 0;
 
-        char[] array = new char[125];
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert messageReader.streaming();
 
-        int length = reader.read(array);
-        writer.write(array, 0, length);
+            switch (type) {
+            case TEXT:
+                Reader reader = messageReader.getReader();
+                int offset = 0;
+                while ((count != -1) && (offset < charBuf.length)) {
+                    count = reader.read(charBuf, offset, charBuf.length - offset);
+                    if (count != -1) {
+                        charsRead += count;
+                        offset += count;
+                    }
+                }
+                break;
+            default:
+                assertSame(TEXT, type);
+                break;
+            }
+        }
 
+        messageWriter.write(charBuf, 0, charsRead);
         k3po.finish();
     }
 
@@ -365,14 +609,26 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter writer = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageType type = null;
+        char[] charBuf = new char[125];
+        int charsRead = 0;
 
-        char[] array = new char[125];
+        if ((type = messageReader.next()) != MessageType.EOS) {
+            assert !messageReader.streaming();
 
-        int length = reader.read(array);
-        writer.write(array, 0, length);
+            switch (type) {
+            case TEXT:
+                charsRead = messageReader.readFully(charBuf);
+                break;
+            default:
+                assertSame(TEXT, type);
+                break;
+            }
+        }
 
+        messageWriter.write(charBuf, 0, charsRead);
         k3po.finish();
     }
 
@@ -433,11 +689,34 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageType type = null;
         byte[] readBytes = new byte[125];
+        int bytesRead = 0;
+        int count = 0;
 
         try {
-            reader.read(readBytes);
+            if ((type = messageReader.next()) != MessageType.EOS) {
+                assert messageReader.streaming();
+
+                switch (type) {
+                case BINARY:
+                    InputStream in = messageReader.getInputStream();
+                    int offset = 0;
+                    while ((count != -1) && (offset < readBytes.length)) {
+                        count = in.read(readBytes, offset, readBytes.length - offset);
+                        if (count != -1) {
+                            bytesRead += count;
+                            offset += count;
+                        }
+                    }
+                    assertEquals(125, bytesRead);
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
         }
         finally {
             k3po.finish();
@@ -490,11 +769,34 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageType type = null;
         byte[] readBytes = new byte[125];
+        int bytesRead = 0;
+        int count = 0;
 
         try {
-            reader.read(readBytes);
+            if ((type = messageReader.next()) != MessageType.EOS) {
+                assert messageReader.streaming();
+
+                switch (type) {
+                case BINARY:
+                    InputStream in = messageReader.getInputStream();
+                    int offset = 0;
+                    while ((count != -1) && (offset < readBytes.length)) {
+                        count = in.read(readBytes, offset, readBytes.length - offset);
+                        if (count != -1) {
+                            bytesRead += count;
+                            offset += count;
+                        }
+                    }
+                    assertEquals(125, bytesRead);
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
         }
         finally {
             k3po.finish();
@@ -548,11 +850,34 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageType type = null;
         byte[] readBytes = new byte[125];
+        int bytesRead = 0;
+        int count = 0;
 
         try {
-            reader.read(readBytes);
+            if ((type = messageReader.next()) != MessageType.EOS) {
+                assert messageReader.streaming();
+
+                switch (type) {
+                case BINARY:
+                    InputStream in = messageReader.getInputStream();
+                    int offset = 0;
+                    while ((count != -1) && (offset < readBytes.length)) {
+                        count = in.read(readBytes, offset, readBytes.length - offset);
+                        if (count != -1) {
+                            bytesRead += count;
+                            offset += count;
+                        }
+                    }
+                    assertEquals(125, bytesRead);
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
         }
         finally {
             k3po.finish();
@@ -607,11 +932,34 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageType type = null;
         byte[] readBytes = new byte[125];
+        int bytesRead = 0;
+        int count = 0;
 
         try {
-            reader.read(readBytes);
+            if ((type = messageReader.next()) != MessageType.EOS) {
+                assert messageReader.streaming();
+
+                switch (type) {
+                case BINARY:
+                    InputStream in = messageReader.getInputStream();
+                    int offset = 0;
+                    while ((count != -1) && (offset < readBytes.length)) {
+                        count = in.read(readBytes, offset, readBytes.length - offset);
+                        if (count != -1) {
+                            bytesRead += count;
+                            offset += count;
+                        }
+                    }
+                    assertEquals(125, bytesRead);
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
         }
         finally {
             k3po.finish();
@@ -664,11 +1012,34 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageType type = null;
         byte[] readBytes = new byte[125];
+        int bytesRead = 0;
+        int count = 0;
 
         try {
-            reader.read(readBytes);
+            if ((type = messageReader.next()) != MessageType.EOS) {
+                assert messageReader.streaming();
+
+                switch (type) {
+                case BINARY:
+                    InputStream in = messageReader.getInputStream();
+                    int offset = 0;
+                    while ((count != -1) && (offset < readBytes.length)) {
+                        count = in.read(readBytes, offset, readBytes.length - offset);
+                        if (count != -1) {
+                            bytesRead += count;
+                            offset += count;
+                        }
+                    }
+                    assertEquals(125, bytesRead);
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
         }
         finally {
             k3po.finish();
@@ -721,11 +1092,34 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageType type = null;
         byte[] readBytes = new byte[125];
+        int bytesRead = 0;
+        int count = 0;
 
         try {
-            reader.read(readBytes);
+            if ((type = messageReader.next()) != MessageType.EOS) {
+                assert messageReader.streaming();
+
+                switch (type) {
+                case BINARY:
+                    InputStream in = messageReader.getInputStream();
+                    int offset = 0;
+                    while ((count != -1) && (offset < readBytes.length)) {
+                        count = in.read(readBytes, offset, readBytes.length - offset);
+                        if (count != -1) {
+                            bytesRead += count;
+                            offset += count;
+                        }
+                    }
+                    assertEquals(125, bytesRead);
+                    break;
+                default:
+                    assertSame(BINARY, type);
+                    break;
+                }
+            }
         }
         finally {
             k3po.finish();
