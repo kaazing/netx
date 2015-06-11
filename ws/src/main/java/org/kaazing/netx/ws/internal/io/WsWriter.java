@@ -112,9 +112,6 @@ public class WsWriter extends Writer {
         if (fin) {
             assert opcode == CONTINUATION;
         }
-        else {
-            assert opcode == TEXT;
-        }
 
         if (cbuf == null) {
             throw new NullPointerException("Null buffer passed in");

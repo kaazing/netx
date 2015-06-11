@@ -84,8 +84,8 @@ public class MessageReaderIT {
                 }
             }
 
-            messageWriter.write(readBytes1);
-            messageWriter.write(readBytes2);
+            messageWriter.writeFully(readBytes1);
+            messageWriter.writeFully(readBytes2);
         }
         finally {
             k3po.finish();
@@ -131,8 +131,8 @@ public class MessageReaderIT {
                 }
             }
 
-            messageWriter.write(readBytes1);
-            messageWriter.write(readBytes2);
+            messageWriter.writeFully(readBytes1);
+            messageWriter.writeFully(readBytes2);
         }
         finally {
             k3po.finish();
@@ -178,8 +178,8 @@ public class MessageReaderIT {
                 }
             }
 
-            messageWriter.write(readBytes1);
-            messageWriter.write(readBytes2);
+            messageWriter.writeFully(readBytes1);
+            messageWriter.writeFully(readBytes2);
         }
         finally {
             k3po.finish();
@@ -225,8 +225,8 @@ public class MessageReaderIT {
                 }
             }
 
-            messageWriter.write(readBytes1);
-            messageWriter.write(readBytes2);
+            messageWriter.writeFully(readBytes1);
+            messageWriter.writeFully(readBytes2);
         }
         finally {
             k3po.finish();

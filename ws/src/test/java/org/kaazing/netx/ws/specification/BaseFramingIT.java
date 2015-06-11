@@ -96,7 +96,7 @@ public class BaseFramingIT {
 
         byte[] writeBytes = new byte[0];
         random.nextBytes(writeBytes);
-        messageWriter.write(writeBytes);
+        messageWriter.writeFully(writeBytes);
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -163,7 +163,7 @@ public class BaseFramingIT {
 
         byte[] writeBytes = new byte[125];
         random.nextBytes(writeBytes);
-        messageWriter.write(writeBytes);
+        messageWriter.writeFully(writeBytes);
 
         byte[] readBytes = new byte[125];
         MessageType type = null;
@@ -231,7 +231,7 @@ public class BaseFramingIT {
 
         byte[] writeBytes = new byte[126];
         random.nextBytes(writeBytes);
-        messageWriter.write(writeBytes);
+        messageWriter.writeFully(writeBytes);
 
         byte[] readBytes = new byte[126];
         MessageType type = null;
@@ -300,7 +300,7 @@ public class BaseFramingIT {
 
         byte[] writeBytes = new byte[127];
         random.nextBytes(writeBytes);
-        messageWriter.write(writeBytes);
+        messageWriter.writeFully(writeBytes);
 
         byte[] readBytes = new byte[127];
         MessageType type = null;
@@ -369,7 +369,7 @@ public class BaseFramingIT {
 
         byte[] writeBytes = new byte[128];
         random.nextBytes(writeBytes);
-        messageWriter.write(writeBytes);
+        messageWriter.writeFully(writeBytes);
 
         byte[] readBytes = new byte[128];
         MessageType type = null;
@@ -442,7 +442,7 @@ public class BaseFramingIT {
 
         byte[] writeBytes = new byte[65535];
         random.nextBytes(writeBytes);
-        messageWriter.write(writeBytes);
+        messageWriter.writeFully(writeBytes);
 
         byte[] readBytes = new byte[65535];
         MessageType type = null;
@@ -515,7 +515,7 @@ public class BaseFramingIT {
 
         byte[] writeBytes = new byte[65536];
         random.nextBytes(writeBytes);
-        messageWriter.write(writeBytes);
+        messageWriter.writeFully(writeBytes);
 
         byte[] readBytes = new byte[65536];
         MessageType type = null;
@@ -583,7 +583,7 @@ public class BaseFramingIT {
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = "";
-        messageWriter.write(writeString.toCharArray());
+        messageWriter.writeFully(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
         MessageType type = null;
@@ -791,7 +791,7 @@ public class BaseFramingIT {
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(125).nextString();
-        messageWriter.write(writeString.toCharArray());
+        messageWriter.writeFully(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
         MessageType type = null;
@@ -860,7 +860,7 @@ public class BaseFramingIT {
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(126).nextString();
-        messageWriter.write(writeString.toCharArray());
+        messageWriter.writeFully(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
         MessageType type = null;
@@ -929,7 +929,7 @@ public class BaseFramingIT {
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(127).nextString();
-        messageWriter.write(writeString.toCharArray());
+        messageWriter.writeFully(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
         MessageType type = null;
@@ -997,7 +997,7 @@ public class BaseFramingIT {
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(128).nextString();
-        messageWriter.write(writeString.toCharArray());
+        messageWriter.writeFully(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
         MessageType type = null;
@@ -1066,7 +1066,7 @@ public class BaseFramingIT {
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(65535).nextString();
-        messageWriter.write(writeString.toCharArray());
+        messageWriter.writeFully(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
         MessageType type = null;
@@ -1135,7 +1135,7 @@ public class BaseFramingIT {
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
         String writeString = new RandomString(65533).nextString() + "\u1FFF";
-        messageWriter.write(writeString.toCharArray());
+        messageWriter.writeFully(writeString.toCharArray());
 
         char[] cbuf = new char[writeString.toCharArray().length];
         MessageType type = null;

@@ -22,7 +22,6 @@ import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CLOSE;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CONTINUATION;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PONG;
-import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.TEXT;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -125,9 +124,6 @@ public final class WsOutputStream extends FilterOutputStream {
         // The last frame must have the FIN bit set with CONTINUATION opcode in the leading byte.
         if (fin) {
             assert opcode == CONTINUATION;
-        }
-        else {
-            assert opcode == TEXT;
         }
 
         if (buf == null) {

@@ -161,7 +161,7 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(readBytes, 0, readBytes.length);
+        messageWriter.writeFully(readBytes);
         k3po.finish();
     }
 
@@ -201,7 +201,7 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(readBytes, 0, readBytes.length);
+        messageWriter.writeFully(readBytes);
         k3po.finish();
     }
 
@@ -243,7 +243,7 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(readBytes, 0, bytesRead);
+        messageWriter.writeFully(readBytes);
         k3po.finish();
     }
 
@@ -284,7 +284,7 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(readBytes, 0, bytesRead);
+        messageWriter.writeFully(readBytes);
         k3po.finish();
     }
 
@@ -325,7 +325,7 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(readBytes, 0, bytesRead);
+        messageWriter.writeFully(readBytes);
         k3po.finish();
     }
 
@@ -357,7 +357,7 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(readBytes, 0, bytesRead);
+        messageWriter.writeFully(readBytes);
         k3po.finish();
     }
 
@@ -374,7 +374,7 @@ public class FragmentationIT {
 
         char[] charBuf = new char[0];
         MessageType type = null;
-        int bytesRead = 0;
+        int charsRead = 0;
         int count = 0;
 
         if ((type = messageReader.next()) != MessageType.EOS) {
@@ -386,10 +386,10 @@ public class FragmentationIT {
                 while (count != -1) {
                     count = reader.read(charBuf);
                     if (count != -1) {
-                        bytesRead += count;
+                        charsRead += count;
                     }
                 }
-                assertEquals(0, bytesRead);
+                assertEquals(0, charsRead);
                 break;
             default:
                 assertSame(TEXT, type);
@@ -397,7 +397,7 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(charBuf, 0, charBuf.length);
+        messageWriter.writeFully(charBuf);
         k3po.finish();
     }
 
@@ -414,7 +414,7 @@ public class FragmentationIT {
 
         char[] charBuf = new char[0];
         MessageType type = null;
-        int bytesRead = 0;
+        int charsRead = 0;
         int count = 0;
 
         if ((type = messageReader.next()) != MessageType.EOS) {
@@ -426,10 +426,10 @@ public class FragmentationIT {
                 while (count != -1) {
                     count = reader.read(charBuf);
                     if (count != -1) {
-                        bytesRead += count;
+                        charsRead += count;
                     }
                 }
-                assertEquals(0, bytesRead);
+                assertEquals(0, charsRead);
                 break;
             default:
                 assertSame(TEXT, type);
@@ -437,7 +437,7 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(charBuf, 0, charBuf.length);
+        messageWriter.writeFully(charBuf);
         k3po.finish();
     }
 
@@ -477,7 +477,9 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(charBuf, 0, charsRead);
+        char[] text = new char[charsRead];
+        System.arraycopy(charBuf, 0, text, 0, charsRead);
+        messageWriter.writeFully(text);
         k3po.finish();
     }
 
@@ -517,7 +519,9 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(charBuf, 0, charsRead);
+        char[] text = new char[charsRead];
+        System.arraycopy(charBuf, 0, text, 0, charsRead);
+        messageWriter.writeFully(text);
         k3po.finish();
     }
 
@@ -557,7 +561,9 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(charBuf, 0, charsRead);
+        char[] text = new char[charsRead];
+        System.arraycopy(charBuf, 0, text, 0, charsRead);
+        messageWriter.writeFully(text);
         k3po.finish();
     }
 
@@ -597,7 +603,9 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(charBuf, 0, charsRead);
+        char[] text = new char[charsRead];
+        System.arraycopy(charBuf, 0, text, 0, charsRead);
+        messageWriter.writeFully(text);
         k3po.finish();
     }
 
@@ -628,7 +636,9 @@ public class FragmentationIT {
             }
         }
 
-        messageWriter.write(charBuf, 0, charsRead);
+        char[] text = new char[charsRead];
+        System.arraycopy(charBuf, 0, text, 0, charsRead);
+        messageWriter.writeFully(text);
         k3po.finish();
     }
 
@@ -1126,8 +1136,6 @@ public class FragmentationIT {
         }
     }
 
-
-
     private static class RandomString {
 
         private static final char[] SYMBOLS;
@@ -1159,5 +1167,4 @@ public class FragmentationIT {
           return new String(buf);
         }
     }
-
 }

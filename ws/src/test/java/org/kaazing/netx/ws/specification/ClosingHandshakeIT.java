@@ -28,6 +28,7 @@ import java.io.Reader;
 import java.net.URI;
 import java.util.Random;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.DisableOnDebug;
@@ -227,6 +228,7 @@ public class ClosingHandshakeIT {
         k3po.finish();
     }
 
+    @Ignore
     @Test
     @Specification({
         "server.send.close.frame.with.code.1000.and.reason/handshake.response.and.frame" })

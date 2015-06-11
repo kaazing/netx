@@ -17,6 +17,8 @@
 package org.kaazing.netx.ws.internal.io;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
 
 import org.kaazing.netx.ws.WebSocket;
 import org.kaazing.netx.ws.WsURLConnection;
@@ -27,39 +29,51 @@ import org.kaazing.netx.ws.WsURLConnection;
  */
 public abstract class MessageWriter {
     /**
-     * Sends a binary message using the entire specified buffer.
+     * Return the {@link OutputStream} that can be used to send binary messages that span across multiple WebSocket frames. Once
+     * the application gets the reference to the {@link OutputStream}, it can invoke {@link OutputStream#write(byte[])} and
+     * {@link OutputStream#write(byte[] buf, int offset, int length) methods to assemble a binary message that spans across
+     * multiple WebSocket frames. The application can invoke {@link OutputStream#flush()} method to force the final WebSocket
+     * frame of the message to be written to the wire. Furthermore, the OutputStream implementation may decide to send the final
+     * WebSocket frame as needed.
      *
-     * @param  buf            binary payload of the message
-     * @throws IOException    if an IO error occurs
+     * @return OutputStream to send binary messages that span across multiple WebSocket frames
+     * @throws IOException if the connection is closed
      */
-    public abstract void write(byte[] buf) throws IOException;
+    public abstract OutputStream getOutputStream() throws IOException;
 
     /**
-     * Sends a binary message using a portion of the specified buffer.
+     * Return the {@link Writer} that can be used to send text messages that span across multiple WebSocket frames. Once
+     * the application gets the reference to the {@link Writer}, it can invoke {@link Writer#write(char[])} and
+     * {@link Writer#write(char[] buf, int offset, int length) methods to assemble a text message that spans across
+     * multiple WebSocket frames. The application can invoke {@link Writer#flush()} method to force the final WebSocket
+     * frame of the message to be written to the wire. Furthermore, the Writer implementation may decide to send the final
+     * WebSocket frame as needed.
      *
-     * @param  buf            binary payload of the message
-     * @param  offset         offset from which to start sending
-     * @param  length         number of bytes to send
-     * @throws IOException    if an IO error occurs
+     * @return Writer to send text messages that span across multiple WebSocket frames
+     * @throws IOException if the connection is closed
      */
-    public abstract void write(byte[] buf, int offset, int length) throws IOException;
+    public abstract Writer getWriter() throws IOException;
 
     /**
-     * Sends a text message using the entire specified buffer.
+     * Sends the content of the specified buffer as a binary message in a single WebSocket frame. The length of the buffer
+     * must be less than or equal to {@link WsURLConnection#getMaxPayloadLength()} / {@link WebSocket#getMaxPayloadLength()}.
+     * Otherwise, an IOException is thrown.
      *
-     * @param  buf            text payload of the message
-     * @throws IOException    if an IO error occurs
+     * @param buffer binary message content
+     * @throws IOException if connection is closed or the buffer's length is greater than the max payload length of
+     *                     the connection
      */
-    public abstract void write(char[] buf) throws IOException;
+    public abstract void writeFully(byte[] buffer) throws IOException;
 
     /**
-     * Sends a text message using a portion of the specified buffer.
+     * Sends the content of the specified buffer as a text message in a single WebSocket frame. The content of specified
+     * char array is transformed to a byte array using UTF-8 encoding. The number of bytes in the transformed byte array must be
+     * less than or equal to {@link WsURLConnection#getMaxPayloadLength()} / {@link WebSocket#getMaxPayloadLength()}. Otherwise,
+     * an IOException is thrown.
      *
-     * @param  buf            text payload of the message
-     * @param  offset         offset from which to start sending
-     * @param  length         number of characters to send
-     * @throws IOException    if an IO error occurs
+     * @param buffer text message content
+     * @throws IOException if connection is closed or the transformed byte buffer's length is greater than the max payload
+     *                     length of the connection
      */
-    public abstract void write(char[] buf, int offset, int length) throws IOException;
-
+    public abstract void writeFully(char[] buffer) throws IOException;
 }
