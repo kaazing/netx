@@ -48,7 +48,7 @@ public class InputStreamIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxMessageLength(8188);
+        connection.setMaxFramePayloadLength(8188);
 
         InputStream input = connection.getInputStream();
         OutputStream output = connection.getOutputStream();
@@ -100,7 +100,7 @@ public class InputStreamIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxMessageLength(8188);
+        connection.setMaxFramePayloadLength(8188);
 
         InputStream input = connection.getInputStream();
         OutputStream output = connection.getOutputStream();
@@ -152,7 +152,7 @@ public class InputStreamIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxMessageLength(8188);
+        connection.setMaxFramePayloadLength(8188);
 
         InputStream input = connection.getInputStream();
         OutputStream output = connection.getOutputStream();
@@ -204,7 +204,7 @@ public class InputStreamIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        connection.setMaxMessageLength(8188);
+        connection.setMaxFramePayloadLength(8188);
 
         InputStream input = connection.getInputStream();
         OutputStream output = connection.getOutputStream();

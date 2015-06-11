@@ -28,7 +28,6 @@ import static org.kaazing.netx.ws.internal.ext.flyweight.Flyweight.uint8Get;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Writer;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -128,7 +127,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     private volatile DefaultWebSocketContext incomingContext;
     private volatile DefaultWebSocketContext outgoingContext;
 
-    private int maxMessageLength;
+    private int maxFramePayloadLength;
     private int maxFrameLength;
 
     public WsURLConnectionImpl(
@@ -159,8 +158,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.readLock = new OptimisticReentrantLock();
         this.stateLock = new OptimisticReentrantLock();
         this.writeLock = new OptimisticReentrantLock();
-        this.maxMessageLength = MAX_PAYLOAD_LENGTH;
-        this.maxFrameLength = getFrameLength(false, maxMessageLength);
+        this.maxFramePayloadLength = MAX_PAYLOAD_LENGTH;
+        this.maxFrameLength = getFrameLength(false, maxFramePayloadLength);
         this.connection = openHttpConnection(helper, httpLocation);
     }
 
@@ -298,8 +297,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public int getMaxMessageLength() {
-        return maxMessageLength;
+    public int getMaxFramePayloadLength() {
+        return maxFramePayloadLength;
     }
 
     @Override
@@ -445,7 +444,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public Writer getWriter() throws IOException {
+    public WsWriter getWriter() throws IOException {
         if (writer != null) {
             return writer;
         }
@@ -493,7 +492,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
     }
 
     @Override
-    public void setMaxMessageLength(int maxPayloadLength) {
+    public void setMaxFramePayloadLength(int maxPayloadLength) {
         ensureReconfigurable();
 
         if (maxPayloadLength > Integer.MAX_VALUE - 14) {
@@ -504,8 +503,8 @@ public final class WsURLConnectionImpl extends WsURLConnection {
             throw new IllegalArgumentException("Maximum payload length must be positive integer value");
         }
 
-        this.maxMessageLength = maxPayloadLength;
-        this.maxFrameLength = getFrameLength(false, maxMessageLength);
+        this.maxFramePayloadLength = maxPayloadLength;
+        this.maxFrameLength = getFrameLength(false, maxFramePayloadLength);
     }
 
     @Override

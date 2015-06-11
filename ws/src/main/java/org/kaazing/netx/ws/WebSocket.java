@@ -136,7 +136,7 @@ public abstract class WebSocket implements Closeable {
      *
      * @return maximum message length for the connection
      */
-    public abstract int getMaxMessageLength();
+    public abstract int getMaxFramePayloadLength();
 
     /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
@@ -232,16 +232,17 @@ public abstract class WebSocket implements Closeable {
     public abstract void setEnabledProtocols(String... protocols);
 
     /**
-     * Sets the maximum message length that this connection can handle. This method must be invoked before {@link #connect}
-     * is called. The maximum message length can be {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}.
+     * Sets the maximum payload length for a single WebSocket frame that this connection can handle. This method must be invoked
+     * before {@link #connect} is called. The maximum payload length can be
+     * {@link WsURLConnection#MAX_FRAME_PAYLOAD_LENGTH_LIMIT}.
      * <p>
      * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
-     * If the maxMessageLength <= 0 or maxMessageLength > {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}, an
+     * If the maxFramePayloadLength <= 0 or maxFramePayloadLength > {@link WsURLConnection#MAX_FRAME_PAYLOAD_LENGTH_LIMIT}, an
      * IllegalArgumentException is thrown.
      * <p>
-     * @param maxMessageLength  maximum message length for the connection
+     * @param maxFramePayloadLength  maximum frame payload length for the connection
      */
-    public abstract void setMaxMessageLength(int maxMessageLength);
+    public abstract void setMaxFramePayloadLength(int maxFramePayloadLength);
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx).

@@ -45,9 +45,9 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
  */
 public abstract class WsURLConnection extends URLConnection implements Closeable {
     /**
-     * Maximum message length that can be handled by the connection. 14 bytes would be needed for framing the payload.
+     * Maximum frame payload length that can be handled by the connection. 14 bytes would be needed for framing the payload.
      */
-    public static final int MAX_MESSAGE_LENGTH_LIMIT = Integer.MAX_VALUE - 14;
+    public static final int MAX_FRAME_PAYLOAD_LENGTH_LIMIT = Integer.MAX_VALUE - 14;
 
     /**
      * Connection has been closed normally.
@@ -218,7 +218,7 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
      *
      * @return maximum message length for the connection
      */
-    public abstract int getMaxMessageLength();
+    public abstract int getMaxFramePayloadLength();
 
     /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
@@ -314,7 +314,7 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
      * <p>
      * @param maxMessageLength  maximum message length for the connection
      */
-    public abstract void setMaxMessageLength(int maxMessageLength);
+    public abstract void setMaxFramePayloadLength(int maxMessageLength);
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx). This method must be invoked

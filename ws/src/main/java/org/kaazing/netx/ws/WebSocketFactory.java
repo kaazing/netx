@@ -18,7 +18,7 @@ package org.kaazing.netx.ws;
 
 import static java.lang.String.format;
 import static java.util.Collections.unmodifiableList;
-import static org.kaazing.netx.ws.WsURLConnection.MAX_MESSAGE_LENGTH_LIMIT;
+import static org.kaazing.netx.ws.WsURLConnection.MAX_FRAME_PAYLOAD_LENGTH_LIMIT;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -41,7 +41,10 @@ import org.kaazing.netx.ws.internal.WebSocketImpl;
  * developers can override these characteristics at the individual {@link WebSocket} level, if needed.
  */
 public final class WebSocketFactory {
-    private static final int DEFAULT_MAX_PAYLOAD_LENGTH = 8192;
+    private static final String MSG_MAX_PAYLOAD_LENGTH_EXCEEDED = "Maximum frame payload length must not exceed %d";
+    private static final String MSG_INVALID_MAX_PAYLOAD_LENGTH = "Maximum frame payload length must be positive integer value";
+
+    private static final int DEFAULT_MAX_FRAME_PAYLOAD_LENGTH = 8192;
 
     private final List<String> defaultEnabledExtensions;
     private final List<String> defaultEnabledExtensionsRO;
@@ -50,14 +53,14 @@ public final class WebSocketFactory {
     private HttpRedirectPolicy defaultRedirectPolicy;
     private ChallengeHandler defaultChallengeHandler;
     private int defaultConnectTimeout; // milliseconds
-    private int defaultMaxMessageLength;
+    private int defaultMaxFramePayloadLength;
 
     private WebSocketFactory(WebSocketExtensionFactory extensionFactory) {
         this.defaultEnabledExtensions = new ArrayList<String>();
         this.defaultEnabledExtensionsRO = unmodifiableList(defaultEnabledExtensions);
         this.extensionFactory = extensionFactory;
         this.defaultRedirectPolicy = HttpRedirectPolicy.ORIGIN;
-        this.defaultMaxMessageLength = DEFAULT_MAX_PAYLOAD_LENGTH;
+        this.defaultMaxFramePayloadLength = DEFAULT_MAX_FRAME_PAYLOAD_LENGTH;
     }
 
     /**
@@ -185,12 +188,13 @@ public final class WebSocketFactory {
     }
 
     /**
-     * Returns the maximum message length that this connection will support. The default maximum message length is 8192 bytes.
+     * Returns the maximum frame payload length that this connection will support. The default maximum frame paylaod length
+     * is 8192 bytes.
      *
-     * @return maximum message length for the connection
+     * @return maximum frame payload length for the connection
      */
-    public int getDefaultMaxMessageLength() {
-        return defaultMaxMessageLength;
+    public int getDefaultMaxFramePayloadLength() {
+        return defaultMaxFramePayloadLength;
     }
 
     /**
@@ -237,25 +241,25 @@ public final class WebSocketFactory {
      }
 
     /**
-     * Sets the maximum message length that is inherited by all the @{link WebSocket}s created using this factory.
-     * The maximum message length can be {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}.
+     * Sets the maximum frame payload length that is inherited by all the @{link WebSocket}s created using this factory.
+     * The maximum frame payload length can be {@link WsURLConnection#MAX_FRAME_PAYLOAD_LENGTH_LIMIT}.
      * <p>
      * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
-     * If the maxMessageLength <= 0 or maxMessageLength > {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}, an
+     * If the maxFramePayloadLength <= 0 or maxFramePayloadLength > {@link WsURLConnection#MAX_FRAME_PAYLOAD_LENGTH_LIMIT}, an
      * IllegalArgumentException is thrown.
      * <p>
-     * @param maxMessageLength  maximum message length for the connection
+     * @param maxFramePayloadLength  maximum message length for the connection
      */
-    public void setMaxMessageLength(int maxMessageLength) {
-        if (maxMessageLength > MAX_MESSAGE_LENGTH_LIMIT) {
-            throw new IllegalArgumentException(format("Maximim message length must not exceed %d", MAX_MESSAGE_LENGTH_LIMIT));
+    public void setDefaultMaxFramePayloadLength(int maxFramePayloadLength) {
+        if (maxFramePayloadLength > MAX_FRAME_PAYLOAD_LENGTH_LIMIT) {
+            throw new IllegalArgumentException(format(MSG_MAX_PAYLOAD_LENGTH_EXCEEDED, MAX_FRAME_PAYLOAD_LENGTH_LIMIT));
         }
 
-        if (maxMessageLength <= 0) {
-            throw new IllegalArgumentException("Maximum message length must be positive integer value");
+        if (maxFramePayloadLength <= 0) {
+            throw new IllegalArgumentException(MSG_INVALID_MAX_PAYLOAD_LENGTH);
         }
 
-        this.defaultMaxMessageLength = maxMessageLength;
+        this.defaultMaxFramePayloadLength = maxFramePayloadLength;
     }
 
     /**

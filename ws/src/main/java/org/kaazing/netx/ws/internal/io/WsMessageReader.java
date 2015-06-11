@@ -94,7 +94,7 @@ public class WsMessageReader extends MessageReader {
     private MessageType type;
     private State state;
     private boolean fragmented;
-    private int messageLength;
+    private int messageLength;   // -1 for messages that span across multiple frames.
     private boolean finalFrame;
     private WsBinaryStream messageBinaryStream;
     private WsTextReader messageTextReader;
@@ -541,7 +541,7 @@ public class WsMessageReader extends MessageReader {
 
         if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
             if (payloadLength > networkBuffer.length) {
-                int maxPayloadLength = connection.getMaxMessageLength();
+                int maxPayloadLength = connection.getMaxFramePayloadLength();
                 throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, payloadLength, maxPayloadLength));
             }
             else {
@@ -812,7 +812,7 @@ public class WsMessageReader extends MessageReader {
 
         public WsBinaryStream(WsURLConnectionImpl connection,
                               WsMessageReader messageReader) {
-            this.binaryBuffer = new byte[connection.getMaxMessageLength()];
+            this.binaryBuffer = new byte[connection.getMaxFramePayloadLength()];
             this.messageReader = messageReader;
         }
 
@@ -981,7 +981,7 @@ public class WsMessageReader extends MessageReader {
         private int textBufferWriteOffset;
 
         public WsTextReader(WsURLConnectionImpl connection, WsMessageReader messageReader) {
-            this.textBuffer = new char[connection.getMaxMessageLength()];
+            this.textBuffer = new char[connection.getMaxFramePayloadLength()];
             this.messageReader = messageReader;
         }
 
