@@ -55,7 +55,7 @@
                 <!-- Needed for EL only, not AST -->
                 <groupId>org.kaazing</groupId>
                 <artifactId>k3po.lang</artifactId>
-                <version>${k3po.lang.version}</version>
+                <version>${k3po.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
