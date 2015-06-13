@@ -22,8 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.kaazing.netx.ws.internal.io.MessageType.BINARY;
-import static org.kaazing.netx.ws.internal.io.MessageType.TEXT;
+import static org.kaazing.netx.ws.MessageType.BINARY;
+import static org.kaazing.netx.ws.MessageType.TEXT;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,11 +40,11 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.io.MessageReader;
-import org.kaazing.netx.ws.internal.io.MessageType;
-import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 /**
  * RFC-6455, section 5.2 "Base Framing Protocol"

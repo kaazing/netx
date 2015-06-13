@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.internal.io;
+package org.kaazing.netx.ws;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
-
-import org.kaazing.netx.ws.WebSocket;
-import org.kaazing.netx.ws.WsURLConnection;
 
 /**
  * {@link MessageWriter} is used to send binary and text messages. A reference to {@link MessageWriter} is obtained by invoking

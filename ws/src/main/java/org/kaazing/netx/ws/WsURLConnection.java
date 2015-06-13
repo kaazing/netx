@@ -221,6 +221,26 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
     public abstract int getMaxFramePayloadLength();
 
     /**
+     * Returns a {@link MessageReader} to receive messages. The {@link MessageReader} is used to when the incoming messages
+     * are either binary or text. {@link MessageReader} has the APIs to received messages that fit in a single WebSocket frame
+     * as well as messages that span across multiple WebSocket frames.
+     *
+     * @return MessageReader    to receive or stream messages
+     * @throws IOException if an I/O error occurs while creating the input stream or connection is closed or a text message is
+     *                     received
+     */
+    public abstract MessageReader getMessageReader() throws IOException;
+
+    /**
+     * Returns a {@link MessageWriter} to send messages that fit in a single WebSocket frame as well as messages that span
+     * across multiple WebSocket frames.
+     * <p>
+     * @return MessageWriter  to send text messages
+     * @throws IOException    if an I/O error occurs when creating the writer or the connection is closed
+     */
+    public abstract MessageWriter getMessageWriter() throws IOException;
+
+    /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
      * the initial handshake.
      * <p>

@@ -30,9 +30,9 @@ import java.util.Collection;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WebSocket;
-import org.kaazing.netx.ws.internal.io.MessageReader;
-import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 public class WebSocketImpl extends WebSocket {
     private final WsURLConnectionImpl connection;

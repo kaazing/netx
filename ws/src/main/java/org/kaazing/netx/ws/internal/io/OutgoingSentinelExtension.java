@@ -54,10 +54,15 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
 
     private final ClosePayloadRO closePayloadRO;
     private final ByteBuffer closePayload;
+    private final byte[] frameBuffer;
+
+    private int frameBufferOffset;
 
     public OutgoingSentinelExtension(final WsURLConnectionImpl connection) {
         this.closePayloadRO = new ClosePayloadRO();
         this.closePayload = ByteBuffer.allocate(150);
+        this.frameBuffer = new byte[connection.getMaxFrameLength() + 4];
+        this.frameBufferOffset = 0;
 
         super.onBinarySent = new WebSocketFrameConsumer() {
             @Override
@@ -112,12 +117,15 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
             mask = 1 + connection.getRandom().nextInt(Integer.MAX_VALUE);
         }
 
-        out.write(buf.get(offset));
-        encodePayloadLength(out, payloadLength);
-        encodeMaskAndPayload(out, buf, payloadOffset, payloadLength, mask);
+        frameBuffer[frameBufferOffset++] = buf.get(offset);
+        encodePayloadLength(payloadLength);
+        encodeMaskAndPayload(buf, payloadOffset, payloadLength, mask);
+
+        out.write(frameBuffer, 0, frameBufferOffset);
+        frameBufferOffset = 0;
     }
 
-    private void encodePayloadLength(OutputStream out, int len) throws IOException {
+    private void encodePayloadLength(int len) throws IOException {
         switch (highestOneBit(len)) {
         case 0x0000:
         case 0x0001:
@@ -126,22 +134,22 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         case 0x0008:
         case 0x0010:
         case 0x0020:
-            out.write(0x80 | len);
+            frameBuffer[frameBufferOffset++] = (byte) (0x80 | len);
             break;
         case 0x0040:
             switch (len) {
             case 126:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(126);
+                frameBuffer[frameBufferOffset++] = (byte) (0x80 | 126);
+                frameBuffer[frameBufferOffset++] = (byte) 0x00;
+                frameBuffer[frameBufferOffset++] = (byte) 126;
                 break;
             case 127:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(127);
+                frameBuffer[frameBufferOffset++] = (byte) (0x80 | 126);
+                frameBuffer[frameBufferOffset++] = (byte) 0x00;
+                frameBuffer[frameBufferOffset++] = (byte) 127;
                 break;
             default:
-                out.write(0x80 | len);
+                frameBuffer[frameBufferOffset++] = (byte) (0x80 | len);
                 break;
             }
             break;
@@ -154,23 +162,23 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         case 0x2000:
         case 0x4000:
         case 0x8000:
-            out.write(0x80 | 126);
-            out.write((len >> 8) & 0xff);
-            out.write((len >> 0) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) (0x80 | 126);
+            frameBuffer[frameBufferOffset++] = (byte) ((len >> 8) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) ((len >> 0) & 0xff);
             break;
         default:
             // 65536+
-            out.write(0x80 | 127);
+            frameBuffer[frameBufferOffset++] = (byte) (0x80 | 127);
 
             long length = len;
-            out.write((int) ((length >> 56) & 0xff));
-            out.write((int) ((length >> 48) & 0xff));
-            out.write((int) ((length >> 40) & 0xff));
-            out.write((int) ((length >> 32) & 0xff));
-            out.write((int) ((length >> 24) & 0xff));
-            out.write((int) ((length >> 16) & 0xff));
-            out.write((int) ((length >> 8) & 0xff));
-            out.write((int) ((length >> 0) & 0xff));
+            frameBuffer[frameBufferOffset++] = (byte) ((length >> 56) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) ((length >> 48) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) ((length >> 40) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) ((length >> 32) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) ((length >> 24) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) ((length >> 16) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) ((length >>  8) & 0xff);
+            frameBuffer[frameBufferOffset++] = (byte) ((length >>  0) & 0xff);
             break;
         }
     }
@@ -247,10 +255,13 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
             }
         }
 
-        out.write(0x88);
-        encodePayloadLength(out, len);
+        frameBuffer[frameBufferOffset++] = (byte) 0x88;
+        encodePayloadLength(len);
         if (len == 0) {
-            out.write(EMPTY_MASK);
+            frameBuffer[frameBufferOffset++] = (byte) 0x00;
+            frameBuffer[frameBufferOffset++] = (byte) 0x00;
+            frameBuffer[frameBufferOffset++] = (byte) 0x00;
+            frameBuffer[frameBufferOffset++] = (byte) 0x00;
         }
         else {
             assert len >= 2;
@@ -266,38 +277,43 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
                 }
             }
 
-            encodeMaskAndPayload(out, closePayload, 0, len, mask);
+            encodeMaskAndPayload(closePayload, 0, len, mask);
+        }
 
-            out.flush();
-            out.close();
+        out.write(frameBuffer, 0, frameBufferOffset);
+        frameBufferOffset = 0;
 
-            if (exception != null) {
-                throw exception;
-            }
+        out.flush();
+        out.close();
+
+        if (exception != null) {
+            throw exception;
         }
     }
 
-    private void encodeMaskAndPayload(OutputStream out, ByteBuffer buffer, int offset, int length, int mask) throws IOException {
-        out.write((byte) ((mask >> 24) & 0xFF));
-        out.write((byte) ((mask >> 16) & 0xFF));
-        out.write((byte) ((mask >> 8) & 0xFF));
-        out.write((byte) ((mask >> 0) & 0xFF));
+    private void encodeMaskAndPayload(ByteBuffer buffer, int offset, int length, int mask) throws IOException {
+        frameBuffer[frameBufferOffset++] = (byte) ((mask >> 24) & 0xFF);
+        frameBuffer[frameBufferOffset++] = (byte) ((mask >> 16) & 0xFF);
+        frameBuffer[frameBufferOffset++] = (byte) ((mask >> 8) & 0xFF);
+        frameBuffer[frameBufferOffset++] = (byte) ((mask >> 0) & 0xFF);
 
         // xor a 32bit word at a time as long as possible then do remaining 0, 1, 2 or 3 bytes.
         int i;
         for (i = 0; i + 4 < length; i += 4) {
             int val = buffer.getInt(offset + i) ^ mask;
-            out.write((byte) ((val >> 24) & 0xFF));
-            out.write((byte) ((val >> 16) & 0xFF));
-            out.write((byte) ((val >> 8) & 0xFF));
-            out.write((byte) ((val >> 0) & 0xFF));
+
+            frameBuffer[frameBufferOffset++] = (byte) ((val >> 24) & 0xFF);
+            frameBuffer[frameBufferOffset++] = (byte) ((val >> 16) & 0xFF);
+            frameBuffer[frameBufferOffset++] = (byte) ((val >> 8) & 0xFF);
+            frameBuffer[frameBufferOffset++] = (byte) ((val >> 0) & 0xFF);
         }
 
         for (; i < length; i++) {
             int shiftBytes = 3 - (i & 0x03);
             byte maskByte = (byte) (mask >> (8 * shiftBytes) & 0xFF);
             byte b = (byte) (buffer.get(offset + i) ^ maskByte);
-            out.write(b);
+
+            frameBuffer[frameBufferOffset++] = b;
         }
     }
 }

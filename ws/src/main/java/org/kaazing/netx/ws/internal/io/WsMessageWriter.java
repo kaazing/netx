@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.util.concurrent.locks.Lock;
 
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;

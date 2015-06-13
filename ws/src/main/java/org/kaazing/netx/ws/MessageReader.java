@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.kaazing.netx.ws.internal.io;
+package org.kaazing.netx.ws;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -146,13 +146,14 @@ public abstract class MessageReader {
      * it's entirety by passing a buffer that is large enough to accommodate the message completely. A non-negative return value
      * indicates the number of bytes copied into the passed in buffer and is typically the same as the number of bytes in the
      * message payload.
-     *
+     * <p>
+     * An IndexOutOfBoundsException is thrown if the buffer is not large enough to hold the the entire message.
+     * <p>
      * @param buf  the buffer to receive the binary message
      * @return number of bytes copied into the passed in buffer; -1 if the entire message has already been read
      * @throws IOException if the operation is attempted by a thread that does not own the current message; if the operation is
      *                     performed before invoking {@link #next()} to claim ownership of the current message; if the type of
      *                     the message is not {@link MessageType#BINARY}
-     * @throws IndexOutOfBoundsException if the buffer is not large enough to hold the the entire message
      */
     public abstract int readFully(byte[] buf) throws IOException;
 
@@ -163,13 +164,14 @@ public abstract class MessageReader {
      * it's entirety by passing a buffer that is large enough to accommodate the message completely. A non-negative return value
      * indicates the number of chars copied into the passed in buffer and is typically the same as the number of chars in the
      * message payload.
-     *
+     * <p>
+     * An IndexOutOfBoundsException is thrown if the buffer is not large enough to hold the the entire message.
+     * <p>
      * @param buf buffer to receive the text message
      * @return number of chars stored in the passed in buffer; -1 if the entire message has already been read
      * @throws IOException if the operation is attempted by a thread that does not own the current message; if the operation is
      *                     performed before invoking {@link #next()} to claim ownership of the current message; if the type of
      *                     the message is not {@link MessageType#TEXT}
-     * @throws IndexOutOfBoundsException if the buffer is not large enough to hold the the entire message
      */
     public abstract int readFully(char[] buf) throws IOException;
 
@@ -188,10 +190,10 @@ public abstract class MessageReader {
      * across multiple WebSocket frames indicating that it can be streamed. A false is returned if the message fits in a single
      * WebSocket frame and can be read in it's entirety using either {@link #readFully(byte[])} or {@link #readFully(char[])}
      * methods.
-     *
+     * <p>
+     * An IllegalStateException is thrown if the operation is attempted by a thread that does not own the current message.
+     * <p>
      * @return true if the message can be streamed; otherwise false
-     * @throws IOException if the operation is attempted by a thread that does not own the current message; if the operation is
-     *                     performed before invoking {@link #next()} to claim ownership of the current message.
      */
     public abstract boolean streaming();
 }
