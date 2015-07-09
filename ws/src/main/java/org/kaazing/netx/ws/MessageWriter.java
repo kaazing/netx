@@ -21,8 +21,41 @@ import java.io.OutputStream;
 import java.io.Writer;
 
 /**
- * {@link MessageWriter} is used to send binary and text messages. A reference to {@link MessageWriter} is obtained by invoking
- * either {@link WsURLConnection#getMessageWriter()} or {@link WebSocket#getMessageWriter()} methods.
+ * {@link MessageWriter} is used to send binary and text messages that may span over multiple WebSocket frames. A reference to
+ * {@link MessageWriter} is obtained by invoking either {@link WsURLConnection#getMessageWriter()} or
+ * {@link WebSocket#getMessageWriter()} methods. Here is sample code that shows how to send a binary message that spans across
+ * multiple WebSoket frames:
+ *
+ * {@code}
+ * WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+ * connection.setMaxPayloadLength(125);
+ * MessageWriter messageWriter = connection.getMessageWriter();
+ *
+ * byte[] binaryFrame = new byte[25];
+ * int fragmentCount = 5;
+ * OutputStream binaryOutputStream = messageWriter.getOutputStream();
+ *
+ * // Stream out a binary message that spans across multiple WebSocket frames.
+ * while (fragmentCount > 0) {
+ *     fragmentCount--;
+ *     random.nextBytes(binaryFrame);
+ *
+ *     binaryOutputStream.write(binaryFrame);
+ *
+ *     if (fragmentCount > 0) {
+ *          // Send the CONTINUATION frame.
+ *          binaryOutputStream.flush();
+ *     }
+ *     else {
+ *          // Close the stream and send the final frame of the message with FIN bit set.
+ *          binaryOutputStream.close();
+ *     }
+ * }
+ *
+ * {@link MessageWriter} can also be used to send binary and text messages that fits in a single WebSocket frame using
+ * {@link #writeFully(byte[])} and {@link #writeFully(char[])} methods respectively.
+ *
+ * {@code}
  */
 public abstract class MessageWriter {
     /**

@@ -612,7 +612,7 @@ public class WsMessageReader extends MessageReader {
                 connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, Opcode.toInt(TEXT)));
             }
             type = MessageType.TEXT;
-            messageLength = finalFrame ? payloadLength : -1;
+            messageLength = (state == State.INITIAL) && finalFrame ? payloadLength : -1;
             break;
         case BINARY:
             if (state == State.PROCESS_FRAME) {
@@ -620,7 +620,7 @@ public class WsMessageReader extends MessageReader {
                 connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, Opcode.toInt(BINARY)));
             }
             type = MessageType.BINARY;
-            messageLength = finalFrame ? payloadLength : -1;
+            messageLength = (state == State.INITIAL) && finalFrame ? payloadLength : -1;
             break;
         case CLOSE:
         case PING:
