@@ -122,6 +122,8 @@ public class WsMessageWriter extends MessageWriter {
     }
 
     private static class WsBinaryOutputStream extends OutputStream {
+        private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
+
         private final WsURLConnectionImpl connection;
         private final byte[] binaryBuffer;
         private final Lock lock;
@@ -142,15 +144,48 @@ public class WsMessageWriter extends MessageWriter {
             try {
                 lock.lock();
 
-                if (binaryBufferOffset < binaryBuffer.length) {
-                    binaryBuffer[binaryBufferOffset++] = (byte) b;
-                }
-
                 if (binaryBufferOffset == binaryBuffer.length) {
                     Opcode opcode = initialFrame ? BINARY : CONTINUATION;
                     connection.getOutputStream().writeBinary(opcode, binaryBuffer, 0, binaryBuffer.length, false);
                     initialFrame = false;
                     binaryBufferOffset = 0;
+                }
+
+                assert binaryBufferOffset < binaryBuffer.length;
+                binaryBuffer[binaryBufferOffset++] = (byte) b;
+
+            }
+            finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void write(byte[] buf, int offset, int length) throws IOException {
+            if (buf == null) {
+                throw new NullPointerException("Null buffer passed in");
+            }
+            else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
+            }
+
+            try {
+                lock.lock();
+
+                while (length > 0) {
+                    if (binaryBufferOffset == binaryBuffer.length) {
+                        Opcode opcode = initialFrame ? BINARY : CONTINUATION;
+                        connection.getOutputStream().writeBinary(opcode, binaryBuffer, 0, binaryBuffer.length, false);
+                        initialFrame = false;
+                        binaryBufferOffset = 0;
+                    }
+
+                    int len = Math.min(length, binaryBuffer.length - binaryBufferOffset);
+                    System.arraycopy(buf, offset, binaryBuffer, binaryBufferOffset, len);
+                    binaryBufferOffset += len;
+
+                    offset += len;
+                    length -= len;
                 }
             }
             finally {
@@ -160,6 +195,21 @@ public class WsMessageWriter extends MessageWriter {
 
         @Override
         public void flush() throws IOException {
+            try {
+                lock.lock();
+
+                Opcode opcode = initialFrame ? BINARY : CONTINUATION;
+                connection.getOutputStream().writeBinary(opcode, binaryBuffer, 0, binaryBufferOffset, false);
+                binaryBufferOffset = 0;
+                initialFrame = false;
+            }
+            finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
             try {
                 lock.lock();
 
@@ -177,11 +227,6 @@ public class WsMessageWriter extends MessageWriter {
             finally {
                 lock.unlock();
             }
-        }
-
-        @Override
-        public void close() throws IOException {
-            flush();
         }
     }
 
@@ -216,17 +261,16 @@ public class WsMessageWriter extends MessageWriter {
                 lock.lock();
 
                 while (length > 0) {
-                    int len = Math.min(length, textBuffer.length - textBufferOffset);
-
-                    System.arraycopy(cbuf, offset, textBuffer, textBufferOffset, len);
-                    textBufferOffset += len;
-
                     if (textBufferOffset == textBuffer.length) {
                         Opcode opcode = initialFrame ? TEXT : CONTINUATION;
                         connection.getWriter().writeText(opcode, textBuffer, 0, textBuffer.length, false);
                         initialFrame = false;
                         textBufferOffset = 0;
                     }
+
+                    int len = Math.min(length, textBuffer.length - textBufferOffset);
+                    System.arraycopy(cbuf, offset, textBuffer, textBufferOffset, len);
+                    textBufferOffset += len;
 
                     offset += len;
                     length -= len;
@@ -239,6 +283,21 @@ public class WsMessageWriter extends MessageWriter {
 
         @Override
         public void flush() throws IOException {
+            try {
+                lock.lock();
+
+                Opcode opcode = initialFrame ? TEXT : CONTINUATION;
+                connection.getWriter().writeText(opcode, textBuffer, 0, textBufferOffset, false);
+                textBufferOffset = 0;
+                initialFrame = false;
+            }
+            finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
             try {
                 lock.lock();
 
@@ -257,11 +316,6 @@ public class WsMessageWriter extends MessageWriter {
             finally {
                 lock.unlock();
             }
-        }
-
-        @Override
-        public void close() throws IOException {
-            flush();
         }
     }
 }

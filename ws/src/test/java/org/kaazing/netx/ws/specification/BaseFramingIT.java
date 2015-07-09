@@ -90,7 +90,6 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
 
@@ -157,7 +156,6 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
@@ -294,7 +292,6 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
@@ -363,7 +360,6 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
@@ -509,7 +505,6 @@ public class BaseFramingIT {
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.setMaxFramePayloadLength(65536);
 
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
@@ -578,7 +573,6 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
@@ -786,7 +780,6 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
@@ -855,7 +848,6 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 
@@ -924,7 +916,6 @@ public class BaseFramingIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-//        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
         MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
 

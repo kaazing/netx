@@ -27,11 +27,14 @@ import java.io.Writer;
 public abstract class MessageWriter {
     /**
      * Return the {@link OutputStream} that can be used to send binary messages that span across multiple WebSocket frames. Once
-     * the application gets the reference to the {@link OutputStream}, it can invoke {@link OutputStream#write(byte[])} and
+     * the application gets the reference to the {@link OutputStream}, it can invoke {@link OutputStream#write(byte[])} and/or
      * {@link OutputStream#write(byte[] buf, int offset, int length) methods to assemble a binary message that spans across
-     * multiple WebSocket frames. The application can invoke {@link OutputStream#flush()} method to force the final WebSocket
-     * frame of the message to be written to the wire. Furthermore, the OutputStream implementation may decide to send the final
-     * WebSocket frame as needed.
+     * multiple WebSocket frames. When the length of the internal payload buffer reaches the maximum frame payload length,
+     * a CONTINUATION frame is sent.
+     *
+     * Invoking {@link OutputStream#flush()} forces a CONTINUATION frame to be sent using the current contents of the buffer.
+     * Invoking {OutputStream Writer#close()} method forces the final WebSocket frame of the message to be written to the wire
+     * using the current contents of the buffer.
      *
      * @return OutputStream to send binary messages that span across multiple WebSocket frames
      * @throws IOException if the connection is closed
@@ -40,11 +43,14 @@ public abstract class MessageWriter {
 
     /**
      * Return the {@link Writer} that can be used to send text messages that span across multiple WebSocket frames. Once
-     * the application gets the reference to the {@link Writer}, it can invoke {@link Writer#write(char[])} and
+     * the application gets the reference to the {@link Writer}, it can invoke {@link Writer#write(char[])} and/or
      * {@link Writer#write(char[] buf, int offset, int length) methods to assemble a text message that spans across
-     * multiple WebSocket frames. The application can invoke {@link Writer#flush()} method to force the final WebSocket
-     * frame of the message to be written to the wire. Furthermore, the Writer implementation may decide to send the final
-     * WebSocket frame as needed.
+     * multiple WebSocket frames. When the length of the internal payload buffer reaches the maximum frame payload length,
+     * a CONTINUATION frame is sent.
+     *
+     * Invoking {@link Writer#flush()} forces a CONTINUATION frame to be sent using the current contents of the buffer. Invoking
+     * {@link Writer#close()} method forces the final WebSocket frame of the message to be written to the wire using the
+     * current contents of the buffer.
      *
      * @return Writer to send text messages that span across multiple WebSocket frames
      * @throws IOException if the connection is closed

@@ -121,11 +121,6 @@ public final class WsOutputStream extends FilterOutputStream {
         // The rest of the frames have just the CONTINUATION opcode in the leading byte.
         assert opcode == BINARY || opcode == CONTINUATION;
 
-        // The last frame must have the FIN bit set with CONTINUATION opcode in the leading byte.
-        if (fin) {
-            assert opcode == CONTINUATION;
-        }
-
         if (buf == null) {
             throw new NullPointerException("Null buffer passed in");
         }

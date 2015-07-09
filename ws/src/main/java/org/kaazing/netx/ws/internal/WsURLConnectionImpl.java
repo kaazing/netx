@@ -95,7 +95,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
 
     private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     private static final int MAX_COMMAND_FRAME_PAYLOAD = 125;
-    private static final int MAX_PAYLOAD_LENGTH = 8192;
+    private static final int DEFAULT_MAX_PAYLOAD_LENGTH = 8192;
 
     private final Random random;
     private final HttpURLConnection connection;
@@ -158,7 +158,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         this.readLock = new OptimisticReentrantLock();
         this.stateLock = new OptimisticReentrantLock();
         this.writeLock = new OptimisticReentrantLock();
-        this.maxFramePayloadLength = MAX_PAYLOAD_LENGTH;
+        this.maxFramePayloadLength = DEFAULT_MAX_PAYLOAD_LENGTH;
         this.maxFrameLength = getFrameLength(false, maxFramePayloadLength);
         this.connection = openHttpConnection(helper, httpLocation);
     }
