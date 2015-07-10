@@ -44,7 +44,6 @@ import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 /**
  * RFC-6455, section 5.4 "Fragmentation"
@@ -133,8 +132,8 @@ public class FragmentationIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.setMaxFramePayloadLength(125);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
 
         byte[] binaryMessage = new byte[125];
         byte[] binaryFrame = new byte[25];
@@ -193,8 +192,8 @@ public class FragmentationIT {
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
         connection.setMaxFramePayloadLength(125);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
 
         char[] textMessage = new char[125];
         char[] textFrame;
@@ -253,8 +252,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -293,8 +292,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -333,8 +332,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
 
         byte[] readBytes = new byte[125];
         MessageType type = null;
@@ -375,8 +374,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;
@@ -416,8 +415,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;
@@ -457,8 +456,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;
@@ -489,8 +488,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
 
         char[] charBuf = new char[0];
         MessageType type = null;
@@ -529,8 +528,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
 
         char[] charBuf = new char[0];
         MessageType type = null;
@@ -569,8 +568,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
         MessageType type = null;
         char[] charBuf = new char[125];
         int charsRead = 0;
@@ -611,8 +610,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
         MessageType type = null;
         char[] charBuf = new char[125];
         int charsRead = 0;
@@ -653,8 +652,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
         MessageType type = null;
         char[] charBuf = new char[125];
         int charsRead = 0;
@@ -695,8 +694,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
         MessageType type = null;
         char[] charBuf = new char[125];
         int charsRead = 0;
@@ -737,8 +736,8 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
-        MessageWriter messageWriter = ((WsURLConnectionImpl) connection).getMessageWriter();
+        MessageReader messageReader = connection.getMessageReader();
+        MessageWriter messageWriter = connection.getMessageWriter();
         MessageType type = null;
         char[] charBuf = new char[125];
         int charsRead = 0;
@@ -819,7 +818,7 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;
@@ -899,7 +898,7 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;
@@ -980,7 +979,7 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;
@@ -1062,7 +1061,7 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;
@@ -1142,7 +1141,7 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;
@@ -1222,7 +1221,7 @@ public class FragmentationIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
         MessageType type = null;
         byte[] readBytes = new byte[125];
         int bytesRead = 0;

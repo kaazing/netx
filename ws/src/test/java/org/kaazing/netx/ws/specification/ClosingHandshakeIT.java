@@ -39,7 +39,6 @@ import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.ws.MessageReader;
 import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 
 /**
  * RFC-6455, section 7 "Closing the Connection"
@@ -127,7 +126,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -181,7 +180,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -235,7 +234,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -301,7 +300,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -359,7 +358,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -424,7 +423,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -492,7 +491,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;
@@ -560,7 +559,7 @@ public class ClosingHandshakeIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader messageReader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
 
         byte[] readBytes = new byte[0];
         MessageType type = null;

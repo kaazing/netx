@@ -172,10 +172,12 @@ public class WsMessageWriter extends MessageWriter {
             try {
                 lock.lock();
 
+                WsOutputStream outputStream = connection.getOutputStream();
+
                 while (length > 0) {
                     if (binaryBufferOffset == binaryBuffer.length) {
                         Opcode opcode = initialFrame ? BINARY : CONTINUATION;
-                        connection.getOutputStream().writeBinary(opcode, binaryBuffer, 0, binaryBuffer.length, false);
+                        outputStream.writeBinary(opcode, binaryBuffer, 0, binaryBuffer.length, false);
                         initialFrame = false;
                         binaryBufferOffset = 0;
                     }
@@ -260,10 +262,12 @@ public class WsMessageWriter extends MessageWriter {
             try {
                 lock.lock();
 
+                WsWriter writer = connection.getWriter();
+
                 while (length > 0) {
                     if (textBufferOffset == textBuffer.length) {
                         Opcode opcode = initialFrame ? TEXT : CONTINUATION;
-                        connection.getWriter().writeText(opcode, textBuffer, 0, textBuffer.length, false);
+                        writer.writeText(opcode, textBuffer, 0, textBuffer.length, false);
                         initialFrame = false;
                         textBufferOffset = 0;
                     }

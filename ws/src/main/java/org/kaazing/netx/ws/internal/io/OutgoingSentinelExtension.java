@@ -49,6 +49,10 @@ import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
     private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
+    private static final String MSG_INVALID_METADATA_LENGTH = "Invalid metadata length '%d'";
+
+    // Even though CLOSE payload length must be <= 125, we are using 150 to accommodate negative tests.
+    private static final int MAX_CLOSE_PAYLOAD_LENGTH_LIMIT = 150;
 
     private final ClosePayloadRO closePayloadRO;
     private final ByteBuffer closePayload;
@@ -56,7 +60,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
 
     public OutgoingSentinelExtension(final WsURLConnectionImpl connection) {
         this.closePayloadRO = new ClosePayloadRO();
-        this.closePayload = ByteBuffer.allocate(150);
+        this.closePayload = ByteBuffer.allocate(MAX_CLOSE_PAYLOAD_LENGTH_LIMIT);
         this.frameBuffer = ByteBuffer.allocate(connection.getMaxFrameLength() + 4);
 
         super.onBinarySent = new WebSocketFrameConsumer() {
@@ -112,25 +116,31 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
             mask = 1 + connection.getRandom().nextInt(Integer.MAX_VALUE);
         }
 
-        frameBuffer.mark();
-
         int metadataLength = payloadOffset - offset;
-        for (int i = 0; i < metadataLength; i++) {
-            // Cannot use System.arraycopy() as the Frame contains a read-only ByteBuffer and accessing the underlying byte[]
-            // results in a ReadOnlyBufferException.
-            byte b = buf.get(offset++);
 
-            if (i == 1) {
-                b |= 0x80;
-            }
-
-            frameBuffer.put(b);
+        switch (metadataLength) {
+        case 2:
+            frameBuffer.putShort(buf.getShort(offset));
+            break;
+        case 4:
+            frameBuffer.putInt(buf.getInt(offset));
+            break;
+        case 10:
+            frameBuffer.putShort(buf.getShort(offset));
+            frameBuffer.putLong(buf.getLong(offset + 2));
+            break;
+        default:
+            throw new IllegalStateException(format(MSG_INVALID_METADATA_LENGTH, metadataLength));
         }
+
+        // Set the mask bit.
+        byte maskByte = frameBuffer.get(1);
+        frameBuffer.put(1, (byte) (maskByte | 0x80));
 
         encodeMaskAndPayload(buf, payloadOffset, payloadLength, mask);
 
         out.write(frameBuffer.array(), 0, frameBuffer.position());
-        frameBuffer.reset();
+        frameBuffer.rewind();
     }
 
     private void encodePayloadLength(int len) throws IOException {
@@ -263,8 +273,6 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
             }
         }
 
-        frameBuffer.mark();
-
         frameBuffer.put((byte) 0x88);
         encodePayloadLength(len);
 
@@ -289,7 +297,7 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         }
 
         out.write(frameBuffer.array(), 0, frameBuffer.position());
-        frameBuffer.reset();
+        frameBuffer.rewind();
 
         out.flush();
         out.close();
