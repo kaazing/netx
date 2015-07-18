@@ -20,6 +20,7 @@ import static java.lang.String.format;
 import static org.kaazing.netx.ws.internal.WebSocketState.CLOSED;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CLOSE;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CONTINUATION;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.PONG;
 
 import java.io.FilterOutputStream;
@@ -30,6 +31,7 @@ import java.util.concurrent.locks.Lock;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRO;
 import org.kaazing.netx.ws.internal.ext.flyweight.FrameRW;
+import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 
 public final class WsOutputStream extends FilterOutputStream {
@@ -92,7 +94,7 @@ public final class WsOutputStream extends FilterOutputStream {
         try {
             stateLock.lock();
 
-            int maxPayloadLength = connection.getMaxMessageLength();
+            int maxPayloadLength = connection.getMaxFramePayloadLength();
             if (length > maxPayloadLength) {
                 throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, length, maxPayloadLength));
             }
@@ -110,10 +112,14 @@ public final class WsOutputStream extends FilterOutputStream {
         }
     }
 
-    public void writeContinuation(byte[] buf, int offset, int length) throws IOException {
+    public void writeBinary(Opcode opcode, byte[] buf, int offset, int length, boolean fin) throws IOException {
         if (connection.getOutputState() == CLOSED) {
             throw new IOException("Connection closed");
         }
+
+        // In a binary message that spans across multiple frames, the first frame has just the BINARY opcode in the leading byte.
+        // The rest of the frames have just the CONTINUATION opcode in the leading byte.
+        assert opcode == BINARY || opcode == CONTINUATION;
 
         if (buf == null) {
             throw new NullPointerException("Null buffer passed in");
@@ -125,14 +131,14 @@ public final class WsOutputStream extends FilterOutputStream {
         try {
             stateLock.lock();
 
-            int maxPayloadLength = connection.getMaxMessageLength();
+            int maxPayloadLength = connection.getMaxFramePayloadLength();
             if (length > maxPayloadLength) {
                 throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, length, maxPayloadLength));
             }
 
             outgoingDataFrame.wrap(heapBuffer,  0);
-            outgoingDataFrame.fin(true);
-            outgoingDataFrame.opcode(BINARY);
+            outgoingDataFrame.fin(fin);
+            outgoingDataFrame.opcode(opcode);
             outgoingDataFrame.payloadPut(buf, offset, length);
 
             outgoingFrameRO.wrap(heapBufferRO, outgoingDataFrame.offset());

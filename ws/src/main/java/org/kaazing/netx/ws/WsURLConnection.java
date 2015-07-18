@@ -45,9 +45,9 @@ import org.kaazing.netx.http.auth.ChallengeHandler;
  */
 public abstract class WsURLConnection extends URLConnection implements Closeable {
     /**
-     * Maximum message length that can be handled by the connection. 14 bytes would be needed for framing the payload.
+     * Maximum frame payload length that can be handled by the connection. 14 bytes would be needed for framing the payload.
      */
-    public static final int MAX_MESSAGE_LENGTH_LIMIT = Integer.MAX_VALUE - 14;
+    public static final int MAX_FRAME_PAYLOAD_LENGTH_LIMIT = Integer.MAX_VALUE - 14;
 
     /**
      * Connection has been closed normally.
@@ -218,7 +218,27 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
      *
      * @return maximum message length for the connection
      */
-    public abstract int getMaxMessageLength();
+    public abstract int getMaxFramePayloadLength();
+
+    /**
+     * Returns a {@link MessageReader} to receive messages. The {@link MessageReader} is used to when the incoming messages
+     * are either binary or text. {@link MessageReader} has the APIs to received messages that fit in a single WebSocket frame
+     * as well as messages that span across multiple WebSocket frames.
+     *
+     * @return MessageReader    to receive or stream messages
+     * @throws IOException if an I/O error occurs while creating the input stream or connection is closed or a text message is
+     *                     received
+     */
+    public abstract MessageReader getMessageReader() throws IOException;
+
+    /**
+     * Returns a {@link MessageWriter} to send messages that fit in a single WebSocket frame as well as messages that span
+     * across multiple WebSocket frames.
+     * <p>
+     * @return MessageWriter  to send text messages
+     * @throws IOException    if an I/O error occurs when creating the writer or the connection is closed
+     */
+    public abstract MessageWriter getMessageWriter() throws IOException;
 
     /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
@@ -314,7 +334,7 @@ public abstract class WsURLConnection extends URLConnection implements Closeable
      * <p>
      * @param maxMessageLength  maximum message length for the connection
      */
-    public abstract void setMaxMessageLength(int maxMessageLength);
+    public abstract void setMaxFramePayloadLength(int maxMessageLength);
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx). This method must be invoked

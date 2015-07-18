@@ -204,7 +204,7 @@ public class WsReader extends Reader {
 
                     if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
                         if (payloadLength > networkBuffer.length) {
-                            int maxPayloadLength = connection.getMaxMessageLength();
+                            int maxPayloadLength = connection.getMaxFramePayloadLength();
                             throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, payloadLength, maxPayloadLength));
                         }
                         else {

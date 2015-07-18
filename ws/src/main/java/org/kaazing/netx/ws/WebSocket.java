@@ -122,10 +122,12 @@ public abstract class WebSocket implements Closeable {
     public abstract Collection<String> getEnabledProtocols();
 
     /**
-     * Returns the {@link InputStream} to receive <b>binary</b> messages. The methods on {@link InputStream} will block till the
-     * message arrives. The {@link InputStream} must be used to only receive <b>binary</b> messages.
+     * Returns an {@link InputStream} to stream <b>binary</b> data. {@link InputStream} is typically used when the incoming
+     * data is only binary and the application does not care about the message boundaries. The read() methods on the
+     * {@link InputStream} will block till the message arrives. The {@link InputStream} must be used to only stream
+     * <b>binary</b> data.
      *
-     * @return InputStream    to receive binary messages
+     * @return InputStream    to stream binary data
      * @throws IOException if an I/O error occurs while creating the input stream or connection is closed or a text message is
      *                     received
      */
@@ -136,7 +138,27 @@ public abstract class WebSocket implements Closeable {
      *
      * @return maximum message length for the connection
      */
-    public abstract int getMaxMessageLength();
+    public abstract int getMaxFramePayloadLength();
+
+    /**
+     * Returns a {@link MessageReader} to receive messages. The {@link MessageReader} is used to when the incoming messages
+     * are either binary or text. {@link MessageReader} has the APIs to received messages that fit in a single WebSocket frame
+     * as well as messages that span across multiple WebSocket frames.
+     *
+     * @return MessageReader    to receive or stream messages
+     * @throws IOException if an I/O error occurs while creating the input stream or connection is closed or a text message is
+     *                     received
+     */
+    public abstract MessageReader getMessageReader() throws IOException;
+
+    /**
+     * Returns a {@link MessageWriter} to send messages that fit in a single WebSocket frame as well as messages that span
+     * across multiple WebSocket frames.
+     * <p>
+     * @return MessageWriter  to send text messages
+     * @throws IOException    if an I/O error occurs when creating the writer or the connection is closed
+     */
+    public abstract MessageWriter getMessageWriter() throws IOException;
 
     /**
      * Gets names of all the enabled extensions that have been successfully negotiated between the client and the server during
@@ -168,12 +190,13 @@ public abstract class WebSocket implements Closeable {
     public abstract OutputStream getOutputStream() throws IOException;
 
     /**
-     * Returns a {@link Reader} to receive <b>text</b> messages from this connection. This method should be used to only to
-     * receive <b>text</b> messages. Methods on {@link Reader} will block till a message arrives.
+     * Returns a {@link Reader} to stream <b>text</b> data. {@link Reader} is typically used when the incoming
+     * data is only text and the application does not care about the message boundaries. The read() methods on the
+     * {@link Reader} will block till the message arrives. The {@link Reader} must be used to only stream <b>text</b> data.
      * <p>
      * If the Reader is used to receive <b>binary</b> messages, then an IOException is thrown.
      * <p>
-     * @return Reader         used to receive text messages from this connection
+     * @return Reader         used to stream text messages
      * @throws IOException    if an I/O error occurs when creating the reader or the connection is closed or a binary message
      *                        is received
      */
@@ -195,8 +218,7 @@ public abstract class WebSocket implements Closeable {
     public abstract Collection<String> getSupportedExtensions();
 
     /**
-     * Returns a {@link Writer} to send <b>text</b> messages from this connection. The message is put on the wire only when
-     * {@link Writer#flush()} is invoked.
+     * Returns a {@link Writer} to send <b>text</b> messages from this connection.
      * <p>
      * @return Writer         used to send text messages from this connection
      * @throws IOException    if an I/O error occurs when creating the writer or the connection is closed
@@ -232,16 +254,17 @@ public abstract class WebSocket implements Closeable {
     public abstract void setEnabledProtocols(String... protocols);
 
     /**
-     * Sets the maximum message length that this connection can handle. This method must be invoked before {@link #connect}
-     * is called. The maximum message length can be {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}.
+     * Sets the maximum payload length for a single WebSocket frame that this connection can handle. This method must be invoked
+     * before {@link #connect} is called. The maximum payload length can be
+     * {@link WsURLConnection#MAX_FRAME_PAYLOAD_LENGTH_LIMIT}.
      * <p>
      * If this method is invoked after a connection has been successfully established, an IllegalStateException is thrown.
-     * If the maxMessageLength <= 0 or maxMessageLength > {@link WsURLConnection#MAX_MESSAGE_LENGTH_LIMIT}, an
+     * If the maxFramePayloadLength <= 0 or maxFramePayloadLength > {@link WsURLConnection#MAX_FRAME_PAYLOAD_LENGTH_LIMIT}, an
      * IllegalArgumentException is thrown.
      * <p>
-     * @param maxMessageLength  maximum message length for the connection
+     * @param maxFramePayloadLength  maximum frame payload length for the connection
      */
-    public abstract void setMaxMessageLength(int maxMessageLength);
+    public abstract void setMaxFramePayloadLength(int maxFramePayloadLength);
 
     /**
      * Sets {@link HttpRedirectPolicy} indicating the policy for following HTTP redirects (3xx).
@@ -249,5 +272,4 @@ public abstract class WebSocket implements Closeable {
      * @param policy the redirect policy applied to HTTP redirect responses
      */
     public abstract void setRedirectPolicy(HttpRedirectPolicy policy);
-
 }

@@ -40,7 +40,7 @@
         <dependency>
             <groupId>org.kaazing</groupId>
             <artifactId>specification.ws</artifactId>
-            <version>[0.1,0.99)</version>
+            <version>${k3po.version}</version>
         </dependency>
     </dependencies>
 

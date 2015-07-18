@@ -87,7 +87,7 @@ public final class WsInputStream extends InputStream {
                 int currentLength = applicationBuffer.length;
 
                 if (applicationBufferWriteOffset + xformedPayloadLength > currentLength) {
-                    int maxPayloadLength = connection.getMaxMessageLength();
+                    int maxPayloadLength = connection.getMaxFramePayloadLength();
                     throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, xformedPayloadLength, maxPayloadLength));
                 }
 
@@ -266,7 +266,7 @@ public final class WsInputStream extends InputStream {
 
             if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
                 if (payloadLength > networkBuffer.length) {
-                    int maxPayloadLength = connection.getMaxMessageLength();
+                    int maxPayloadLength = connection.getMaxFramePayloadLength();
                     throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, payloadLength, maxPayloadLength));
                 }
                 else {

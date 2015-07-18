@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.kaazing.netx.ws.internal.io;
 
 import static java.lang.Character.charCount;
 import static java.lang.Character.toChars;
 import static java.lang.String.format;
+import static org.kaazing.netx.ws.MessageType.EOS;
 import static org.kaazing.netx.ws.WsURLConnection.WS_PROTOCOL_ERROR;
+import static org.kaazing.netx.ws.internal.ext.flyweight.Flyweight.uint8Get;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.BINARY;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CLOSE;
 import static org.kaazing.netx.ws.internal.ext.flyweight.Opcode.CONTINUATION;
@@ -30,9 +31,13 @@ import static org.kaazing.netx.ws.internal.util.Utf8Util.remainingDecodeUTF8;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.internal.DefaultWebSocketContext;
 import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
 import org.kaazing.netx.ws.internal.ext.WebSocketContext;
@@ -44,19 +49,31 @@ import org.kaazing.netx.ws.internal.ext.flyweight.Opcode;
 import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 import org.kaazing.netx.ws.internal.util.OptimisticReentrantLock;
 
-public final class WsMessageReader extends MessageReader {
-    private static final String MSG_NULL_CONNECTION = "Null HttpURLConnection passed in";
+public class WsMessageReader extends MessageReader {
+    private static final String MSG_NULL_CONNECTION = "Null connection passed in";
     private static final String MSG_INDEX_OUT_OF_BOUNDS = "offset = %d; (offset + length) = %d; buffer length = %d";
     private static final String MSG_NON_BINARY_FRAME = "Non-text frame - opcode = 0x%02X";
     private static final String MSG_NON_TEXT_FRAME = "Non-binary frame - opcode = 0x%02X";
     private static final String MSG_BUFFER_SIZE_SMALL = "Buffer's remaining capacity %d too small for payload of size %d";
+    private static final String MSG_MASKED_FRAME_FROM_SERVER = "Protocol Violation: Masked server-to-client frame";
     private static final String MSG_RESERVED_BITS_SET = "Protocol Violation: Reserved bits set 0x%02X";
     private static final String MSG_UNRECOGNIZED_OPCODE = "Protocol Violation: Unrecognized opcode %d";
     private static final String MSG_FIRST_FRAME_FRAGMENTED = "Protocol Violation: First frame cannot be a fragmented frame";
     private static final String MSG_UNEXPECTED_OPCODE = "Protocol Violation: Opcode 0x%02X expected only in the initial frame";
     private static final String MSG_FRAGMENTED_CONTROL_FRAME = "Protocol Violation: Fragmented control frame 0x%02X";
     private static final String MSG_FRAGMENTED_FRAME = "Protocol Violation: Fragmented frame 0x%02X";
+    private static final String MSG_NEXT_NOT_INVOKED = "MessageReader.next() method must be called before reading a message";
     private static final String MSG_MAX_MESSAGE_LENGTH = "Message length %d is greater than the maximum allowed %d";
+    private static final String MSG_NOT_CURRENT_OWNER = "Thread reading the currrent message must perform this operation";
+    private static final String MSG_CANNOT_BE_READ_FULLY = "Message should be streamed as it spans across multiple frames";
+    private static final String MSG_CAN_BE_READ_FULLY = "Message can be read in it's entirety instead of streaming";
+    private static final String MSG_INVALID_MESSAGE_TYPE = "Invalid message type: '%s'";
+    private static final String MSG_BUFFER_OVERFLOW = "Buffer size '%d' small to accommodate a message of length '%d'";
+    private static final String MSG_END_OF_MESSAGE_STREAM = "End of message stream";
+
+    private enum State {
+        INITIAL, PROCESS_FRAME;
+    };
 
     private final WsURLConnectionImpl connection;
     private final InputStream in;
@@ -65,7 +82,8 @@ public final class WsMessageReader extends MessageReader {
     private final ByteBuffer heapBuffer;
     private final ByteBuffer heapBufferRO;
     private final byte[] networkBuffer;
-    private final Lock stateLock;
+    private final AtomicReference<Thread> currentMessageOwner;
+    private final Lock lock;
 
     private int networkBufferReadOffset;
     private int networkBufferWriteOffset;
@@ -78,10 +96,10 @@ public final class WsMessageReader extends MessageReader {
     private MessageType type;
     private State state;
     private boolean fragmented;
-
-    private enum State {
-        INITIAL, PROCESS_MESSAGE_TYPE, PROCESS_FRAME;
-    };
+    private int messageLength;   // -1 for messages that span across multiple frames.
+    private boolean finalFrame;
+    private WsBinaryStream messageBinaryStream;
+    private WsTextReader messageTextReader;
 
     final WebSocketFrameConsumer terminalBinaryFrameConsumer = new WebSocketFrameConsumer() {
         @Override
@@ -182,21 +200,25 @@ public final class WsMessageReader extends MessageReader {
         }
     };
 
+
     public WsMessageReader(WsURLConnectionImpl connection) throws IOException {
         if (connection == null) {
             throw new NullPointerException(MSG_NULL_CONNECTION);
         }
 
+        this.connection = connection;
+        this.currentMessageOwner = new AtomicReference<Thread>(null);
+
         int maxFrameLength = connection.getMaxFrameLength();
 
-        this.connection = connection;
         this.in = connection.getTcpInputStream();
-        this.state = State.INITIAL;
         this.incomingFrame = new FrameRW();
         this.incomingFrameRO = new FrameRO();
-        this.stateLock = new OptimisticReentrantLock();
+        this.lock = new OptimisticReentrantLock();
+        this.state = State.INITIAL;
 
         this.fragmented = false;
+        this.finalFrame = false;
         this.applicationBufferWriteOffset = 0;
         this.applicationBufferLength = 0;
         this.networkBufferReadOffset = 0;
@@ -207,172 +229,74 @@ public final class WsMessageReader extends MessageReader {
     }
 
     @Override
-    public int read(byte[] buf) throws IOException {
-        return this.read(buf, 0, buf.length);
-    }
-
-    @Override
-    public int read(final byte[] buf, final int offset, final int length) throws IOException {
-        if (buf == null) {
-            throw new NullPointerException("Null buf passed in");
-        }
-        else if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
-            int len = offset + length;
-            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
+    public InputStream getInputStream() throws IOException {
+        if (messageBinaryStream != null) {
+            return messageBinaryStream;
         }
 
         try {
-            stateLock.lock();
+            lock.lock();
 
-            // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
-            switch (state) {
-            case INITIAL:
-            case PROCESS_MESSAGE_TYPE:
-                readMessageType();
-                break;
-            default:
-                break;
+            if (messageBinaryStream != null) {
+                return messageBinaryStream;
             }
 
-            applicationByteBuffer = buf;
-            applicationBufferWriteOffset = offset;
-
-            boolean finalFrame = false;
-
-            do {
-                switch (type) {
-                case EOS:
-                    return -1;
-                case TEXT:
-                    throw new IOException(MSG_NON_BINARY_FRAME);
-                default:
-                    break;
-                }
-
-                incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
-                finalFrame = incomingFrame.fin();
-
-                validateOpcode();
-                DefaultWebSocketContext context = connection.getIncomingContext();
-                IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-                sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opcode());
-                connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
-                networkBufferReadOffset += incomingFrame.length();
-                state = State.PROCESS_MESSAGE_TYPE;
-
-                if (networkBufferReadOffset == networkBufferWriteOffset) {
-                    networkBufferReadOffset = 0;
-                    networkBufferWriteOffset = 0;
-                }
-
-                if (!finalFrame) {
-                    // Start reading the CONTINUATION frame for the message.
-                    assert state == State.PROCESS_MESSAGE_TYPE;
-                    readMessageType();
-                }
-            } while (!finalFrame);
-
-            state = State.INITIAL;
-
-            if ((applicationBufferWriteOffset - offset == 0) && (length > 0)) {
-                // An extension can consume the entire message and not let it surface to the app. In which case, we just try to
-                // read the next message.
-                return read(buf, offset, length);
-            }
-
-            return applicationBufferWriteOffset - offset;
-        }
-        catch (IOException ex) {
-            throw ex;
+            messageBinaryStream = new WsBinaryStream(connection, this);
         }
         finally {
-            stateLock.unlock();
+            lock.unlock();
         }
+
+        return messageBinaryStream;
     }
 
     @Override
-    public int read(char[] buf) throws IOException {
-        return this.read(buf, 0, buf.length);
-    }
-
-    @Override
-    public int read(final char[] buf, int offset, int length) throws IOException {
-        if (buf == null) {
-            throw new NullPointerException("Null buf passed in");
-        }
-        else if ((offset < 0) || ((offset + length) > buf.length) || (length < 0)) {
-            int len = offset + length;
-            throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, buf.length));
+    public Reader getReader() throws IOException {
+        if (messageTextReader != null) {
+            return messageTextReader;
         }
 
         try {
-            stateLock.lock();
+            lock.lock();
 
-            // Check whether next() has been invoked before this method. If it wasn't invoked, then read the header byte.
-            switch (state) {
-            case INITIAL:
-            case PROCESS_MESSAGE_TYPE:
-                readMessageType();
-                break;
-            default:
-                break;
+            if (messageTextReader != null) {
+                return messageTextReader;
             }
 
-            applicationCharBuffer = buf;
-            applicationBufferWriteOffset = offset;
-            applicationBufferLength = length;
-
-            boolean finalFrame = false;
-
-            do {
-                switch (type) {
-                case EOS:
-                    return -1;
-                case BINARY:
-                    throw new IOException(MSG_NON_TEXT_FRAME);
-                default:
-                    break;
-                }
-
-                incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
-                finalFrame = incomingFrame.fin();
-
-                validateOpcode();
-                DefaultWebSocketContext context = connection.getIncomingContext();
-                IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
-                sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opcode());
-                connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
-                networkBufferReadOffset += incomingFrame.length();
-                state = State.PROCESS_MESSAGE_TYPE;
-
-                if (networkBufferReadOffset == networkBufferWriteOffset) {
-                    networkBufferReadOffset = 0;
-                    networkBufferWriteOffset = 0;
-                }
-
-                if (!finalFrame) {
-                    // Start reading the CONTINUATION frame for the message.
-                    assert state == State.PROCESS_MESSAGE_TYPE;
-                    readMessageType();
-                }
-            } while (!finalFrame);
-
-            state = State.INITIAL;
-
-            if ((applicationBufferWriteOffset - offset == 0) && (length > 0)) {
-                // An extension can consume the entire message and not let it surface to the app. In which case, we just try to
-                // read the next message.
-                return read(buf, offset, length);
-            }
-
-            return applicationBufferWriteOffset - offset;
-        }
-        catch (IOException ex) {
-            throw ex;
+            messageTextReader = new WsTextReader(connection, this);
         }
         finally {
-            stateLock.lock();
+            lock.unlock();
         }
+
+        return messageTextReader;
+    }
+
+    @Override
+    public MessageType next() throws IOException {
+        while (!currentMessageOwner.compareAndSet(null, Thread.currentThread())) {
+            // Spin till the current message has been completely read by the current owner.
+        }
+
+        switch (state) {
+        case INITIAL:
+            if (readDataFrameFully() == -1) {
+                return EOS;
+            }
+
+            if (messageBinaryStream != null) {
+                messageBinaryStream.resetState();
+            }
+
+            if (messageTextReader != null) {
+                messageTextReader.resetState();
+            }
+            break;
+        default:
+            throw new IOException(MSG_NOT_CURRENT_OWNER);
+        }
+
+        return type;
     }
 
     @Override
@@ -381,48 +305,225 @@ public final class WsMessageReader extends MessageReader {
     }
 
     @Override
-    public MessageType next() throws IOException {
-        try {
-            stateLock.lock();
+    public int readFully(byte[] buffer) throws IOException {
+        if (buffer == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
 
-            switch (state) {
-            case INITIAL:
-            case PROCESS_MESSAGE_TYPE:
-                readMessageType();
-                break;
-            default:
-                break;
+        if (currentMessageOwner.get() == null) {
+            throw new IOException(MSG_NEXT_NOT_INVOKED);
+        }
+
+        if (currentMessageOwner.get() != Thread.currentThread()) {
+            throw new IOException(MSG_NOT_CURRENT_OWNER);
+        }
+
+        switch (type) {
+        case EOS:
+            return -1;
+        case TEXT:
+            throw new IOException(MSG_NON_BINARY_FRAME);
+        default:
+            break;
+        }
+
+        if (streaming()) {
+            throw new IOException(MSG_CANNOT_BE_READ_FULLY);
+        }
+
+        if (messageLength > buffer.length) {
+            throw new IOException(format(MSG_BUFFER_OVERFLOW, buffer.length, messageLength));
+        }
+
+        assert finalFrame;
+
+        int bytesRead = readAndProcessBinaryFrame(buffer, 0, buffer.length);
+
+        messageLength = -1;
+        resetCurrentOwner();
+
+        return bytesRead;
+    }
+
+    @Override
+    public int readFully(char[] buffer) throws IOException {
+        if (buffer == null) {
+            throw new NullPointerException("Null buffer passed in");
+        }
+
+        if (currentMessageOwner.get() == null) {
+            throw new IOException(MSG_NEXT_NOT_INVOKED);
+        }
+
+        if (currentMessageOwner.get() != Thread.currentThread()) {
+            throw new IOException(MSG_NOT_CURRENT_OWNER);
+        }
+
+        switch (type) {
+        case EOS:
+            return -1;
+        case BINARY:
+            throw new IOException(MSG_NON_TEXT_FRAME);
+        default:
+            break;
+        }
+
+        if (streaming()) {
+            throw new IOException(MSG_CANNOT_BE_READ_FULLY);
+        }
+
+        assert finalFrame;
+
+        int charsRead = readAndProcessTextFrame(buffer, 0, buffer.length);
+
+        messageLength = -1;
+        resetCurrentOwner();
+
+        return charsRead;
+    }
+
+    @Override
+    public void skip() throws IOException {
+        if (currentMessageOwner.get() == null) {
+            throw new IOException(MSG_NEXT_NOT_INVOKED);
+        }
+
+        if (currentMessageOwner.get() != Thread.currentThread()) {
+            throw new IOException(MSG_NOT_CURRENT_OWNER);
+        }
+
+        if (finalFrame) {
+            // Skip a message that fits in a single frame.
+            incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
+            networkBufferReadOffset += incomingFrame.length();
+
+            if (networkBufferReadOffset == networkBufferWriteOffset) {
+                networkBufferReadOffset = 0;
+                networkBufferWriteOffset = 0;
             }
+        }
+        else {
+            // Skip a message spanning across multiple frames.
+            while (!finalFrame) {
+                readDataFrameFully();
+            }
+        }
 
-            return type;
+        state = State.INITIAL;
+        currentMessageOwner.set(null);
+    }
+
+    @Override
+    public boolean streaming() {
+        if (currentMessageOwner.get() == null) {
+            throw new IllegalStateException(MSG_NEXT_NOT_INVOKED);
         }
-        catch (IOException ex) {
-            throw ex;
+
+        if (currentMessageOwner.get() != Thread.currentThread()) {
+            throw new IllegalStateException(MSG_NOT_CURRENT_OWNER);
         }
-        finally {
-            stateLock.unlock();
-        }
+
+        return messageLength == -1;
     }
 
     public void close() throws IOException {
         try {
-            stateLock.lock();
+            lock.lock();
             in.close();
             type = null;
             state = null;
         }
         finally {
-            stateLock.unlock();
+            lock.unlock();
         }
     }
 
-    private int readMessageType() throws IOException {
-        assert state == State.PROCESS_MESSAGE_TYPE || state == State.INITIAL;
+    // Package-Private Methods
 
+    boolean isFinalFrame() {
+        return finalFrame;
+    }
+
+    Thread getCurrentOwner() {
+        return currentMessageOwner.get();
+    }
+
+    void resetCurrentOwner() {
+        currentMessageOwner.set(null);
+    }
+
+    // Private Methods
+
+    private int readAndProcessBinaryFrame(byte[] buffer, int offset, int length) throws IOException {
+        if (type != MessageType.BINARY) {
+            throw new IOException(format(MSG_INVALID_MESSAGE_TYPE, type));
+        }
+
+        applicationByteBuffer = buffer;
+        applicationBufferWriteOffset = offset;
+
+        if (readDataFrameFully() == -1) {
+            return -1;
+        }
+
+        incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
+        finalFrame = incomingFrame.fin();
+
+        validateOpcode();
+        DefaultWebSocketContext context = connection.getIncomingContext();
+        IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+        sentinel.setTerminalConsumer(terminalBinaryFrameConsumer, incomingFrame.opcode());
+        connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+        networkBufferReadOffset += incomingFrame.length();
+
+        if (networkBufferReadOffset == networkBufferWriteOffset) {
+            networkBufferReadOffset = 0;
+            networkBufferWriteOffset = 0;
+        }
+
+        state = finalFrame ? State.INITIAL : State.PROCESS_FRAME;
+        return applicationBufferWriteOffset - offset;
+    }
+
+    private int readAndProcessTextFrame(char[] buffer, int offset, int length) throws IOException {
+        if (type != MessageType.TEXT) {
+            throw new IOException(format(MSG_INVALID_MESSAGE_TYPE, type));
+        }
+
+        applicationCharBuffer = buffer;
+        applicationBufferWriteOffset = offset;
+        applicationBufferLength = length;
+
+        if (readDataFrameFully() == -1) {
+            return -1;
+        }
+
+        incomingFrame.wrap(heapBuffer, networkBufferReadOffset);
+        finalFrame = incomingFrame.fin();
+
+        validateOpcode();
+        DefaultWebSocketContext context = connection.getIncomingContext();
+        IncomingSentinelExtension sentinel = (IncomingSentinelExtension) context.getSentinelExtension();
+        sentinel.setTerminalConsumer(terminalTextFrameConsumer, incomingFrame.opcode());
+        connection.processIncomingFrame(incomingFrameRO.wrap(heapBufferRO, networkBufferReadOffset));
+        networkBufferReadOffset += incomingFrame.length();
+
+        if (networkBufferReadOffset == networkBufferWriteOffset) {
+            networkBufferReadOffset = 0;
+            networkBufferWriteOffset = 0;
+        }
+
+        state = finalFrame ? State.INITIAL : State.PROCESS_FRAME;
+        return applicationBufferWriteOffset - offset;
+    }
+
+    // Returns the leadByte of the next data frame. Otherwise -1.
+    private int readDataFrameFully() throws IOException {
         if (networkBufferWriteOffset == 0) {
             int bytesRead = in.read(networkBuffer, 0, networkBuffer.length);
             if (bytesRead == -1) {
-                type = MessageType.EOS;
+                resetCurrentOwner();
+                type = EOS;
                 return -1;
             }
 
@@ -432,7 +533,8 @@ public final class WsMessageReader extends MessageReader {
 
         int numBytes = ensureFrameMetadata();
         if (numBytes == -1) {
-            type = MessageType.EOS;
+            resetCurrentOwner();
+            type = EOS;
             return -1;
         }
 
@@ -441,7 +543,7 @@ public final class WsMessageReader extends MessageReader {
 
         if (incomingFrame.offset() + payloadLength > networkBufferWriteOffset) {
             if (payloadLength > networkBuffer.length) {
-                int maxPayloadLength = connection.getMaxMessageLength();
+                int maxPayloadLength = connection.getMaxFramePayloadLength();
                 throw new IOException(format(MSG_MAX_MESSAGE_LENGTH, payloadLength, maxPayloadLength));
             }
             else {
@@ -459,7 +561,7 @@ public final class WsMessageReader extends MessageReader {
             while (remainingBytes > 0) {
                 int bytesRead = in.read(networkBuffer, networkBufferWriteOffset, remainingBytes);
                 if (bytesRead == -1) {
-                    type = MessageType.EOS;
+                    resetCurrentOwner();
                     return -1;
                 }
 
@@ -482,12 +584,18 @@ public final class WsMessageReader extends MessageReader {
         }
 
         Opcode opcode = null;
+        finalFrame = incomingFrame.fin();
 
         try {
             opcode = incomingFrame.opcode();
         }
         catch (Exception ex) {
             connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, leadByte & 0x0F));
+        }
+
+        byte maskByte = (byte) uint8Get(incomingFrame.buffer(), incomingFrame.offset() + 1);
+        if ((maskByte & 0x80) != 0) {
+            connection.doFail(WS_PROTOCOL_ERROR, MSG_MASKED_FRAME_FROM_SERVER);
         }
 
         switch (opcode) {
@@ -499,18 +607,20 @@ public final class WsMessageReader extends MessageReader {
             }
             break;
         case TEXT:
-            if (state == State.PROCESS_MESSAGE_TYPE) {
+            if (state == State.PROCESS_FRAME) {
                 // In a subsequent fragmented frame, the opcode should NOT be set.
                 connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, Opcode.toInt(TEXT)));
             }
             type = MessageType.TEXT;
+            messageLength = (state == State.INITIAL) && finalFrame ? payloadLength : -1;
             break;
         case BINARY:
-            if (state == State.PROCESS_MESSAGE_TYPE) {
+            if (state == State.PROCESS_FRAME) {
                 // In a subsequent fragmented frame, the opcode should NOT be set.
                 connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNEXPECTED_OPCODE, Opcode.toInt(BINARY)));
             }
             type = MessageType.BINARY;
+            messageLength = (state == State.INITIAL) && finalFrame ? payloadLength : -1;
             break;
         case CLOSE:
         case PING:
@@ -533,16 +643,16 @@ public final class WsMessageReader extends MessageReader {
 
             if (opcode == CLOSE) {
                 type = MessageType.EOS;
+                resetCurrentOwner();
                 return -1;
             }
-            leadByte = readMessageType();
+            leadByte = readDataFrameFully();
             break;
         default:
             connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, opcode.ordinal()));
             break;
         }
 
-        state = State.PROCESS_FRAME;
         return leadByte;
     }
 
@@ -691,6 +801,277 @@ public final class WsMessageReader extends MessageReader {
         }
         catch (Exception ex) {
             connection.doFail(WS_PROTOCOL_ERROR, format(MSG_UNRECOGNIZED_OPCODE, leadByte & 0x0F));
+        }
+    }
+
+    private static class WsBinaryStream extends InputStream {
+        private final byte[] binaryBuffer;
+        private final WsMessageReader messageReader;
+
+        private boolean fin;
+        private int binaryBufferReadOffset;
+        private int binaryBufferWriteOffset;
+
+        public WsBinaryStream(WsURLConnectionImpl connection,
+                              WsMessageReader messageReader) {
+            this.binaryBuffer = new byte[connection.getMaxFramePayloadLength()];
+            this.messageReader = messageReader;
+        }
+
+        @Override
+        public int read() throws IOException {
+            if (messageReader.getCurrentOwner() == null) {
+                throw new IOException(MSG_NEXT_NOT_INVOKED);
+            }
+
+            if (fin && (binaryBufferReadOffset == binaryBufferWriteOffset)) {
+                return -1;
+            }
+
+            if (messageReader.getCurrentOwner() != Thread.currentThread()) {
+                throw new IOException(MSG_NOT_CURRENT_OWNER);
+            }
+
+            if (!messageReader.streaming()) {
+                // This can be relaxed if we like. Meaning -- we can allow streaming of messages that fit in a single WebSocket
+                // frame.
+                throw new IOException(MSG_CAN_BE_READ_FULLY);
+            }
+
+            try {
+                return readInternal();
+            }
+            catch (RuntimeException ex) {
+                return -1;
+            }
+            catch (IOException ex) {
+                throw ex;
+            }
+        }
+
+        @Override
+        public int read(byte[] buf, int offset, int length) throws IOException {
+            if (buf == null) {
+                throw new NullPointerException("Null buffer passed in");
+            }
+            else if ((offset < 0) || (length < 0) || (offset + length > buf.length)) {
+                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, offset + length, buf.length));
+            }
+
+            if (fin && (binaryBufferReadOffset == binaryBufferWriteOffset)) {
+                return -1;
+            }
+
+            if (messageReader.getCurrentOwner() == null) {
+                throw new IOException(MSG_NEXT_NOT_INVOKED);
+            }
+
+            if (messageReader.getCurrentOwner() != Thread.currentThread()) {
+                throw new IOException(MSG_NOT_CURRENT_OWNER);
+            }
+
+            if (!messageReader.streaming()) {
+                // This can be relaxed if we like. Meaning -- we can allow streaming of messages that fit in a single WebSocket
+                // frame.
+                throw new IOException(MSG_CAN_BE_READ_FULLY);
+            }
+
+            try {
+                int mark = offset;
+                try {
+                    populateBuffer();
+
+                    int len = Math.min(length, binaryBufferWriteOffset - binaryBufferReadOffset);
+                    while (len > 0) {
+                        buf[offset] = (byte) readInternal();
+                        len--;
+                        offset++;
+                    }
+                }
+                catch (RuntimeException ex) {
+                    int count = offset - mark;
+                    return count == 0 ? -1 : count;
+                }
+
+
+                return offset - mark;
+            }
+            catch (RuntimeException ex) {
+                return -1;
+            }
+            catch (IOException ex) {
+                throw ex;
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (messageReader.getCurrentOwner() == null) {
+                throw new IOException(MSG_NEXT_NOT_INVOKED);
+            }
+
+            if (messageReader.getCurrentOwner() != Thread.currentThread()) {
+                throw new IOException(MSG_NOT_CURRENT_OWNER);
+            }
+
+            if (!messageReader.streaming()) {
+                throw new IOException(MSG_CAN_BE_READ_FULLY);
+            }
+
+            if (!fin) {
+                messageReader.skip();
+            }
+            resetState();
+        }
+
+        void resetState() throws IOException {
+            fin = false;
+            binaryBufferReadOffset = 0;
+            binaryBufferReadOffset = 0;
+        }
+
+        private void populateBuffer() throws IOException {
+            while (binaryBufferReadOffset == binaryBufferWriteOffset) {
+                binaryBufferWriteOffset = 0;
+                binaryBufferReadOffset = 0;
+
+                if (fin) {
+                    // The final frame of this message has been read. Make sure that read() returns -1.
+                    messageReader.resetCurrentOwner();
+                    throw new RuntimeException(MSG_END_OF_MESSAGE_STREAM);
+                }
+
+                binaryBufferWriteOffset = messageReader.readAndProcessBinaryFrame(binaryBuffer, 0, binaryBuffer.length);
+                fin = messageReader.isFinalFrame();
+
+                if (binaryBufferWriteOffset == -1) {
+                    binaryBufferWriteOffset = 0;
+                    throw new RuntimeException(MSG_END_OF_MESSAGE_STREAM);
+                }
+                else if (binaryBufferWriteOffset > 0) {
+                    break;
+                }
+            }
+        }
+
+        private int readInternal() throws IOException {
+            populateBuffer();
+
+            assert binaryBufferReadOffset < binaryBufferWriteOffset;
+
+            int b = binaryBuffer[binaryBufferReadOffset++];
+            if (binaryBufferReadOffset == binaryBufferWriteOffset) {
+                binaryBufferReadOffset = 0;
+                binaryBufferWriteOffset = 0;
+
+                if (fin) {
+                    // The final frame of this message has been read.
+                    messageReader.resetCurrentOwner();
+                }
+            }
+
+            return b;
+        }
+    }
+
+    private static class WsTextReader extends Reader {
+        private final char[] textBuffer;
+        private final WsMessageReader messageReader;
+
+        private boolean fin;
+        private int textBufferReadOffset;
+        private int textBufferWriteOffset;
+
+        public WsTextReader(WsURLConnectionImpl connection, WsMessageReader messageReader) {
+            this.textBuffer = new char[connection.getMaxFramePayloadLength()];
+            this.messageReader = messageReader;
+        }
+
+        @Override
+        public int read(char[] cbuf, int offset, int length) throws IOException {
+            if ((offset < 0) || ((offset + length) > cbuf.length) || (length < 0)) {
+                int len = offset + length;
+                throw new IndexOutOfBoundsException(format(MSG_INDEX_OUT_OF_BOUNDS, offset, len, cbuf.length));
+            }
+
+            if (fin && (textBufferReadOffset == textBufferWriteOffset)) {
+                return -1;
+            }
+
+            if (messageReader.getCurrentOwner() == null) {
+                throw new IOException(MSG_NEXT_NOT_INVOKED);
+            }
+
+            if (messageReader.getCurrentOwner() != Thread.currentThread()) {
+                throw new IOException(MSG_NOT_CURRENT_OWNER);
+            }
+
+            if (!messageReader.streaming()) {
+                throw new IOException(MSG_CAN_BE_READ_FULLY);
+            }
+
+            while (textBufferReadOffset == textBufferWriteOffset) {
+                textBufferReadOffset = 0;
+                textBufferWriteOffset = 0;
+
+                if (fin) {
+                    // The final frame of this message has been read.
+                    messageReader.resetCurrentOwner();
+                    return -1;
+                }
+
+                textBufferWriteOffset = messageReader.readAndProcessTextFrame(textBuffer, 0, textBuffer.length);
+                if (textBufferWriteOffset == -1) {
+                    textBufferWriteOffset = 0;
+                    messageReader.resetCurrentOwner();
+                    return -1;
+                }
+                fin = messageReader.isFinalFrame();
+            }
+
+            assert textBufferReadOffset < textBufferWriteOffset;
+
+            int charsRead = Math.min(length, textBufferWriteOffset - textBufferReadOffset);
+            System.arraycopy(textBuffer, textBufferReadOffset, cbuf, offset, charsRead);
+            textBufferReadOffset += charsRead;
+
+            if (textBufferReadOffset == textBufferWriteOffset) {
+                textBufferReadOffset = 0;
+                textBufferWriteOffset = 0;
+
+                if (fin) {
+                    // The final frame of this message has been read.
+                    messageReader.resetCurrentOwner();
+                }
+            }
+
+            return charsRead;
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (messageReader.getCurrentOwner() == null) {
+                throw new IOException(MSG_NEXT_NOT_INVOKED);
+            }
+
+            if (messageReader.getCurrentOwner() != Thread.currentThread()) {
+                throw new IOException(MSG_NOT_CURRENT_OWNER);
+            }
+
+            if (!messageReader.streaming()) {
+                throw new IOException(MSG_CAN_BE_READ_FULLY);
+            }
+
+            if (!fin) {
+                messageReader.skip();
+            }
+            resetState();
+        }
+
+        void resetState() throws IOException {
+            fin = false;
+            textBufferReadOffset = 0;
+            textBufferReadOffset = 0;
         }
     }
 }

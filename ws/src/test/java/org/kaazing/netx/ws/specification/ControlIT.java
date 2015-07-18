@@ -17,9 +17,10 @@
 package org.kaazing.netx.ws.specification;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.rules.RuleChain.outerRule;
-import static org.kaazing.netx.ws.internal.io.MessageType.BINARY;
+import static org.kaazing.netx.ws.MessageType.BINARY;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,10 +36,9 @@ import org.junit.rules.Timeout;
 import org.kaazing.k3po.junit.annotation.Specification;
 import org.kaazing.k3po.junit.rules.K3poRule;
 import org.kaazing.netx.URLConnectionHelper;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageType;
 import org.kaazing.netx.ws.WsURLConnection;
-import org.kaazing.netx.ws.internal.WsURLConnectionImpl;
-import org.kaazing.netx.ws.internal.io.MessageReader;
-import org.kaazing.netx.ws.internal.io.MessageType;
 
 /**
  * RFC-6455, section 5.5 "Control Frames"
@@ -132,20 +132,23 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
 
-        while ((type = reader.next()) != MessageType.EOS) {
+        while ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                int bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
                 break;
             }
         }
+
         k3po.finish();
     }
 
@@ -183,14 +186,16 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
 
-        while ((type = reader.next()) != MessageType.EOS) {
+        while ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                int bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
@@ -245,14 +250,17 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -299,14 +307,16 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
 
-        while ((type = reader.next()) != MessageType.EOS) {
+        while ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                int bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
@@ -350,20 +360,23 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
         MessageType type = null;
 
-        while ((type = reader.next()) != MessageType.EOS) {
+        while ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                int bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
                 break;
             }
         }
+
         k3po.finish();
     }
 
@@ -411,14 +424,17 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -467,19 +483,23 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        byte[] readBytes = new byte[0];
+        MessageReader messageReader = connection.getMessageReader();
 
-        for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+
+        while ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                int bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
                 break;
             }
         }
+
         k3po.finish();
     }
 
@@ -517,13 +537,16 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
-        byte[] readBytes = new byte[0];
+        MessageReader messageReader = connection.getMessageReader();
 
-        for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+        byte[] readBytes = new byte[0];
+        MessageType type = null;
+
+        while ((type = messageReader.next()) != MessageType.EOS) {
             switch (type) {
             case BINARY:
-                reader.read(readBytes);
+                int bytesRead = messageReader.readFully(readBytes);
+                assertEquals(0, bytesRead);
                 break;
             default:
                 assertSame(BINARY, type);
@@ -577,14 +600,17 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -641,14 +667,17 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -705,14 +734,17 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -769,14 +801,17 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -833,14 +868,17 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);
@@ -897,14 +935,17 @@ public class ControlIT {
         URI location = URI.create("ws://localhost:8080/path");
 
         WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
-        MessageReader reader = ((WsURLConnectionImpl) connection).getMessageReader();
+        MessageReader messageReader = connection.getMessageReader();
+
         byte[] readBytes = new byte[0];
+        MessageType type = null;
 
         try {
-            for (MessageType type = reader.next(); type != MessageType.EOS; type = reader.next()) {
+            while ((type = messageReader.next()) != MessageType.EOS) {
                 switch (type) {
                 case BINARY:
-                    reader.read(readBytes);
+                    int bytesRead = messageReader.readFully(readBytes);
+                    assertEquals(0, bytesRead);
                     break;
                 default:
                     assertSame(BINARY, type);

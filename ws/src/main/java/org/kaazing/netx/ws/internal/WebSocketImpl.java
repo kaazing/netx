@@ -30,9 +30,9 @@ import java.util.Collection;
 import org.kaazing.netx.URLConnectionHelper;
 import org.kaazing.netx.http.HttpRedirectPolicy;
 import org.kaazing.netx.http.auth.ChallengeHandler;
+import org.kaazing.netx.ws.MessageReader;
+import org.kaazing.netx.ws.MessageWriter;
 import org.kaazing.netx.ws.WebSocket;
-import org.kaazing.netx.ws.internal.io.MessageReader;
-import org.kaazing.netx.ws.internal.io.MessageWriter;
 
 public class WebSocketImpl extends WebSocket {
     private final WsURLConnectionImpl connection;
@@ -108,8 +108,8 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public int getMaxMessageLength() {
-        return connection.getMaxMessageLength();
+    public int getMaxFramePayloadLength() {
+        return connection.getMaxFramePayloadLength();
     }
 
     public MessageReader getMessageReader() throws IOException {
@@ -171,7 +171,7 @@ public class WebSocketImpl extends WebSocket {
     }
 
     @Override
-    public void setMaxMessageLength(int maxPayloadLength) {
-        connection.setMaxMessageLength(maxPayloadLength);
+    public void setMaxFramePayloadLength(int maxPayloadLength) {
+        connection.setMaxFramePayloadLength(maxPayloadLength);
     }
 }

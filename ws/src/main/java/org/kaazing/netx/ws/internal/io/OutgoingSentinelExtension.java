@@ -49,15 +49,19 @@ import org.kaazing.netx.ws.internal.ext.function.WebSocketFrameConsumer;
 
 public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
     private static final String MSG_CLOSE_FRAME_VIOLATION = "Protocol Violation: CLOSE Frame - Code = %d; Reason Length = %d";
+    private static final String MSG_INVALID_METADATA_LENGTH = "Invalid metadata length '%d'";
 
-    private static final byte[] EMPTY_MASK = new byte[] {0x00, 0x00, 0x00, 0x00};
+    // Even though CLOSE payload length must be <= 125, we are using 150 to accommodate negative tests.
+    private static final int MAX_CLOSE_PAYLOAD_LENGTH_LIMIT = 150;
 
     private final ClosePayloadRO closePayloadRO;
     private final ByteBuffer closePayload;
+    private final ByteBuffer frameBuffer;
 
     public OutgoingSentinelExtension(final WsURLConnectionImpl connection) {
         this.closePayloadRO = new ClosePayloadRO();
-        this.closePayload = ByteBuffer.allocate(150);
+        this.closePayload = ByteBuffer.allocate(MAX_CLOSE_PAYLOAD_LENGTH_LIMIT);
+        this.frameBuffer = ByteBuffer.allocate(connection.getMaxFrameLength() + 4);
 
         super.onBinarySent = new WebSocketFrameConsumer() {
             @Override
@@ -112,12 +116,34 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
             mask = 1 + connection.getRandom().nextInt(Integer.MAX_VALUE);
         }
 
-        out.write(buf.get(offset));
-        encodePayloadLength(out, payloadLength);
-        encodeMaskAndPayload(out, buf, payloadOffset, payloadLength, mask);
+        int metadataLength = payloadOffset - offset;
+
+        switch (metadataLength) {
+        case 2:
+            frameBuffer.putShort(buf.getShort(offset));
+            break;
+        case 4:
+            frameBuffer.putInt(buf.getInt(offset));
+            break;
+        case 10:
+            frameBuffer.putShort(buf.getShort(offset));
+            frameBuffer.putLong(buf.getLong(offset + 2));
+            break;
+        default:
+            throw new IllegalStateException(format(MSG_INVALID_METADATA_LENGTH, metadataLength));
+        }
+
+        // Set the mask bit.
+        byte maskByte = frameBuffer.get(1);
+        frameBuffer.put(1, (byte) (maskByte | 0x80));
+
+        encodeMaskAndPayload(buf, payloadOffset, payloadLength, mask);
+
+        out.write(frameBuffer.array(), 0, frameBuffer.position());
+        frameBuffer.rewind();
     }
 
-    private void encodePayloadLength(OutputStream out, int len) throws IOException {
+    private void encodePayloadLength(int len) throws IOException {
         switch (highestOneBit(len)) {
         case 0x0000:
         case 0x0001:
@@ -126,22 +152,22 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         case 0x0008:
         case 0x0010:
         case 0x0020:
-            out.write(0x80 | len);
+            frameBuffer.put((byte) (0x80 | len));
             break;
         case 0x0040:
             switch (len) {
             case 126:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(126);
+                frameBuffer.put((byte) (0x80 | 126));
+                frameBuffer.put((byte) 0x00);
+                frameBuffer.put((byte) 126);
                 break;
             case 127:
-                out.write(0x80 | 126);
-                out.write(0x00);
-                out.write(127);
+                frameBuffer.put((byte) (0x80 | 126));
+                frameBuffer.put((byte) 0x00);
+                frameBuffer.put((byte) 127);
                 break;
             default:
-                out.write(0x80 | len);
+                frameBuffer.put((byte) (0x80 | len));
                 break;
             }
             break;
@@ -154,23 +180,23 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
         case 0x2000:
         case 0x4000:
         case 0x8000:
-            out.write(0x80 | 126);
-            out.write((len >> 8) & 0xff);
-            out.write((len >> 0) & 0xff);
+            frameBuffer.put((byte) (0x80 | 126));
+            frameBuffer.put((byte) ((len >> 8) & 0xff));
+            frameBuffer.put((byte) ((len >> 0) & 0xff));
             break;
         default:
             // 65536+
-            out.write(0x80 | 127);
+            frameBuffer.put((byte) (0x80 | 127));
 
             long length = len;
-            out.write((int) ((length >> 56) & 0xff));
-            out.write((int) ((length >> 48) & 0xff));
-            out.write((int) ((length >> 40) & 0xff));
-            out.write((int) ((length >> 32) & 0xff));
-            out.write((int) ((length >> 24) & 0xff));
-            out.write((int) ((length >> 16) & 0xff));
-            out.write((int) ((length >> 8) & 0xff));
-            out.write((int) ((length >> 0) & 0xff));
+            frameBuffer.put((byte) ((length >> 56) & 0xff));
+            frameBuffer.put((byte) ((length >> 48) & 0xff));
+            frameBuffer.put((byte) ((length >> 40) & 0xff));
+            frameBuffer.put((byte) ((length >> 32) & 0xff));
+            frameBuffer.put((byte) ((length >> 24) & 0xff));
+            frameBuffer.put((byte) ((length >> 16) & 0xff));
+            frameBuffer.put((byte) ((length >>  8) & 0xff));
+            frameBuffer.put((byte) ((length >>  0) & 0xff));
             break;
         }
     }
@@ -247,10 +273,11 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
             }
         }
 
-        out.write(0x88);
-        encodePayloadLength(out, len);
+        frameBuffer.put((byte) 0x88);
+        encodePayloadLength(len);
+
         if (len == 0) {
-            out.write(EMPTY_MASK);
+            frameBuffer.putInt(0);
         }
         else {
             assert len >= 2;
@@ -266,38 +293,36 @@ public class OutgoingSentinelExtension extends WebSocketExtensionSpi {
                 }
             }
 
-            encodeMaskAndPayload(out, closePayload, 0, len, mask);
+            encodeMaskAndPayload(closePayload, 0, len, mask);
+        }
 
-            out.flush();
-            out.close();
+        out.write(frameBuffer.array(), 0, frameBuffer.position());
+        frameBuffer.rewind();
 
-            if (exception != null) {
-                throw exception;
-            }
+        out.flush();
+        out.close();
+
+        if (exception != null) {
+            throw exception;
         }
     }
 
-    private void encodeMaskAndPayload(OutputStream out, ByteBuffer buffer, int offset, int length, int mask) throws IOException {
-        out.write((byte) ((mask >> 24) & 0xFF));
-        out.write((byte) ((mask >> 16) & 0xFF));
-        out.write((byte) ((mask >> 8) & 0xFF));
-        out.write((byte) ((mask >> 0) & 0xFF));
+    private void encodeMaskAndPayload(ByteBuffer buffer, int offset, int length, int mask) throws IOException {
+        frameBuffer.putInt(mask);
 
         // xor a 32bit word at a time as long as possible then do remaining 0, 1, 2 or 3 bytes.
         int i;
         for (i = 0; i + 4 < length; i += 4) {
             int val = buffer.getInt(offset + i) ^ mask;
-            out.write((byte) ((val >> 24) & 0xFF));
-            out.write((byte) ((val >> 16) & 0xFF));
-            out.write((byte) ((val >> 8) & 0xFF));
-            out.write((byte) ((val >> 0) & 0xFF));
+            frameBuffer.putInt(val);
         }
 
         for (; i < length; i++) {
             int shiftBytes = 3 - (i & 0x03);
             byte maskByte = (byte) (mask >> (8 * shiftBytes) & 0xFF);
             byte b = (byte) (buffer.get(offset + i) ^ maskByte);
-            out.write(b);
+
+            frameBuffer.put(b);
         }
     }
 }

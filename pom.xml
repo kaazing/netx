@@ -27,8 +27,7 @@
         <require.java.version>1.7+</require.java.version>
         <animal.sniffer.signature.artifactId>java16</animal.sniffer.signature.artifactId>
         <junit.version>4.12-beta-1</junit.version>
-        <k3po.version>2.0.0</k3po.version>
-        <k3po.lang.version>[1.99.99.99,2.1.0.0)</k3po.lang.version>
+        <k3po.version>[2.0.0,2.1.0)</k3po.version>
     </properties>
 
     <dependencies>
@@ -42,7 +41,7 @@
             <!-- Needed for EL only, not AST -->
             <groupId>org.kaazing</groupId>
             <artifactId>k3po.lang</artifactId>
-            <version>${k3po.lang.version}</version>
+            <version>${k3po.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kaazing</groupId>
