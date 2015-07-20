@@ -432,3 +432,4 @@ allocations as long as the message length stays at or below the specified length
 ## Wait-free
 netx.ws synchronizes the sending and receiving threads using optimistic locking so there should be no contention or blocked
 threads.
+
