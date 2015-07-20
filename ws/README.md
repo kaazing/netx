@@ -11,7 +11,14 @@ important characteristics:
 
 * Target JVM Version - Java SE 1.6
 * `java.net.Socket` and `java.net.URLConnection` style APIs
-* API for streaming binary and text payloads
+* Streaming API
+  * Agnostic of Message Boundaries
+    * Streaming Binary Payload
+    * Streaming Text Payload
+  * Aware of Message Boundaries
+    * Streaming In Fragmented Messages
+    * Streaming Out Fragmented Messages
+* Sending and Receiving Messages
 * Extension SPI for extension developers
 * Authentication
 * HTTP Redirect Policies
@@ -73,15 +80,24 @@ URLConnectionHelper helper = URLConnectionHelper.newInstance();
 WsURLConnection connection = (WsURLConnection) helper.openConnection(URI.create("ws://echo.websocket.org"));
 ```
 
-## Stream Binary and Text Payloads
+## Streaming API
 
 Both `org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection` support APIs for streaming both binary and text
-payloads. Note that the WebSocket frame boundaries are ignored during streaming. This implies that if an application is
-streaming binary payload, then the incoming message traffic must **not** contain any text frames and vice-versa.
+payloads. One can choose to use Streaming APIs in a way that will allow the application to be either completely agnostic of
+the message boundaries or aware of the message boundaries.
 
-### Streaming Binary Payload Using java.io.InputStream
+### Agnostic of Message Boundaries
 
-The following code illustrates streaming binary payloads using `org.kaazing.netx.ws.WebSocket` and `java.io.InputStream`:
+In order to stream in either binary or text payloads **without** caring for the message boundaries, an application can obtain
+`java.io.InputStream` or `java.io.Reader` objects directly off of `org.kaazing.netx.ws.WebSocket` or
+`org.kaazing.netx.ws.WsURLConnection` objects using `getInputStream()` or `getReader()` APIs. When using these APIs, the
+application will not know where/when the payload for one message ends and where/when the payload for the next message begins.
+This implies that if an application is streaming in binary payload, then the incoming message traffic must **not** contain any
+text frames and vice-versa.
+
+#### Streaming Binary Payload
+
+The following code illustrates streaming in binary payload without being aware of the message boundaries:
 
 ``` java
 WebSocketFactory factory = WebSocketFactory.newInstance();
@@ -90,24 +106,36 @@ InputStream in = connection.getInputStream();
 
 byte[] buf = new byte[125];
 int offset = 0;
-int length = buf.length;
 int bytesRead = 0;
 
-while ((bytesRead != -1) && (length > 0)) {
-    bytesRead = in.read(buf, offset, length);
-    if (bytesRead != -1) {
-       offset += bytesRead;
-       length -= bytesRead;
+while (bytesRead != -1) {
+    // Stream binary payload till the connection is closed. If a text message is received,
+    // then an IOException is thrown.
+    bytesRead = in.read(buf, offset, buf.length - offset);
+    if (bytesRead == -1) {
+        // Connection is closed.
+        break;
+    }
+    
+    offset += bytesRead;
+    
+    if (offset == buf.length) {
+        // Do something with buf.
+        ...
+        ...
+        // Reset offset to keep streaming more binary data.
+        offset = 0;
     }
 }
 ```
 
-`org.kaazing.netx.ws.WsURLConnection` also supports `getInputStream()` API. So, an app can stream binary payload using both
-`org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection`.
+`org.kaazing.netx.ws.WsURLConnection` also supports `getInputStream()` API. In order to stream out binary payload, an application
+can use `getOutputStream()` API on both `org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection` to obtain a
+reference to the `java.io.OutputStream` object.
 
-### Streaming Text Payload Using java.io.Reader
+#### Streaming Text Payload
 
-The following code illustrates streaming text payloads using `org.kaazing.netx.ws.WsURLConnection` and `java.io.Reader`:
+The following code illustrates streaming in text payload without being aware of the message boundaries:
 
 ``` java
 URLConnectionHelper helper = URLConnectionHelper.newInstance();
@@ -116,60 +144,212 @@ Reader reader = connection.getReader();
 
 char[] cbuf = new char[125];
 int offset = 0;
-int length = cbuf.length;
 int charsRead = 0;
 
-while ((charsRead != -1) && (length > 0)) {
-    charsRead = reader.read(cbuf, offset, length);
-    if (charsRead != -1) {
-       offset += charsRead;
-       length -= charsRead;
+while (charsRead != -1) {
+    // Stream text payload till the connection is closed. If a binary message is received,
+    // then an IOException is thrown.
+    charsRead = reader.read(cbuf, offset, cbuf.length - offset);
+    if (charsRead == -1) {
+        // Connection is closed.
+        break;
+    }
+    
+    offset += charsRead;
+    
+    if (offset == cbuf.length) {
+        // Do something with cbuf.
+        ....
+        ....
+        // Reset offset to keep streaming more text data.
+        offset = 0;
     }
 }
 ```
 
-`org.kaazing.netx.ws.WebSocket` also supports `getReader()` API. So, an app can stream text payload using both
-`org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection`. Also, netx.ws handles multi-byte UTF-8 characters
-that may be split across WebSocket frames properly.
+`org.kaazing.netx.ws.WebSocket` also supports `getReader()` API. In order to stream out text payload, an application
+can use `getWriter()` API on both `org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection` to obtain a
+reference to the `java.io.Writer` object.
 
-## Send Messages
+Also, netx.ws handles multi-byte UTF-8 characters that may be split across WebSocket frames properly.
 
-Applications can send both binary and text messages using either `org.kaazing.netx.ws.WebSocket` or
+### Aware of Message Boundaries
+
+If an application needs to be aware of the beginning and the end of the message, then `org.kaazing.netx.ws.MessageReader` and
+`org.kaazing.netx.ws.MessageWriter` should be used. An instance of these classes can be obtained from both
+`org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection` objects using `getMessageReader()` and
+`getMessageWriter()' APIs.
+
+`org.kaazing.netx.ws.MessageReader` and `org.kaazing.netx.ws.MessageWriter` support APIs for receiving/sending messages that
+fit in single WebSocket frame as well as streaming fragmented messages that span across multiple WebSocket frames. Once a message
+has been streamed in completely, the blocking API `org.kaazing.netx.ws.MessageReader.next()` must be invoked to determine the
+type of the next message. Furthermore, the messages can have either binary or text payload. The blocking call
+`org.kaazing.netx.ws.MessageReader.next()` will return only when the next message arrives or the connection is closed.
+
+#### Streaming In Fragmented Messages
+
+The following code illustrates streaming in fragmented binary and text messages that span across multiple WebSocket frames:
+
+``` java
+WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+connection.setMaxPayloadLength(1024);
+MessageReader messageReader = connection.getMessageReader();
+
+byte[] binary = new byte[5 * connection.getMaxPayloadLength()];
+char[] text = new char[5 * connection.getMaxPayloadLength()];
+MessageType type = null;
+
+while ((type = messageReader.next()) != EOS) {
+    int bytesRead = 0;
+    int charsRead = 0;
+    int offset = 0;
+
+    switch (type) {
+    case BINARY:
+        assert message.streaming();  // message spans across multiple WebSocket frames
+
+        InputStream in = messageReader.getInputStream();
+        while ((bytesRead != -1) && (offset < binary.length)) {
+            bytesRead = in.read(binary, offset, binary.length - offset);
+            if (bytesRead == -1) {
+                // Binary message has been read completely. Do something with it.
+                ....
+                ....
+                // Read the next message.
+                break;
+            }
+            else {
+                offset += bytesRead;
+            }
+        }
+        break;
+
+    case TEXT:
+        assert message.streaming();  // message spans across multiple WebSocket frames
+
+        Reader reader = messageReader.getReader();
+
+        while ((charsRead != -1) && (offset < text.length)) {
+            charsRead = reader.read(text, offset, text.length - offset);
+            if (charsRead == -1) {
+                // Text message has been read completely. Do something with it.
+                ....
+                ....
+                // Read the next message.
+                break;
+            }
+            else {
+                offset += charsRead;
+            }
+        }
+        break;
+    }
+}
+```
+
+#### Streaming Out Fragmented Messages
+
+The following code illustrates streaming out fragmented binary message that spans across multiple WebSocket Frames:
+
+``` java
+WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+connection.setMaxPayloadLength(125);
+MessageWriter messageWriter = connection.getMessageWriter();
+
+byte[] binaryFrame = new byte[connection.getMaxFramePayloadLength()];
+int fragmentCount = 5;
+OutputStream binaryOutputStream = messageWriter.getOutputStream();
+
+// Stream out a binary message that spans across five WebSocket frames. Each frame contains
+// 25 bytes of binary payload.
+while (fragmentCount > 0) {
+    fragmentCount--;
+    random.nextBytes(binaryFrame);
+
+    binaryOutputStream.write(binaryFrame);
+
+    if (fragmentCount > 0) {
+         // Send the CONTINUATION frame.
+         binaryOutputStream.flush();
+    }
+    else {
+         // Close the stream and send the final frame of the message with FIN bit set.
+         binaryOutputStream.close();
+    }
+}
+```
+
+An application can use `java.io.OutputStream.flush()` to send out a CONTINUATION WebSocket frame for the message. And, the
+final WebSocket frame of the message can be sent by invoking `java.io.OutputStream.close()` method.
+
+Similarly, a fragmented text message that spans across multiple WebSocket frames can be streamed using 
+`org.kaazing.netx.ws.MessageWriter.getWriter()`.
+
+## Sending and Receiving Messages
+
+Applications can send and receive both binary and text messages using either `org.kaazing.netx.ws.WebSocket` or
 `org.kaazing.netx.ws.WsURLConnection`.
 
-### Send Binary Message Using java.io.OutputStream
+### Sending Binary Message
 
-The following code illustrates sending a binary message using `org.kaazing.netx.ws.WebSocket` and `java.io.OutputStream`:
+The following code illustrates sending a binary message that fits in a single WebSocket frame using
+`org.kaazing.netx.ws.MessageWriter.writeFully()` API:
 
 ``` java
 WebSocketFactory factory = WebSocketFactory.newInstance();
 WebSocket connection = factory.createWebSocket(URI.create("http://echo.websocket.org"));
-OutputStream out = connection.getOutputStream();
+MessageWriter messageWriter = connection.getMessageWriter();
 byte[] bytes = new byte[125];
 Random random = new Random();
 
 random.nextBytes(bytes);
-out.write(bytes);
+messageWriter.writeFully(bytes);
 ```
 
-`org.kaazing.netx.ws.WsURLConnection` also supports `getOutputStream()` API. So, an app can send a binary message using both
-`org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection`.
+### Sending Text Message
 
-### Send Text Message Using java.io.Writer
+The following code illustrates sending a text message that fits in a single WebSocket frame using
+`org.kaazing.netx.ws.MessageWriter.writeFully()` API:
 
 ``` java
 URLConnectionHelper helper = URLConnectionHelper.newInstance();
 WsURLConnection connection = (WsURLConnection) helper.openConnection(URI.create("ws://echo.websocket.org"));
-Writer writer = connection.getWriter();
+MessageWriter messageWriter = connection.getMessageWriter();
 char[] cbuf = new char[125];
 
 // populate cbuf
 
-writer.write(cbuf);
+messageWriter.writeFully(cbuf);
 ```
 
-`org.kaazing.netx.ws.WebSocket` also supports `getWriter()` API. So, an app can send a text message using both
-`org.kaazing.netx.ws.WebSocket` and `org.kaazing.netx.ws.WsURLConnection`.
+### Receiving Message
+
+The following code illustrates receiving a binary or a text message that fits in a single WebSocket frame using
+`org.kaazing.netx.ws.MessageReader.readFully() API`:
+
+``` java
+WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
+connection.setMaxPayloadLength(1024);
+MessageReader messageReader = connection.getMessageReader();
+
+byte[] binaryFull = new byte[connection.getMaxPayloadLength()];
+char[] textFull = new char[connection.getMaxPayloadLength()];
+MessageType type = null;
+
+while ((type = messageReader.next()) != EOS) {
+    switch (type) {
+    case BINARY:
+        assert !message.streaming();  // message fits in a single WebSocket frame
+        messageReader.readFully(binaryFull);
+        break;
+
+    case TEXT:
+        assert !message.streaming();  // message fits in a single WebSocket frame
+        messageReader.readFully(textFull);
+        break;
+    }
+}
+```
 
 ## Extensions SPI
 
@@ -243,7 +423,7 @@ Other redirect policies include `HttpRedirectPolicy.NEVER`, `HttpRedirectPolicy.
 
 netx.ws is thread-safe. An application can have multiple threads sending WebSocket messages using `java.io.OutputStream`,
 `java.io.Writer`, or `org.kaazing.netx.ws.MessageWriter`. Similarly, there can be multiple threads
-receiving messages.
+receiving messages using `java.io.InputStream`, `java.io.Reader`, or `org.kaazing.netx.ws.MessageReader`.
 
 ## Garbage-free
 netx.ws is garbage-free. Once the initial warm up for a message of specified length is complete, netx.ws will not do any more
@@ -252,3 +432,4 @@ allocations as long as the message length stays at or below the specified length
 ## Wait-free
 netx.ws synchronizes the sending and receiving threads using optimistic locking so there should be no contention or blocked
 threads.
+
