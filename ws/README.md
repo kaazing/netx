@@ -195,8 +195,8 @@ WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
 connection.setMaxPayloadLength(1024);
 MessageReader messageReader = connection.getMessageReader();
 
-byte[] binary = new byte[connection.getMaxPayloadLength()];
-char[] text = new char[connection.getMaxPayloadLength()];
+byte[] binary = new byte[5 * connection.getMaxPayloadLength()];
+char[] text = new char[5 * connection.getMaxPayloadLength()];
 MessageType type = null;
 
 while ((type = messageReader.next()) != EOS) {
@@ -256,7 +256,7 @@ WsURLConnection connection = (WsURLConnection) helper.openConnection(location);
 connection.setMaxPayloadLength(125);
 MessageWriter messageWriter = connection.getMessageWriter();
 
-byte[] binaryFrame = new byte[25];
+byte[] binaryFrame = new byte[connection.getMaxFramePayloadLength()];
 int fragmentCount = 5;
 OutputStream binaryOutputStream = messageWriter.getOutputStream();
 
