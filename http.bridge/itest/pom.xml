@@ -26,7 +26,6 @@
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
         <require.java.version>1.7+</require.java.version>
-        <animal.sniffer.signature.artifactId>java17</animal.sniffer.signature.artifactId>
     </properties>
     
     <dependencies>
@@ -83,23 +82,23 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.9</version>
-                <configuration>
-                    <artifactItems>
-                        <artifactItem>
-                            <groupId>org.kaazing</groupId>
-                            <artifactId>netx.http.bridge</artifactId>
-                            <version>${project.version}</version>
-                            <type>jar</type>
-                            <destFileName>netx.http.bridge.jar</destFileName>
-                        </artifactItem>
-                    </artifactItems>
-                </configuration>
                 <executions>
                     <execution>
+                        <phase>package</phase>
                         <goals>
                             <goal>copy</goal>
                         </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.kaazing</groupId>
+                                    <artifactId>netx.http.bridge</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>jar</type>
+                                    <destFileName>netx.http.bridge.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
