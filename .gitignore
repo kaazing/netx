@@ -29,3 +29,5 @@ out
 build-local.properties
 .gradle
 
+
+.checkstyle
