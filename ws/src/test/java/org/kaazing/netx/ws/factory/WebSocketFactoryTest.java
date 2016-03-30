@@ -27,12 +27,8 @@ public class WebSocketFactoryTest {
     }
 
     @Test
-    public void testWebSocketCreation() {
+    public void testWebSocketCreation() throws URISyntaxException {
         WebSocketFactory factory = WebSocketFactory.newInstance();
-        try {
-            WebSocket ws = factory.createWebSocket(URI.create("ws://echo.websocket.org"));
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
+        WebSocket ws = factory.createWebSocket(URI.create("ws://echo.websocket.org"));
     }
 }
