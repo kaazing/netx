@@ -306,7 +306,7 @@ public final class WsInputStream extends InputStream {
         }
 
         assert applicationBufferReadOffset < applicationBufferWriteOffset;
-        return applicationBuffer[applicationBufferReadOffset++];
+        return applicationBuffer[applicationBufferReadOffset++] & 0xFF;
     }
 
     private boolean isControlFrame() {
