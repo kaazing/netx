@@ -45,8 +45,8 @@ Using the following maven dependency, developers can include netx.ws to develop 
 
 ### Steps for building this project
 
-0. Clone the repo: ```git clone https://github.com/kaazing/netx.ws.git```
-0. Go to the cloned directory: ```cd netx.ws```
+0. Clone the repo: ```git clone https://github.com/kaazing/netx.git```
+0. Go to the cloned directory: ```cd netx```
 0. Build the project: ```mvn clean install```
 
 ## Target JVM Version - Java SE 1.6
@@ -68,7 +68,7 @@ netx.ws offers `org.kaazing.netx.ws.WebSocketFactory` to create instances of `or
 
  ``` java
  WebSocketFactory factory = WebSocketFactory.newInstance();
- WebSocket connection = factory.createWebSocket(URI.toString("http://echo.websocket.org"));
+ WebSocket connection = factory.createWebSocket(URI.toString("ws://echo.websocket.org"));
  ```
 ### org.kaazing.netx.ws.WsURLConnection
 
@@ -101,7 +101,7 @@ The following code illustrates streaming in binary payload without being aware o
 
 ``` java
 WebSocketFactory factory = WebSocketFactory.newInstance();
-WebSocket connection = factory.createWebSocket(URI.toString("http://echo.websocket.org"));
+WebSocket connection = factory.createWebSocket(URI.toString("ws://echo.websocket.org"));
 InputStream in = connection.getInputStream();
 
 byte[] buf = new byte[125];
@@ -297,7 +297,7 @@ The following code illustrates sending a binary message that fits in a single We
 
 ``` java
 WebSocketFactory factory = WebSocketFactory.newInstance();
-WebSocket connection = factory.createWebSocket(URI.create("http://echo.websocket.org"));
+WebSocket connection = factory.createWebSocket(URI.create("ws://echo.websocket.org"));
 MessageWriter messageWriter = connection.getMessageWriter();
 byte[] bytes = new byte[125];
 Random random = new Random();

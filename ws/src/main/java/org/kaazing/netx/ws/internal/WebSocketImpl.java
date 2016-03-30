@@ -53,7 +53,9 @@ public class WebSocketImpl extends WebSocket {
 
     @Override
     public void addEnabledExtensions(String... extensions) {
-        connection.addEnabledExtensions(extensions);
+        if (extensions.length > 0) {
+            connection.addEnabledExtensions(extensions);
+        }
     }
 
     @Override
@@ -111,10 +113,12 @@ public class WebSocketImpl extends WebSocket {
         return connection.getMaxFramePayloadLength();
     }
 
+    @Override
     public MessageReader getMessageReader() throws IOException {
         return connection.getMessageReader();
     }
 
+    @Override
     public MessageWriter getMessageWriter() throws IOException {
         return connection.getMessageWriter();
     }

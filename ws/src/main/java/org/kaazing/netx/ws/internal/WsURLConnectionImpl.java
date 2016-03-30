@@ -327,6 +327,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
+    @Override
     public WsMessageReader getMessageReader() throws IOException {
         if (messageReader != null) {
             return messageReader;
@@ -348,6 +349,7 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         }
     }
 
+    @Override
     public WsMessageWriter getMessageWriter() throws IOException {
         if (messageWriter != null) {
             return messageWriter;
@@ -483,7 +485,10 @@ public final class WsURLConnectionImpl extends WsURLConnection {
         try {
             stateLock.lock();
             this.enabledProtocols.clear();
-            this.enabledProtocols.addAll(Arrays.asList(enabledProtocols));
+
+            if (enabledProtocols != null) {
+                this.enabledProtocols.addAll(Arrays.asList(enabledProtocols));
+            }
         }
         finally {
             stateLock.unlock();
