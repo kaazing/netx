@@ -68,7 +68,7 @@ netx.ws offers `org.kaazing.netx.ws.WebSocketFactory` to create instances of `or
 
  ``` java
  WebSocketFactory factory = WebSocketFactory.newInstance();
- WebSocket connection = factory.createWebSocket(URI.toString("ws://echo.websocket.org"));
+ WebSocket connection = factory.createWebSocket(URI.create("ws://echo.websocket.org"));
  ```
 ### org.kaazing.netx.ws.WsURLConnection
 
