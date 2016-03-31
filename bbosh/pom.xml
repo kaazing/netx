@@ -5,11 +5,11 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>netx.parent</artifactId>
-        <version>develop-SNAPSHOT</version>
+        <version>0.4.0-RC000</version>
     </parent>
 
     <artifactId>netx.bbosh</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.4.0-RC000</version>
     <packaging>jar</packaging>
 
     <name>Net BBOSH Implementation</name>

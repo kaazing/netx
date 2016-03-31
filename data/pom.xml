@@ -5,11 +5,11 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>netx.parent</artifactId>
-        <version>develop-SNAPSHOT</version>
+        <version>0.4.0-RC000</version>
     </parent>
 
     <artifactId>netx.data</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.4.0-RC000</version>
     <packaging>jar</packaging>
 
     <name>Net Data Implementation</name>
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>[4.12,)</version>
+            <version>4.12</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
