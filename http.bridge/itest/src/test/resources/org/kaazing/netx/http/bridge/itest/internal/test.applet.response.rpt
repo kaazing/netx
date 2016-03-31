@@ -1,0 +1,92 @@
+#
+# Copyright 2007-2015, Kaazing Corporation. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+property appletPath "target/netx.http.bridge.itest-shaded.jar"
+
+accept http://localhost:8080/
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "200" "OK"
+write header "Content-Type" "text/html"
+write header content-length
+
+write "<html>"
+write "<body>"
+write "<applet width=600 height=600"
+write " code=\"org.kaazing.netx.http.bridge.itest.internal.TestApplet.class\""
+write " archive=\"/applet\""
+write ">"
+write " <param name=location value=\"http://localhost:8081/path\" >"
+write " <param name=codebase_lookup value=\"false\" >"
+write "</applet>"
+write "</body>"
+write "</html>"
+
+write close
+
+accept http://localhost:8080/favicon.ico
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "404" "Not Found"
+write header content-length
+write close
+
+accept http://localhost:8080/applet
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "200" "OK"
+write header "Content-Type" "application/x-java-archive"
+write header "Content-Length" ${file:length(appletPath)}
+
+write ${file:bytes(appletPath)}
+write close
+
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "200" "OK"
+write header "Content-Type" "application/x-java-archive"
+write header "Content-Length" ${file:length(appletPath)}
+
+write ${file:bytes(appletPath)}
+write close
+
+accept http://localhost:8080/crossdomain.xml
+accepted
+connected
+
+read method "GET"
+read closed
+
+write status "404" "Not Found"
+write header content-length
+write close
+
