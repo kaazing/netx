@@ -10,7 +10,7 @@
 
     <groupId>org.kaazing</groupId>
     <artifactId>netx.parent</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.4.0-RC000</version>
     <packaging>pom</packaging>
 
     <name>Net Extensions</name>
@@ -27,7 +27,7 @@
         <maven.compiler.target>1.6</maven.compiler.target>
         <require.java.version>1.7+</require.java.version>
         <junit.version>4.12-beta-1</junit.version>
-        <k3po.version>[2.0.0,2.1.0)</k3po.version>
+        <k3po.version>2.0.3</k3po.version>
     </properties>
 
     <dependencies>
